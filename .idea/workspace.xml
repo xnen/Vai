@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/Main.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Configure.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/FileViewerFrame.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/HistoryPanel.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ProjectPanel.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/openai/OpenAIProvider.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileTreeBuilder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/MeldLauncher.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="2rKSscQg08TEvbR4uqKhE0a6Y9X" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Main.executor": "Run",
+    "Application.OpenAIProvider.executor": "Run",
+    "Application.io.improt.vai.Main.executor": "Run",
+    "Application.superTest.Main.executor": "Run",
+    "Downloaded.Files.Path.Enabled": "false",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/david/Documents/Development/VaiProject/src/main/java/superTest",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Libraries",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/java/superTest" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.io.improt.vai.Main">
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.example.Main" />
+      <module name="VaiProject" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.example.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="OpenAIProvider" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="io.improt.vai.openai.OpenAIProvider" />
+      <module name="VaiProject" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="io.improt.vai.openai.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="io.improt.vai.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="io.improt.vai.Main" />
+      <module name="VaiProject" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="io.improt.vai.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="superTest.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="superTest.Main" />
+      <module name="VaiProject" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="superTest.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.io.improt.vai.Main" />
+        <item itemvalue="Application.Main" />
+        <item itemvalue="Application.superTest.Main" />
+        <item itemvalue="Application.OpenAIProvider" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="" />
+      <created>1736306481911</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1736306481911</updated>
+      <workItem from="1736306482986" duration="10769000" />
+      <workItem from="1736347734315" duration="6910000" />
+      <workItem from="1736397441783" duration="14358000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
