@@ -4,11 +4,13 @@ import io.improt.vai.backend.App;
 import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
+import io.improt.vai.util.FileUtils;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.io.File;
+import java.util.List;
 
 public class Client extends JFrame implements ActiveFilesPanel.FileSelectionListener {
 
@@ -17,6 +19,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
     private final FileViewerPanel fileViewerPanel;
     private ProjectPanel projectPanel;
     private App backend;
+    private JMenu recentMenu;
 
     public Client() {
         super("Vai");
@@ -27,6 +30,8 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         // Menu
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
+        recentMenu = new JMenu("Recent");
+        populateRecentMenu();
         JMenu configMenu = new JMenu("Config");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
         JMenuItem openPathItem = new JMenuItem("Open Path...");
@@ -37,6 +42,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         openDirItem.addActionListener(e -> {
             backend.openDirectory(this);
             projectPanel.refreshTree(backend.getCurrentWorkspace());
+            populateRecentMenu();
         });
 
         openPathItem.addActionListener(e -> {
@@ -46,6 +52,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
                 if (workspace.exists() && workspace.isDirectory()) {
                     backend.openDirectory(workspace);
                     projectPanel.refreshTree(backend.getCurrentWorkspace());
+                    populateRecentMenu();
                 } else {
                     JOptionPane.showMessageDialog(this, "Invalid path. Please enter a valid directory.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -58,6 +65,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
+        fileMenu.add(recentMenu);
         fileMenu.add(refreshItem);
         fileMenu.add(exitItem);
         configMenu.add(configureItem);
@@ -176,5 +184,52 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
     public ProjectPanel getProjectPanel() {
         return this.projectPanel;
+    }
+
+    // New method to populate the Recent menu
+    private void populateRecentMenu() {
+        recentMenu.removeAll();
+        List<String> recentProjects = FileUtils.loadRecentProjects();
+        if (recentProjects.isEmpty()) {
+            JMenuItem emptyItem = new JMenuItem("No Recent Projects");
+            emptyItem.setEnabled(false);
+            recentMenu.add(emptyItem);
+            return;
+        }
+        for (String path : recentProjects) {
+            JMenuItem projectItem = new JMenuItem(formatProjectName(path));
+            projectItem.setToolTipText(path);
+            projectItem.addActionListener(e -> {
+                File workspace = new File(path);
+                if (workspace.exists() && workspace.isDirectory()) {
+                    backend.openDirectory(workspace);
+                    projectPanel.refreshTree(backend.getCurrentWorkspace());
+                    populateRecentMenu();
+                } else {
+                    JOptionPane.showMessageDialog(this, "The project directory does not exist.", "Error", JOptionPane.ERROR_MESSAGE);
+                    FileUtils.loadRecentProjects().remove(path);
+                    FileUtils.saveRecentProjects(FileUtils.loadRecentProjects());
+                    populateRecentMenu();
+                }
+            });
+            recentMenu.add(projectItem);
+        }
+    }
+
+    // Helper method to format the project name using the last two directories
+    private String formatProjectName(String path) {
+        File file = new File(path);
+        StringBuilder nameBuilder = new StringBuilder("...");
+        File parent = file.getParentFile();
+        if (parent != null) {
+            File grandParent = parent.getParentFile();
+            if (grandParent != null) {
+                nameBuilder.append(grandParent.getName()).append("/");
+            }
+            nameBuilder.append(file.getName());
+        } else {
+            nameBuilder.append(file.getName());
+        }
+        return nameBuilder.toString();
     }
 }

@@ -95,6 +95,9 @@ public class App {
         enabledFiles.addAll(loadedEnabledFiles);
         mainWindow.getProjectPanel().refreshTree(currentWorkspace);
         currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
+
+        // Add to recent projects
+        FileUtils.addRecentProject(currentWorkspace.getAbsolutePath());
     }
 
     // New method to open directory by path

@@ -252,4 +252,43 @@ public class FileUtils {
             e.printStackTrace();
         }
     }
+
+    // New methods for handling recent projects
+    public static List<String> loadRecentProjects() {
+        File recentFile = new File(Constants.RECENT_PROJECTS_FILE);
+        if (!recentFile.exists()) {
+            return new ArrayList<>();
+        }
+        String jsonContent = readFileToString(recentFile);
+        if (jsonContent == null || jsonContent.isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            JSONArray jsonArray = new JSONArray(jsonContent);
+            List<String> recentProjects = new ArrayList<>();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                recentProjects.add(jsonArray.getString(i));
+            }
+            return recentProjects;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    public static void saveRecentProjects(List<String> recentProjects) {
+        JSONArray jsonArray = new JSONArray(recentProjects);
+        writeStringToFile(new File(Constants.RECENT_PROJECTS_FILE), jsonArray.toString(4));
+    }
+
+    public static void addRecentProject(String path) {
+        List<String> recentProjects = loadRecentProjects();
+        recentProjects.remove(path); // Remove if duplicate
+        recentProjects.add(0, path); // Add to front
+        // Optionally limit to 10 items
+        if (recentProjects.size() > 10) {
+            recentProjects = recentProjects.subList(0, 10);
+        }
+        saveRecentProjects(recentProjects);
+    }
 }
