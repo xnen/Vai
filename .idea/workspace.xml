@@ -4,25 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/Main.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Configure.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/FileViewerFrame.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/HistoryPanel.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ProjectPanel.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/openai/OpenAIProvider.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileTreeBuilder.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileUtils.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/MeldLauncher.java" afterDir="false" />
+    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="Initial commit">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/Constants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileUtils.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -160,11 +147,24 @@
       <updated>1736306481911</updated>
       <workItem from="1736306482986" duration="10769000" />
       <workItem from="1736347734315" duration="6910000" />
-      <workItem from="1736397441783" duration="14358000" />
+      <workItem from="1736397441783" duration="19045000" />
     </task>
+    <task id="LOCAL-00001" summary="Initial commit">
+      <option name="closed" value="true" />
+      <created>1736461533159</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1736461533159</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Initial commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="Initial commit" />
   </component>
 </project>

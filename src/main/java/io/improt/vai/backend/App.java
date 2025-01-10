@@ -27,7 +27,7 @@ public class App {
     private File currentWorkspace;
     private final List<File> enabledFiles = new ArrayList<>();
 
-    private Set<String> ignoreList = new HashSet<>();
+    private final Set<String> ignoreList = new HashSet<>();
 
     private static App instance;
     private final Client mainWindow;
@@ -42,6 +42,9 @@ public class App {
     }
 
     public void init() {
+        // Load workspace mappings
+        FileUtils.loadWorkspaceMappings();
+        
         openAIProvider = new OpenAIProvider();
         openAIProvider.init();
 
@@ -53,7 +56,7 @@ public class App {
             ignoreList.addAll(FileUtils.readVaiignore(currentWorkspace));
 
             mainWindow.getProjectPanel().refreshTree(currentWorkspace);
-            currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber();
+            currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
             // Load enabled files
             List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
             enabledFiles.addAll(loadedEnabledFiles);
@@ -72,21 +75,30 @@ public class App {
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int result = chooser.showOpenDialog(parent);
         if (result == JFileChooser.APPROVE_OPTION) {
-            currentWorkspace = chooser.getSelectedFile();
-            FileUtils.saveLastWorkspace(currentWorkspace);
-            // Ensure .vaiignore exists
-            FileUtils.createDefaultVaiignore(currentWorkspace);
-            // Load ignore list
-            ignoreList.clear();
-            ignoreList.addAll(FileUtils.readVaiignore(currentWorkspace));
-            // After changing workspace, load enabled files for the new workspace
-            enabledFiles.clear();
-            List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
-            enabledFiles.addAll(loadedEnabledFiles);
-            // Refresh UI components
-            mainWindow.getProjectPanel().refreshTree(currentWorkspace);
-            //    mainWindow.getFileViewerFrame().refreshFileList(enabledFiles);
-            currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber();
+            finalizeDirectoryOpen(chooser.getSelectedFile());
+        }
+    }
+
+    private void finalizeDirectoryOpen(File directory) {
+        currentWorkspace = directory;
+        FileUtils.saveLastWorkspace(currentWorkspace);
+        FileUtils.createDefaultVaiignore(currentWorkspace);
+        ignoreList.clear();
+        ignoreList.addAll(FileUtils.readVaiignore(currentWorkspace));
+        enabledFiles.clear();
+
+        List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
+        enabledFiles.addAll(loadedEnabledFiles);
+        mainWindow.getProjectPanel().refreshTree(currentWorkspace);
+        currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
+    }
+
+    // New method to open directory by path
+    public void openDirectory(File directory) {
+        if (directory != null && directory.exists() && directory.isDirectory()) {
+            finalizeDirectoryOpen(directory);
+        } else {
+            JOptionPane.showMessageDialog(mainWindow, "The provided path is not a valid directory.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -126,12 +138,7 @@ public class App {
     }
 
     public void removeFile(String selectedFile) {
-        for (File file : new ArrayList<>(enabledFiles)) {
-            if (file.getName().equals(selectedFile)) {
-                enabledFiles.remove(file);
-            }
-        }
-
+        enabledFiles.removeIf(file -> file.getName().equals(selectedFile));
         // Save the updated enabled files list
         FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
     }
@@ -209,24 +216,24 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
         if (indexOfMessage != -1 && indexOfMessage < 10) {
             JOptionPane.showMessageDialog(null, "Message from model: " + response.replace("MAGIC_MESSAGE_START", ""));
         } else if (response.contains("MAGIC_JSON_START")) {
-            handleJsonResponse(description, response.replace("MAGIC_JSON_START", ""));
+            handleJsonResponse(response.replace("MAGIC_JSON_START", ""));
         }
 
         // Refresh the directory tree
         this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
     }
 
-    private void handleJsonResponse(String description, String json) {
-        // Trim beginning whitespace.
+    private void handleJsonResponse(String json) {
         json = json.substring(json.indexOf('['));
 
         try {
             JSONArray jsonArray = new JSONArray(json);
 
-            File backupDirectory = new File(this.currentWorkspace.getAbsolutePath() + "/" + Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
+            File vaiDir = FileUtils.getWorkspaceVaiDir(this.currentWorkspace);
+            File backupDirectory = new File(vaiDir, Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
 
             while (backupDirectory.exists()) {
-                backupDirectory = new File(this.currentWorkspace.getAbsolutePath() + "/" + Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
+                backupDirectory = new File(vaiDir, Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
             }
 
             boolean mkdirs = backupDirectory.mkdirs();
@@ -234,8 +241,6 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
                 JOptionPane.showMessageDialog(null, "Failed to create backup directory: " + backupDirectory.getAbsolutePath());
                 return;
             }
-
-//            this.mainWindow.getHistoryPanel().addEntry(description, backupDirectory.getAbsolutePath());
 
             Path workspacePath = Paths.get(this.currentWorkspace.getAbsolutePath());
 
@@ -251,13 +256,16 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
                 // 3. Write the new contents to the file.
                 // 4. Launch a diff tool to compare the original file with the new file. (meld)
 
-                // We'll only setup the backup in json response, since we don't want to create a backup if the request is impossible.
+                // We'll only set up the backup in json response, since we don't want to create a backup if the request is impossible.
 
                 // 2. Copy file to that path in the backup directory, with relative path.
 
                 File targetFile = new File(workspacePath + "/" + fileName);
                 File backupFile = new File(backupDirectory.getAbsolutePath() + "/" + fileName);
-                backupFile.getParentFile().mkdirs();
+                boolean b = backupFile.getParentFile().mkdirs();
+                if (!b) {
+                    System.out.println("[WARNING][Backup] Failed to create parent directory for " + backupFile.getAbsolutePath());
+                }
 
                 // Copy the file to the backup directory
                 if (!targetFile.exists()) {
@@ -272,8 +280,15 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
 
                 // Write the new contents to the file
                 if (!targetFile.exists()) {
-                    targetFile.getParentFile().mkdirs();
-                    targetFile.createNewFile();
+                    boolean b1 = targetFile.getParentFile().mkdirs();
+                    if (!b1) {
+                        System.out.println("[WARNING][Backup] Failed to create parent directory for target " + targetFile.getAbsolutePath());
+                    }
+                    boolean b2 = targetFile.createNewFile();
+                    if (!b2) {
+                        System.out.println("[WARNING][Backup] Failed to create target file " + targetFile.getAbsolutePath());
+                    }
+
                 }
                 FileUtils.writeStringToFile(targetFile, newContents);
 
@@ -293,12 +308,12 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
             String extension = file.getName().substring(file.getName().lastIndexOf('.') + 1);
 
             Path relativePath = workspacePath.relativize(Paths.get(file.getAbsolutePath()));
-//            String relativePathString = relativePath.toString();
-//             Replace first directory with a dot
-//            relativePathString = relativePathString.replaceFirst(relativePath.getName(0) + "/", ".");
+    //            String relativePathString = relativePath.toString();
+    //             Replace first directory with a dot
+    //            relativePathString = relativePathString.replaceFirst(relativePath.getName(0) + "/", ".");
 
             sb.append("== ").append(relativePath).append(" ==\n");
-            sb.append("```" + extension + "\n");
+            sb.append("```").append(extension).append("\n");
             sb.append(FileUtils.readFileToString(file));
             sb.append("\n```\n");
         }

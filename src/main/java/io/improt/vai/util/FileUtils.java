@@ -1,20 +1,37 @@
 package io.improt.vai.util;
 
-import io.improt.vai.util.Constants;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class FileUtils {
+    private static final Map<String, String> workspaceUuidMap = new HashMap<>(); // Maps uuid to path
+    private static final Map<String, String> workspacePathToUuidMap = new HashMap<>(); // Maps path to uuid
+
+    static {
+        // Ensure that VAI_HOME_DIR exists
+        File vaiHomeDir = new File(Constants.VAI_HOME_DIR);
+        if (!vaiHomeDir.exists()) {
+            boolean b = vaiHomeDir.mkdirs();
+            if (!b) {
+                System.out.println("[WARNING] Failed to create VAI_HOME_DIR");
+            }
+        }
+        loadWorkspaceMappings();
+    }
+
     public static String readFileToString(File file) {
         if (!file.exists()) {
             return null;
@@ -32,9 +49,15 @@ public class FileUtils {
             try {
                 File parent = file.getParentFile();
                 if (parent != null && !parent.exists()) {
-                    parent.mkdirs();
+                    boolean b = parent.mkdirs();
+                    if (!b) {
+                        System.out.println("[WARNING] Failed to create parent directory for " + file.getAbsolutePath());
+                    }
                 }
-                file.createNewFile();
+                boolean b = file.createNewFile();
+                if (!b) {
+                    System.out.println("[WARNING] Failed to create file " + file.getAbsolutePath());
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 return;
@@ -45,6 +68,60 @@ public class FileUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    // New methods added to handle workspace mappings
+    public static void loadWorkspaceMappings() {
+        File file = new File(Constants.WORKSPACES_FILE);
+        if (file.exists()) {
+            String jsonContent = readFileToString(file);
+            if (jsonContent != null && !jsonContent.isEmpty()) {
+                try {
+                    JSONObject jsonObject = new JSONObject(jsonContent);
+                    for (String uuid : jsonObject.keySet()) {
+                        String path = jsonObject.getString(uuid);
+                        workspaceUuidMap.put(uuid, path);
+                        workspacePathToUuidMap.put(path, uuid);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void saveWorkspaceMappings() {
+        JSONObject jsonObject = new JSONObject();
+        for (Map.Entry<String, String> entry : workspaceUuidMap.entrySet()) {
+            jsonObject.put(entry.getKey(), entry.getValue());
+        }
+        writeStringToFile(new File(Constants.WORKSPACES_FILE), jsonObject.toString(4));
+    }
+
+    public static String getWorkspaceUUID(File workspace) {
+        String path = workspace.getAbsolutePath();
+        if (workspacePathToUuidMap.containsKey(path)) {
+            return workspacePathToUuidMap.get(path);
+        } else {
+            String uuid = UUID.randomUUID().toString();
+            workspaceUuidMap.put(uuid, path);
+            workspacePathToUuidMap.put(path, uuid);
+            saveWorkspaceMappings();
+            return uuid;
+        }
+    }
+
+    public static File getWorkspaceVaiDir(File workspace) {
+        String uuid = getWorkspaceUUID(workspace);
+        String vaiDirPath = Paths.get(Constants.VAI_HOME_DIR, uuid).toString();
+        File vaiDir = new File(vaiDirPath);
+        if (!vaiDir.exists()) {
+            boolean b = vaiDir.mkdirs();
+            if (!b) {
+                System.out.println("[WARNING] Failed to create VAI directory for workspace " + workspace.getAbsolutePath());
+            }
+        }
+        return vaiDir;
     }
 
     // New methods added to handle filesystem operations
@@ -69,8 +146,9 @@ public class FileUtils {
         writeStringToFile(new File(Constants.LAST_WORKSPACE_FILE), workspace.getAbsolutePath());
     }
 
-    public static int loadIncrementalBackupNumber() {
-        File file = new File(Constants.LAST_INCREMENTAL_BACKUP_NUMBER_FILE);
+    public static int loadIncrementalBackupNumber(File workspace) {
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File file = new File(vaiDir, Constants.LAST_INCREMENTAL_BACKUP_NUMBER_FILE);
         String content = readFileToString(file);
         if (content == null || content.isEmpty()) {
             return 0;
@@ -86,21 +164,23 @@ public class FileUtils {
 
     public static void saveIncrementalBackupNumber(int number, File workspace) {
         if (workspace == null) {
-            System.out.println("No workspace to save incremental backup number to.");
+            System.out.println("No workspace to save incremental backup number.");
             return;
         }
-        
-        File incrementalBackupNumberFile = new File(workspace.getAbsolutePath() + "/" + Constants.LAST_INCREMENTAL_BACKUP_NUMBER_FILE);
-        writeStringToFile(incrementalBackupNumberFile, String.valueOf(number));
+
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File file = new File(vaiDir, Constants.LAST_INCREMENTAL_BACKUP_NUMBER_FILE);
+        writeStringToFile(file, String.valueOf(number));
     }
-    
+
     // New methods for handling enabled files
     public static List<File> loadEnabledFiles(File workspace) {
         List<File> enabledFiles = new ArrayList<>();
         if (workspace == null) {
             return enabledFiles;
         }
-        File enabledFilesFile = new File(workspace, Constants.ENABLED_FILES_FILE);
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File enabledFilesFile = new File(vaiDir, Constants.ENABLED_FILES_FILE);
         if (!enabledFilesFile.exists()) {
             return enabledFiles;
         }
@@ -135,12 +215,14 @@ public class FileUtils {
             obj.put("path", file.getAbsolutePath());
             jsonArray.put(obj);
         }
-        File enabledFilesFile = new File(workspace, Constants.ENABLED_FILES_FILE);
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File enabledFilesFile = new File(vaiDir, Constants.ENABLED_FILES_FILE);
         writeStringToFile(enabledFilesFile, jsonArray.toString(4)); // Pretty print with indentation
     }
 
     public static List<String> readVaiignore(File workspace) {
-        File vaiignore = new File(workspace, Constants.VAIIGNORE_FILE);
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File vaiignore = new File(vaiDir, Constants.VAIIGNORE_FILE);
         if (!vaiignore.exists()) {
             return new ArrayList<>();
         }
@@ -153,7 +235,8 @@ public class FileUtils {
     }
 
     public static void createDefaultVaiignore(File workspace) {
-        File vaiignore = new File(workspace, Constants.VAIIGNORE_FILE);
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File vaiignore = new File(vaiDir, Constants.VAIIGNORE_FILE);
         if (vaiignore.exists()) {
             return;
         }

@@ -14,7 +14,7 @@ public class Client extends JFrame {
 
     private JMenuBar menuBar;
     private JMenu fileMenu, configMenu;
-    private JMenuItem openDirItem, exitItem, configureItem, refreshItem;
+    private JMenuItem openDirItem, openPathItem, exitItem, configureItem, refreshItem;
     private JComboBox<String> modelCombo;
     private JButton clearButton, submitButton;
     private JTextArea textArea;
@@ -36,6 +36,7 @@ public class Client extends JFrame {
         fileMenu = new JMenu("File");
         configMenu = new JMenu("Config");
         openDirItem = new JMenuItem("Open Directory...");
+        openPathItem = new JMenuItem("Open Path...");
         refreshItem = new JMenuItem("Refresh");
         exitItem = new JMenuItem("Exit");
         configureItem = new JMenuItem("Configure...");
@@ -45,6 +46,19 @@ public class Client extends JFrame {
             projectPanel.refreshTree(backend.getCurrentWorkspace());
         });
 
+        openPathItem.addActionListener(e -> {
+            String path = JOptionPane.showInputDialog(this, "Enter workspace path:", "Open Path", JOptionPane.PLAIN_MESSAGE);
+            if (path != null && !path.trim().isEmpty()) {
+                File workspace = new File(path.trim());
+                if (workspace.exists() && workspace.isDirectory()) {
+                    backend.openDirectory(workspace);
+                    projectPanel.refreshTree(backend.getCurrentWorkspace());
+                } else {
+                    JOptionPane.showMessageDialog(this, "Invalid path. Please enter a valid directory.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
         exitItem.addActionListener(e -> System.exit(0));
         configureItem.addActionListener(e -> new Configure(this));
         refreshItem.addActionListener(e -> {
@@ -52,6 +66,7 @@ public class Client extends JFrame {
         });
 
         fileMenu.add(openDirItem);
+        fileMenu.add(openPathItem);
         fileMenu.add(refreshItem);
         fileMenu.add(exitItem);
         configMenu.add(configureItem);
