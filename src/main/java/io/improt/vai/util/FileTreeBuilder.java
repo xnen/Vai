@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class FileTreeBuilder {
 
@@ -68,7 +69,7 @@ public class FileTreeBuilder {
         String relativePath = filePath.substring(contextPath.length());
 
         // Split the relative path into parts
-        return relativePath.split(File.separator.equals("\\") ? "\\\\" : File.separator);
+        return relativePath.split(Pattern.quote(File.separator));
     }
 
     /**
