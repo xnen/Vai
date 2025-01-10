@@ -68,6 +68,8 @@ sudo dnf install meld
     mvn clean package
     ```
 
+    Actually this might not work, needs JDK 22 I think. In IntelliJ you can just use a version 22 JDK and run maven package from the IDE itself, should work.
+
     This command will compile the project into a fat JAR file. Hopefully!
     It should result in the `target` directory.
 
