@@ -10,7 +10,7 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.io.File;
 
-public class Client extends JFrame {
+public class Client extends JFrame implements ActiveFilesPanel.FileSelectionListener {
 
     private final JComboBox<String> modelCombo;
     private final JTextArea textArea;
@@ -76,6 +76,7 @@ public class Client extends JFrame {
 
         // Active Files Panel
         ActiveFilesPanel activeFilesPanel = new ActiveFilesPanel(backend);
+        activeFilesPanel.setFileSelectionListener(this);
 
         // File Viewer Panel
         fileViewerPanel = new FileViewerPanel();
@@ -161,6 +162,16 @@ public class Client extends JFrame {
         });
 
         setVisible(true);
+    }
+
+    /**
+     * Callback method when a file is selected in the ActiveFilesPanel.
+     *
+     * @param file The file that was selected.
+     */
+    @Override
+    public void onFileSelected(File file) {
+        fileViewerPanel.displayFile(file);
     }
 
     public ProjectPanel getProjectPanel() {

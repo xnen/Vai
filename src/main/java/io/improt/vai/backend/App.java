@@ -1,6 +1,7 @@
 package io.improt.vai.backend;
 
 import io.improt.vai.frame.Client;
+import io.improt.vai.frame.JsonRepair;
 import io.improt.vai.openai.OpenAIProvider;
 import io.improt.vai.util.FileTreeBuilder;
 import io.improt.vai.util.FileUtils;
@@ -8,15 +9,18 @@ import io.improt.vai.util.Constants;
 
 import io.improt.vai.util.MeldLauncher;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
@@ -143,51 +147,23 @@ public class App {
         FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
     }
 
-    public static String PROMPT_TEMPLATE = """
-GOAL: Take the following request, and make relevant changes to any relevant files of the supplied file context:
+    public void addFile(File file) {
+        if (file != null && file.exists() && file.isFile()) {
+            String newFilePath = file.getAbsolutePath();
+            for (File enabledFile : enabledFiles) {
+                if (enabledFile.getAbsolutePath().equals(newFilePath)) {
+                    // File already exists in enabledFiles
+                    return;
+                }
+            }
+            enabledFiles.add(file);
+            // Save the updated enabled files list
+            FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
 
-REQUEST: <REPLACEME_WITH_REQUEST>
-
-You MUST respond with the following format for all changed files (json, with the magic)
-
-```json
-MAGIC_JSON_START
-[
-{
-    "fileName": "full path found in == <path> ==",
-    "new_contents": "<new contents of file>"
-},
-{
-    "fileName": "another path",
-    "new_contents": "<more contents>"
-},
-... etc
-]
-```
-
-MAGIC_JSON_START is a token to denote where your json response will begin.
-If you supply a fileName that does not exist, it will be created.
-
-Think about any required changes, infer in areas whereas the context may not be supplied.
-If a request is deemed impossible, you may communicate a reply via another magic "MAGIC_MESSAGE_START" with a simple string.
-
-i.e.
-MAGIC_MESSAGE_START "Sorry, but your request is impossible, for the following reason: ..."
-
-Do not include multiple magics per response, pick MESSAGE or JSON.
-
------
-
-File Structure:
-<REPLACEME_WITH_STRUCTURE>
-
-Files (prefixed with == <FullRelativePath> ==, and ```s)
-<REPLACEME_WITH_FILES>
-
------
-
-Begin now, ensuring correctness, good formatting, and adequate coding practices.
-""";
+            String tree = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
+            System.out.println(tree);
+        }
+    }
 
     public OpenAIProvider getOpenAIProvider() {
         return this.openAIProvider;
@@ -201,6 +177,15 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
         // Replace the top level directory with a dot
         structure = structure.replaceFirst(this.currentWorkspace.getName() + "/", "./");
 
+        String PROMPT_TEMPLATE = FileUtils.readFileToString(new File(Constants.PROMPT_TEMPLATE_FILE));
+
+        if (PROMPT_TEMPLATE == null) {
+            String defaultPromptBase64 = Constants.DEFAULT_PROMPT_TEMPLATE_B64;
+            byte[] decodedBytes = Base64.getDecoder().decode(defaultPromptBase64);
+            String defaultPrompt = new String(decodedBytes, StandardCharsets.UTF_8);
+            FileUtils.writeStringToFile(new File(Constants.PROMPT_TEMPLATE_FILE), defaultPrompt);
+            PROMPT_TEMPLATE = defaultPrompt;
+        }
 
         String prompt = PROMPT_TEMPLATE
                 .replace("<REPLACEME_WITH_REQUEST>", description)
@@ -210,13 +195,22 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
         String response = openAIProvider.request(model, prompt);
         System.out.println(response);
 
+        // Common LLM quirk, remove the ```json part if it's there.
+        if (response.startsWith("```json")) {
+            response = response.substring(response.indexOf("```json") + 7);
+            // Remove the last ```, if it's there.
+            if (response.endsWith("```")) {
+                response = response.substring(0, response.length() - 3);
+            }
+        }
+
         int indexOfMessage = response.indexOf("MAGIC_MESSAGE_START");
 
         // Some leeway for whitespace, etc.
         if (indexOfMessage != -1 && indexOfMessage < 10) {
             JOptionPane.showMessageDialog(null, "Message from model: " + response.replace("MAGIC_MESSAGE_START", ""));
         } else if (response.contains("MAGIC_JSON_START")) {
-            handleJsonResponse(response.replace("MAGIC_JSON_START", ""));
+            handleJsonResponse(response.replace("MAGIC_JSON_START\n", ""));
         }
 
         // Refresh the directory tree
@@ -224,11 +218,38 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
     }
 
     private void handleJsonResponse(String json) {
-        json = json.substring(json.indexOf('['));
+        System.out.println("Handling JSON response: " + json);
 
+        boolean validJson = false;
+        String currentJson = json;
+        String exceptionMessage = "";
+
+        while (!validJson) {
+            try {
+                JSONArray jsonArray = new JSONArray(currentJson);
+                // If parsing is successful, proceed to handle the JSON
+                processJsonArray(jsonArray);
+                validJson = true;
+            } catch (JSONException e) {
+                exceptionMessage = e.getMessage();
+                // Show JsonRepair dialog
+                JsonRepair repairDialog = new JsonRepair(mainWindow, currentJson, exceptionMessage);
+                repairDialog.setVisible(true);
+                
+                String userCorrectedJson = repairDialog.getCorrectedJson();
+                if (userCorrectedJson != null) {
+                    currentJson = userCorrectedJson;
+                } else {
+                    // User cancelled the dialog
+                    JOptionPane.showMessageDialog(null, "JSON repair was cancelled. Operation aborted.", "Operation Aborted", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void processJsonArray(JSONArray jsonArray) {
         try {
-            JSONArray jsonArray = new JSONArray(json);
-
             File vaiDir = FileUtils.getWorkspaceVaiDir(this.currentWorkspace);
             File backupDirectory = new File(vaiDir, Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
 
@@ -296,6 +317,8 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
                 MeldLauncher.launchMeld(backupFile.toPath(), targetFile.toPath());
             }
         } catch (Exception e) {
+            // Popup a message saying it failed.
+            JOptionPane.showMessageDialog(null, "Failed to handle LLM response: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -308,9 +331,9 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
             String extension = file.getName().substring(file.getName().lastIndexOf('.') + 1);
 
             Path relativePath = workspacePath.relativize(Paths.get(file.getAbsolutePath()));
-    //            String relativePathString = relativePath.toString();
-    //             Replace first directory with a dot
-    //            relativePathString = relativePathString.replaceFirst(relativePath.getName(0) + "/", ".");
+//            String relativePathString = relativePath.toString();
+//             Replace first directory with a dot
+//            relativePathString = relativePathString.replaceFirst(relativePath.getName(0) + "/", ".");
 
             sb.append("== ").append(relativePath).append(" ==\n");
             sb.append("```").append(extension).append("\n");

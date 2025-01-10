@@ -50,6 +50,10 @@ public class FileTreeBuilder {
         // Build the tree structure
         for (File file : files) {
             String[] parts = getStrings(contextPath, file);
+            if (parts == null) {
+                continue;
+            }
+
             TreeNode current = root;
             for (String part : parts) {
                 current = current.getOrCreateChild(part);
@@ -62,7 +66,9 @@ public class FileTreeBuilder {
         String filePath = file.getAbsolutePath();
 
         if (!filePath.startsWith(contextPath)) {
-            throw new IllegalArgumentException("File " + filePath + " is not under the context directory " + contextPath);
+            System.out.println("File " + filePath + " is not under the context directory " + contextPath);
+            return null;
+//            throw new IllegalArgumentException("File " + filePath + " is not under the context directory " + contextPath);
         }
 
         // Compute the relative path

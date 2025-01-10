@@ -5,15 +5,21 @@ import io.improt.vai.backend.App;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class ActiveFilesPanel extends JPanel {
     private final JTable fileTable;
     private final DefaultTableModel tableModel;
     private final App backend;
+    
+    private FileSelectionListener fileSelectionListener;
 
     public ActiveFilesPanel(App backend) {
         this.backend = backend;
@@ -32,7 +38,42 @@ public class ActiveFilesPanel extends JPanel {
         fileTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         fileTable.setFillsViewportHeight(true);
         
-        // Add mouse listener for context menu and double-click deletion
+        // Enable drag and drop
+        setTransferHandler(new TransferHandler() {
+            @Override
+            public boolean canImport(TransferSupport support) {
+                if (!support.isDrop()) {
+                    return false;
+                }
+                if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public boolean importData(TransferSupport support) {
+                if (!canImport(support)) {
+                    return false;
+                }
+
+                try {
+                    Transferable t = support.getTransferable();
+                    List<File> droppedFiles = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+                    for (File file : droppedFiles) {
+                        backend.addFile(file);
+                    }
+                    refreshTable();
+                    return true;
+                } catch (UnsupportedFlavorException | IOException e) {
+                    e.printStackTrace();
+                }
+
+                return false;
+            }
+        });
+        
+        // Add mouse listener for context menu, single-click selection, and double-click deletion
         fileTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -47,14 +88,27 @@ public class ActiveFilesPanel extends JPanel {
                     deleteItem.addActionListener(event -> {
                         String fileName = (String) tableModel.getValueAt(selectedRow, 0);
                         backend.removeFile(fileName);
+                        refreshTable();
                     });
                     contextMenu.add(deleteItem);
                     contextMenu.show(fileTable, e.getX(), e.getY());
                 }
                 
-                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
-                    String fileName = (String) tableModel.getValueAt(selectedRow, 0);
-                    backend.removeFile(fileName);
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (e.getClickCount() == 2) {
+                        // Double-click to delete
+                        String fileName = (String) tableModel.getValueAt(selectedRow, 0);
+                        backend.removeFile(fileName);
+                        refreshTable();
+                    } else if (e.getClickCount() == 1) {
+                        // Single-click to open in File Viewer
+                        String fileName = (String) tableModel.getValueAt(selectedRow, 0);
+                        String filePath = (String) tableModel.getValueAt(selectedRow, 1);
+                        File file = new File(filePath);
+                        if (fileSelectionListener != null && file.exists() && file.isFile()) {
+                            fileSelectionListener.onFileSelected(file);
+                        }
+                    }
                 }
             }
         });
@@ -96,5 +150,21 @@ public class ActiveFilesPanel extends JPanel {
         });
         watchdogThread.setDaemon(true);
         watchdogThread.start();
+    }
+
+    /**
+     * Sets the listener for file selection events.
+     *
+     * @param listener The FileSelectionListener to set.
+     */
+    public void setFileSelectionListener(FileSelectionListener listener) {
+        this.fileSelectionListener = listener;
+    }
+
+    /**
+     * Interface for listening to file selection events.
+     */
+    public interface FileSelectionListener {
+        void onFileSelected(File file);
     }
 }

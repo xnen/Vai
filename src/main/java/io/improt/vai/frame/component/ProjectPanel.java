@@ -31,12 +31,18 @@ public class ProjectPanel extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int selRow = tree.getRowForLocation(e.getX(), e.getY());
-                if (selRow != -1 && e.getClickCount() == 1) {
+                if (selRow != -1) {
                     TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
                     File selectedFile = pathToFile(selPath);
-                    if (selectedFile != null && selectedFile.isFile()) {
-                        App.getInstance().toggleFile(selectedFile);
-                        tree.repaint(); // Refresh the tree to update colors
+                    if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1) {
+                        if (selectedFile != null && selectedFile.isFile()) {
+                            App.getInstance().toggleFile(selectedFile);
+                            tree.repaint(); // Refresh the tree to update colors
+                        }
+                    } else if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1) {
+                        if (selectedFile != null) {
+                            showContextMenu(e.getX(), e.getY(), selectedFile);
+                        }
                     }
                 }
             }
@@ -147,6 +153,21 @@ public class ProjectPanel extends JPanel {
             }
             return c;
         }
+    }
+
+    private void showContextMenu(int x, int y, File selectedFile) {
+        JPopupMenu contextMenu = new JPopupMenu();
+        JMenuItem useAsWorkspaceItem = new JMenuItem("Use as workspace");
+        useAsWorkspaceItem.addActionListener(e -> {
+            File workspaceDir = selectedFile.isDirectory() ? selectedFile : selectedFile.getParentFile();
+            if (workspaceDir != null && workspaceDir.exists() && workspaceDir.isDirectory()) {
+                App.getInstance().openDirectory(workspaceDir);
+            } else {
+                JOptionPane.showMessageDialog(this, "Selected item is not a valid directory.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        contextMenu.add(useAsWorkspaceItem);
+        contextMenu.show(tree, x, y);
     }
 
     public JTree getTree() {
