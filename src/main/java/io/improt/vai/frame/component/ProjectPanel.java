@@ -6,14 +6,12 @@ import javax.swing.*;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.*;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.event.TreeSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 
 public class ProjectPanel extends JPanel {
-    private JTree tree;
+    private final JTree tree;
 
     public ProjectPanel() {
         setLayout(new BorderLayout());
@@ -45,11 +43,8 @@ public class ProjectPanel extends JPanel {
         });
 
         // Add TreeSelectionListener to handle selection changes
-        tree.addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-                // Notify listeners if needed
-            }
+        tree.addTreeSelectionListener(e -> {
+            // Notify listeners if needed
         });
 
         // Add TreeExpansionListener to auto-expand single directory nodes
@@ -132,7 +127,7 @@ public class ProjectPanel extends JPanel {
 
     // Custom TreeCellRenderer to highlight active files
     private class ActiveFileTreeCellRenderer extends DefaultTreeCellRenderer {
-        private Color activeColor = new Color(144, 238, 144); // Light Green
+        private final Color activeColor = new Color(144, 238, 144); // Light Green
 
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected,

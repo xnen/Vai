@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="ANALYZE_INJECTED_CODE" value="false" />
+  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="Initial commit">
+    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="Extract file data to its own managed workspace system within user home.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/Constants.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileUtils.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Configure.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Configure.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/FileViewerFrame.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ActiveFilesPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ActiveFilesPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/FileViewerPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/FileViewerPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/HistoryPanel.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ProjectPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ProjectPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/openai/OpenAIProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/openai/OpenAIProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileTreeBuilder.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileTreeBuilder.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,6 +33,9 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
@@ -58,6 +69,7 @@
     "project.structure.last.edited": "Libraries",
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.2",
+    "run.code.analysis.last.selected.profile": "pProject Default",
     "settings.editor.selected.configurable": "preferences.lookFeel",
     "vue.rearranger.settings.migration": "true"
   }
@@ -147,7 +159,7 @@
       <updated>1736306481911</updated>
       <workItem from="1736306482986" duration="10769000" />
       <workItem from="1736347734315" duration="6910000" />
-      <workItem from="1736397441783" duration="19045000" />
+      <workItem from="1736397441783" duration="19408000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -157,7 +169,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736461533159</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Extract file data to its own managed workspace system within user home.">
+      <option name="closed" value="true" />
+      <created>1736467333534</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1736467333534</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -165,6 +185,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="Initial commit" />
+    <MESSAGE value="Extract file data to its own managed workspace system within user home." />
+    <option name="LAST_COMMIT_MESSAGE" value="Extract file data to its own managed workspace system within user home." />
   </component>
 </project>

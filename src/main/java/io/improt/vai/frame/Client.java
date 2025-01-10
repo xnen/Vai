@@ -12,34 +12,28 @@ import java.io.File;
 
 public class Client extends JFrame {
 
-    private JMenuBar menuBar;
-    private JMenu fileMenu, configMenu;
-    private JMenuItem openDirItem, openPathItem, exitItem, configureItem, refreshItem;
-    private JComboBox<String> modelCombo;
-    private JButton clearButton, submitButton;
-    private JTextArea textArea;
-    private JLabel statusLabel;
-    // private HistoryPanel historyPanel; // Removed HistoryPanel
+    private final JMenuBar menuBar;
+    private final JComboBox<String> modelCombo;
+    private final JTextArea textArea;
+    private final FileViewerPanel fileViewerPanel;
     private ProjectPanel projectPanel;
-    private ActiveFilesPanel activeFilesPanel;
-    private FileViewerPanel fileViewerPanel; // New FileViewerPanel
     private App backend;
 
     public Client() {
         super("Vai");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 700); // Increased size to accommodate additional panel
+        setSize(1000, 700);
         setResizable(true);
 
         // Menu
         menuBar = new JMenuBar();
-        fileMenu = new JMenu("File");
-        configMenu = new JMenu("Config");
-        openDirItem = new JMenuItem("Open Directory...");
-        openPathItem = new JMenuItem("Open Path...");
-        refreshItem = new JMenuItem("Refresh");
-        exitItem = new JMenuItem("Exit");
-        configureItem = new JMenuItem("Configure...");
+        JMenu fileMenu = new JMenu("File");
+        JMenu configMenu = new JMenu("Config");
+        JMenuItem openDirItem = new JMenuItem("Open Directory...");
+        JMenuItem openPathItem = new JMenuItem("Open Path...");
+        JMenuItem refreshItem = new JMenuItem("Refresh");
+        JMenuItem exitItem = new JMenuItem("Exit");
+        JMenuItem configureItem = new JMenuItem("Configure...");
 
         openDirItem.addActionListener(e -> {
             backend.openDirectory(this);
@@ -61,9 +55,7 @@ public class Client extends JFrame {
 
         exitItem.addActionListener(e -> System.exit(0));
         configureItem.addActionListener(e -> new Configure(this));
-        refreshItem.addActionListener(e -> {
-            projectPanel.refreshTree(backend.getCurrentWorkspace());
-        });
+        refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
 
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
@@ -84,7 +76,7 @@ public class Client extends JFrame {
         backend.init();
 
         // Active Files Panel
-        activeFilesPanel = new ActiveFilesPanel(backend);
+        ActiveFilesPanel activeFilesPanel = new ActiveFilesPanel(backend);
 
         // File Viewer Panel
         fileViewerPanel = new FileViewerPanel();
@@ -128,12 +120,12 @@ public class Client extends JFrame {
         bottomPanel.add(modelCombo);
 
         // Clear button
-        clearButton = new JButton("Clear");
+        JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(e -> textArea.setText(""));
         bottomPanel.add(clearButton);
 
         // Submit button
-        submitButton = new JButton("Submit");
+        JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
             if (modelCombo.getSelectedItem() == null) {
                 System.out.println("Must select a model");
@@ -155,7 +147,7 @@ public class Client extends JFrame {
         getContentPane().add(mainSplitPane, BorderLayout.CENTER);
 
         // Status bar at the bottom
-        statusLabel = new JLabel("Ready");
+        JLabel statusLabel = new JLabel("Ready");
         getContentPane().add(statusLabel, BorderLayout.SOUTH);
 
         // Add listener to ProjectPanel for file selection
@@ -174,13 +166,5 @@ public class Client extends JFrame {
 
     public ProjectPanel getProjectPanel() {
         return this.projectPanel;
-    }
-
-    // public HistoryPanel getHistoryPanel() {
-    //     return this.historyPanel;
-    // }
-
-    public JMenuBar getMenuBarComponent() {
-        return this.menuBar;
     }
 }

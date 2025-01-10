@@ -11,9 +11,9 @@ import java.io.File;
 import java.util.List;
 
 public class ActiveFilesPanel extends JPanel {
-    private JTable fileTable;
-    private DefaultTableModel tableModel;
-    private App backend;
+    private final JTable fileTable;
+    private final DefaultTableModel tableModel;
+    private final App backend;
 
     public ActiveFilesPanel(App backend) {
         this.backend = backend;

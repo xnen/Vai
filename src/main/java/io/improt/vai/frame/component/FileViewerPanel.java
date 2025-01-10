@@ -11,11 +11,10 @@ import org.fife.ui.rsyntaxtextarea.*;
 import org.fife.ui.rtextarea.*;
 
 public class FileViewerPanel extends JPanel {
-    private RSyntaxTextArea textArea;
-    private RTextScrollPane scrollPane;
-    private JButton addButton;
-    private JButton subtractButton;
-    private JButton saveButton;
+    private final RSyntaxTextArea textArea;
+    private final JButton addButton;
+    private final JButton subtractButton;
+    private final JButton saveButton;
     private File currentFile;
 
     public FileViewerPanel() {
@@ -28,7 +27,7 @@ public class FileViewerPanel extends JPanel {
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
         textArea.setCodeFoldingEnabled(true);
 
-        scrollPane = new RTextScrollPane(textArea);
+        RTextScrollPane scrollPane = new RTextScrollPane(textArea);
         add(scrollPane, BorderLayout.CENTER);
 
         // Initialize buttons

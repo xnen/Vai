@@ -7,8 +7,7 @@ import java.awt.*;
 import java.io.*;
 
 public class Configure extends JFrame {
-    private JTextField apiKeyField;
-    private JButton saveButton;
+    private final JTextField apiKeyField;
 
     public Configure(Frame parent) {
         super("Configure");
@@ -16,7 +15,7 @@ public class Configure extends JFrame {
         setLayout(new FlowLayout());
 
         apiKeyField = new JTextField(20);
-        saveButton = new JButton("Save");
+        JButton saveButton = new JButton("Save");
 
         // Load API key from file
         try {
@@ -33,7 +32,7 @@ public class Configure extends JFrame {
 
         saveButton.addActionListener(e -> {
             try {
-                FileWriter fw = new FileWriter(new File(App.API_KEY));
+                FileWriter fw = new FileWriter(App.API_KEY);
                 fw.write(apiKeyField.getText());
                 fw.close();
                 dispose();

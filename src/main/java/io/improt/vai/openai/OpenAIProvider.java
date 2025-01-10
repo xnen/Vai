@@ -2,11 +2,8 @@ package io.improt.vai.openai;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.core.JsonField;
-import com.openai.core.JsonValue;
 import com.openai.models.*;
 import io.improt.vai.backend.App;
-import io.improt.vai.frame.Client;
 
 import java.util.List;
 import java.util.Optional;
@@ -76,10 +73,5 @@ public class OpenAIProvider {
 
 
         return content.orElse(null);
-    }
-
-    public static void main(String[] args) {
-        OpenAIProvider provider = new OpenAIProvider();
-        provider.init();
     }
 }
