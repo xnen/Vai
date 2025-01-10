@@ -12,7 +12,6 @@ import java.io.File;
 
 public class Client extends JFrame {
 
-    private final JMenuBar menuBar;
     private final JComboBox<String> modelCombo;
     private final JTextArea textArea;
     private final FileViewerPanel fileViewerPanel;
@@ -26,7 +25,7 @@ public class Client extends JFrame {
         setResizable(true);
 
         // Menu
-        menuBar = new JMenuBar();
+        JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenu configMenu = new JMenu("Config");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
