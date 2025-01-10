@@ -104,6 +104,36 @@ public class FileViewerPanel extends JPanel {
             textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_HTML);
         } else if (fileName.endsWith(".css")) {
             textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_CSS);
+        } else if (fileName.endsWith(".cpp") || fileName.endsWith(".cxx") || fileName.endsWith(".cc")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_CPLUSPLUS);
+        } else if (fileName.endsWith(".cs")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_CSHARP);
+        } else if (fileName.endsWith(".json")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JSON);
+        } else if (fileName.endsWith(".go")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_GO);
+        } else if (fileName.endsWith(".groovy")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_GROOVY);
+        } else if (fileName.endsWith(".rb")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_RUBY);
+        } else if (fileName.endsWith(".php")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_PHP);
+        } else if (fileName.endsWith(".kt")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_KOTLIN);
+        } else if (fileName.endsWith(".xml")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_XML);
+        } else if (fileName.endsWith(".md") || fileName.endsWith(".markdown")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_MARKDOWN);
+        } else if (fileName.endsWith(".sql")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
+        } else if (fileName.endsWith(".yaml") || fileName.endsWith(".yml")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_YAML);
+        } else if (fileName.endsWith(".ts")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_TYPESCRIPT);
+        } else if (fileName.endsWith(".bat")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_WINDOWS_BATCH);
+        } else if (fileName.endsWith(".sh") || fileName.endsWith(".bash")) {
+            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_UNIX_SHELL);
         } else {
             textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
         }
