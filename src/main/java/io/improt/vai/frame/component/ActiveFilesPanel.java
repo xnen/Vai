@@ -91,6 +91,17 @@ public class ActiveFilesPanel extends JPanel {
                         refreshTable();
                     });
                     contextMenu.add(deleteItem);
+                    
+                    // Add Clear Active option to the context menu
+                    JMenuItem clearActiveItem = new JMenuItem("Clear Active");
+                    clearActiveItem.addActionListener(event -> {
+                        backend.clearActiveFiles();
+                        refreshTable();
+                        JOptionPane.showMessageDialog(null, "All active files have been cleared.");
+                    });
+                    contextMenu.addSeparator();
+                    contextMenu.add(clearActiveItem);
+                    
                     contextMenu.show(fileTable, e.getX(), e.getY());
                 }
                 
