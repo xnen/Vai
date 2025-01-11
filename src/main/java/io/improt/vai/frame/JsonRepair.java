@@ -13,7 +13,10 @@ public class JsonRepair extends JDialog {
         setLayout(new BorderLayout());
         
         // Exception Label
-        JLabel exceptionLabel = new JLabel("The LLM did not output valid JSON, please correct: " + exceptionMessage);
+        JTextArea exceptionLabel = new JTextArea("The LLM did not output valid JSON, please correct: " + exceptionMessage);
+        exceptionLabel.setEditable(false);
+        exceptionLabel.setLineWrap(true);
+        exceptionLabel.setWrapStyleWord(true);
         exceptionLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         add(exceptionLabel, BorderLayout.NORTH);
         
