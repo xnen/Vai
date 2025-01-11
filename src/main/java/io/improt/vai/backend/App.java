@@ -1,30 +1,23 @@
 package io.improt.vai.backend;
 
 import io.improt.vai.frame.Client;
-import io.improt.vai.frame.JsonRepair;
+import io.improt.vai.frame.CodeRepair;
 import io.improt.vai.openai.OpenAIProvider;
 import io.improt.vai.util.FileTreeBuilder;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
-
+import io.improt.vai.util.CustomParser;
+import io.improt.vai.util.CustomParser.FileContent;
 import io.improt.vai.util.MeldLauncher;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Base64;
+import java.nio.file.*;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 
 public class App {
 
@@ -40,33 +33,27 @@ public class App {
 
     private int currentIncrementalBackupNumber = 0;
 
-    // Constructor to load the last opened directory on instantiation
     public App(Client mainWindow) {
         this.mainWindow = mainWindow;
         instance = this;
     }
 
     public void init() {
-        // Load workspace mappings
         FileUtils.loadWorkspaceMappings();
-        
+
         openAIProvider = new OpenAIProvider();
         openAIProvider.init();
 
         currentWorkspace = FileUtils.loadLastWorkspace();
         if (currentWorkspace != null) {
-            // Ensure .vaiignore exists
             FileUtils.createDefaultVaiignore(currentWorkspace);
-            // Load ignore list
             ignoreList.addAll(FileUtils.readVaiignore(currentWorkspace));
 
             mainWindow.getProjectPanel().refreshTree(currentWorkspace);
             currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
-            // Load enabled files
             List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
             enabledFiles.addAll(loadedEnabledFiles);
-            
-            // Populate recently active files with currently enabled files
+
             for (File file : loadedEnabledFiles) {
                 addToRecentlyActive(file);
             }
@@ -102,16 +89,13 @@ public class App {
         mainWindow.getProjectPanel().refreshTree(currentWorkspace);
         currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
 
-        // Populate recently active files with currently enabled files
         for (File file : loadedEnabledFiles) {
             addToRecentlyActive(file);
         }
 
-        // Add to recent projects
         FileUtils.addRecentProject(currentWorkspace.getAbsolutePath());
     }
 
-    // New method to open directory by path
     public void openDirectory(File directory) {
         if (directory != null && directory.exists() && directory.isDirectory()) {
             finalizeDirectoryOpen(directory);
@@ -133,7 +117,6 @@ public class App {
     }
 
     public void toggleFile(File file) {
-        System.out.println("Toggling " + file.getPath());
         if (enabledFiles.contains(file)) {
             enabledFiles.remove(file);
         } else {
@@ -141,21 +124,19 @@ public class App {
             addToRecentlyActive(file);
         }
 
-        // Save the updated enabled files list
         FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
 
         String tree = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
         System.out.println(tree);
     }
 
-    // New method to add file to recently active files
     private void addToRecentlyActive(File file) {
         if (file == null) return;
         List<String> recentFiles = FileUtils.loadRecentlyActiveFiles(currentWorkspace);
         String filePath = file.getAbsolutePath();
-        recentFiles.remove(filePath); // Remove if exists to avoid duplicates
-        recentFiles.add(0, filePath); // Add to the front
-        // Optionally limit the number of recent files, e.g., 100
+        recentFiles.remove(filePath);
+        recentFiles.add(0, filePath);
+
         if (recentFiles.size() > 100) {
             recentFiles = recentFiles.subList(0, 100);
         }
@@ -232,66 +213,43 @@ public class App {
         String response = openAIProvider.request(model, prompt);
         System.out.println(response);
 
-        // Common LLM quirk, remove the ```json part if it's there.
-        if (response.startsWith("```json")) {
-            response = response.substring(response.indexOf("```json") + 7);
-            // Remove the last ```, if it's there.
-            if (response.endsWith("```")) {
-                response = response.substring(0, response.length() - 3);
-            }
-        }
-
-        int indexOfMessage = response.indexOf("MAGIC_MESSAGE_START");
-
-        // Some leeway for whitespace, etc.
-        if (indexOfMessage != -1 && indexOfMessage < 10) {
-            JTextArea messageArea = new JTextArea("Message from model: " + response.replace("MAGIC_MESSAGE_START", ""));
-            messageArea.setEditable(false);
-            messageArea.setLineWrap(true);
-            messageArea.setWrapStyleWord(true);
-            JScrollPane scrollPane = new JScrollPane(messageArea);
-            scrollPane.setPreferredSize(new Dimension(400, 200));
-            JOptionPane.showMessageDialog(null, scrollPane, "Message from model", JOptionPane.INFORMATION_MESSAGE);
-        } else if (response.contains("MAGIC_JSON_START")) {
-            handleJsonResponse(response.replace("MAGIC_JSON_START\n", ""));
-        }
+        // Trim leading and trailing whitespaces
+        response = response.trim();
+        this.handleCodeResponse(response);
 
         // Refresh the directory tree
         this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
     }
 
-    private void handleJsonResponse(String json) {
-        System.out.println("Handling JSON response: " + json);
-
-        boolean validJson = false;
-        String currentJson = json;
+    private void handleCodeResponse(String formatted) {
+        boolean valid = false;
+        String currentCode = formatted;
         String exceptionMessage = "";
 
-        while (!validJson) {
+        while (!valid) {
             try {
-                JSONArray jsonArray = new JSONArray(currentJson);
-                // If parsing is successful, proceed to handle the JSON
-                processJsonArray(jsonArray);
-                validJson = true;
-            } catch (JSONException e) {
+                List<FileContent> parse = CustomParser.parse(currentCode);
+                processParsedFiles(parse);
+                valid = true;
+            } catch (Exception e) {
                 exceptionMessage = e.getMessage();
                 // Show JsonRepair dialog
-                JsonRepair repairDialog = new JsonRepair(mainWindow, currentJson, exceptionMessage);
+                CodeRepair repairDialog = new CodeRepair(mainWindow, currentCode, exceptionMessage);
                 repairDialog.setVisible(true);
-                
-                String userCorrectedJson = repairDialog.getCorrectedJson();
-                if (userCorrectedJson != null) {
-                    currentJson = userCorrectedJson;
+
+                String userCorrectedCode = repairDialog.getCorrectedCode();
+                if (userCorrectedCode != null) {
+                    currentCode = userCorrectedCode;
                 } else {
                     // User cancelled the dialog
-                    JOptionPane.showMessageDialog(null, "JSON repair was cancelled. Operation aborted.", "Operation Aborted", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Code repair was cancelled. Operation aborted.", "Operation Aborted", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
             }
         }
     }
 
-    private void processJsonArray(JSONArray jsonArray) {
+    private void processParsedFiles(List<FileContent> parsedFiles) {
         try {
             File vaiDir = FileUtils.getWorkspaceVaiDir(this.currentWorkspace);
             File backupDirectory = new File(vaiDir, Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
@@ -308,21 +266,18 @@ public class App {
 
             Path workspacePath = Paths.get(this.currentWorkspace.getAbsolutePath());
 
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObject = jsonArray.getJSONObject(i);
-                String fileName = jsonObject.getString("fileName");
-                String newContents = jsonObject.getString("new_contents");
+            for (FileContent fileContent : parsedFiles) {
+                String fileName = fileContent.getFileName();
+                String newContents = fileContent.getNewContents();
+
+                if (fileName.toUpperCase().contains("SHOW_MESSAGE")) {
+                    // This is a custom message from the LLM, show it to the user, and continue.
+                    JScrollPane scrollPane = createMessageDialog(newContents);
+                    JOptionPane.showMessageDialog(null, scrollPane, "Message from model", JOptionPane.INFORMATION_MESSAGE);
+                    continue;
+                }
 
                 System.out.println("Writing to " + fileName);
-
-                // 1. Setup backup directory, Constants.VAI_BACKUP_DIR/<incremental number>/
-                // 2. Copy existing file to the backup directory, matching the path structure.
-                // 3. Write the new contents to the file.
-                // 4. Launch a diff tool to compare the original file with the new file. (meld)
-
-                // We'll only set up the backup in json response, since we don't want to create a backup if the request is impossible.
-
-                // 2. Copy file to that path in the backup directory, with relative path.
 
                 File targetFile = new File(workspacePath + "/" + fileName);
                 File backupFile = new File(backupDirectory.getAbsolutePath() + "/" + fileName);
@@ -361,9 +316,20 @@ public class App {
             }
         } catch (Exception e) {
             // Popup a message saying it failed.
-            JOptionPane.showMessageDialog(null, "Failed to handle LLM response: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Failed to handle parsed files: " + e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    @NotNull
+    private static JScrollPane createMessageDialog(String newContents) {
+        JTextArea messageArea = new JTextArea(newContents);
+        messageArea.setEditable(false);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(messageArea);
+        scrollPane.setPreferredSize(new Dimension(400, 200));
+        return scrollPane;
     }
 
     public String formatEnabledFiles() {
@@ -374,9 +340,6 @@ public class App {
             String extension = file.getName().substring(file.getName().lastIndexOf('.') + 1);
 
             Path relativePath = workspacePath.relativize(Paths.get(file.getAbsolutePath()));
-//            String relativePathString = relativePath.toString();
-//             Replace first directory with a dot
-//            relativePathString = relativePathString.replaceFirst(relativePath.getName(0) + "/", ".");
 
             sb.append("== ").append(relativePath).append(" ==\n");
             sb.append("```").append(extension).append("\n");
@@ -386,4 +349,3 @@ public class App {
         return sb.toString();
     }
 }
-// Hello world

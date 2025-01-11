@@ -3,42 +3,42 @@ package io.improt.vai.frame;
 import javax.swing.*;
 import java.awt.*;
 
-public class JsonRepair extends JDialog {
-    private final JTextArea originalJsonArea;
-    private final JTextArea correctedJsonArea;
+public class CodeRepair extends JDialog {
+    private final JTextArea originalCodeArea;
+    private final JTextArea correctedCodeArea;
     private String correctedJson = null;
     
-    public JsonRepair(JFrame parent, String jsonString, String exceptionMessage) {
-        super(parent, "JSON Repair", true);
+    public CodeRepair(JFrame parent, String jsonString, String exceptionMessage) {
+        super(parent, "formatting Repair", true);
         setLayout(new BorderLayout());
         
         // Exception Label
-        JTextArea exceptionLabel = new JTextArea("The LLM did not output valid JSON, please correct: " + exceptionMessage);
+        JTextArea exceptionLabel = new JTextArea("The LLM did not output valid formatting, please correct: " + exceptionMessage);
         exceptionLabel.setEditable(false);
         exceptionLabel.setLineWrap(true);
         exceptionLabel.setWrapStyleWord(true);
         exceptionLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         add(exceptionLabel, BorderLayout.NORTH);
         
-        // Split Pane for JSON areas
+        // Split Pane for code areas
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         splitPane.setResizeWeight(0.5);
         
-        // Original JSON Area (Non-editable)
-        originalJsonArea = new JTextArea(jsonString);
-        originalJsonArea.setEditable(false);
-        originalJsonArea.setLineWrap(true);
-        originalJsonArea.setWrapStyleWord(true);
-        JScrollPane originalScrollPane = new JScrollPane(originalJsonArea);
-        originalScrollPane.setBorder(BorderFactory.createTitledBorder("Original JSON"));
+        // Original formatting Area (Non-editable)
+        originalCodeArea = new JTextArea(jsonString);
+        originalCodeArea.setEditable(false);
+        originalCodeArea.setLineWrap(true);
+        originalCodeArea.setWrapStyleWord(true);
+        JScrollPane originalScrollPane = new JScrollPane(originalCodeArea);
+        originalScrollPane.setBorder(BorderFactory.createTitledBorder("Original formatting"));
         splitPane.setTopComponent(originalScrollPane);
         
-        // Corrected JSON Area (Editable)
-        correctedJsonArea = new JTextArea();
-        correctedJsonArea.setLineWrap(true);
-        correctedJsonArea.setWrapStyleWord(true);
-        JScrollPane correctedScrollPane = new JScrollPane(correctedJsonArea);
-        correctedScrollPane.setBorder(BorderFactory.createTitledBorder("Corrected JSON"));
+        // Corrected formatting Area (Editable)
+        correctedCodeArea = new JTextArea();
+        correctedCodeArea.setLineWrap(true);
+        correctedCodeArea.setWrapStyleWord(true);
+        JScrollPane correctedScrollPane = new JScrollPane(correctedCodeArea);
+        correctedScrollPane.setBorder(BorderFactory.createTitledBorder("Corrected formatting"));
         splitPane.setBottomComponent(correctedScrollPane);
         
         add(splitPane, BorderLayout.CENTER);
@@ -49,11 +49,11 @@ public class JsonRepair extends JDialog {
         
         JButton okButton = new JButton("OK");
         okButton.addActionListener(e -> {
-            correctedJson = correctedJsonArea.getText().trim();
+            correctedJson = correctedCodeArea.getText().trim();
             if (!correctedJson.isEmpty()) {
                 dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "Corrected JSON cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Corrected text cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         
@@ -72,7 +72,7 @@ public class JsonRepair extends JDialog {
         setLocationRelativeTo(parent);
     }
     
-    public String getCorrectedJson() {
+    public String getCorrectedCode() {
         return correctedJson;
     }
 }
