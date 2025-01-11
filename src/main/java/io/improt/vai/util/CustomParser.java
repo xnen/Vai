@@ -80,7 +80,7 @@ public class CustomParser {
                 index = eofIndex + 4;
             }
 
-            FileContent fileContent = new FileContent(filePath, codeContent);
+            FileContent fileContent = new FileContent(filePath, codeContent, lang);
             fileContents.add(fileContent);
         }
 
@@ -97,10 +97,16 @@ public class CustomParser {
     public static class FileContent {
         private String fileName;
         private String newContents;
+        private String fileType;
 
-        public FileContent(String fileName, String newContents) {
+        public FileContent(String fileName, String newContents, String fileType) {
             this.fileName = fileName;
             this.newContents = newContents;
+            this.fileType = fileType;
+        }
+
+        public String getFileType() {
+            return fileType;
         }
 
         public String getFileName() {
