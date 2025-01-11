@@ -141,14 +141,14 @@ public class FileViewerPanel extends JPanel {
 
     private void addCurrentFile() {
         if (currentFile != null && !App.getInstance().getEnabledFiles().contains(currentFile)) {
-            App.getInstance().toggleFile(currentFile);
+            App.getInstance().getActiveFileManager().toggleFile(currentFile);
             updateButtonStates();
         }
     }
 
     private void subtractCurrentFile() {
         if (currentFile != null && App.getInstance().getEnabledFiles().contains(currentFile)) {
-            App.getInstance().removeFile(currentFile.getName());
+            App.getInstance().getActiveFileManager().removeFile(currentFile.getName());
             updateButtonStates();
         }
     }

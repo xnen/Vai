@@ -23,21 +23,30 @@ public class App {
 
     public static final String API_KEY = Constants.API_KEY_PATH;
     private File currentWorkspace;
-    private final List<File> enabledFiles = new ArrayList<>();
 
     private final Set<String> ignoreList = new HashSet<>();
 
     private static App instance;
-    private final Client mainWindow;
+    private Client mainWindow;
     private OpenAIProvider openAIProvider;
 
     private int currentIncrementalBackupNumber = 0;
 
+    private ActiveFileManager activeFileManager;
+
+    /**
+     * Constructs the App with the specified main window.
+     *
+     * @param mainWindow The main client window.
+     */
     public App(Client mainWindow) {
         this.mainWindow = mainWindow;
         instance = this;
     }
 
+    /**
+     * Initializes the application by setting up necessary components and loading the last workspace.
+     */
     public void init() {
         FileUtils.loadWorkspaceMappings();
 
@@ -51,15 +60,19 @@ public class App {
 
             mainWindow.getProjectPanel().refreshTree(currentWorkspace);
             currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
-            List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
-            enabledFiles.addAll(loadedEnabledFiles);
 
-            for (File file : loadedEnabledFiles) {
-                addToRecentlyActive(file);
-            }
+            activeFileManager = new ActiveFileManager(currentWorkspace);
+            activeFileManager.addEnabledFilesChangeListener(updatedEnabledFiles -> {
+                mainWindow.getProjectPanel().refreshTree(currentWorkspace);
+            });
         }
     }
 
+    /**
+     * Retrieves the next incremental backup number and updates the stored value.
+     *
+     * @return The next incremental backup number.
+     */
     private int getNextIncrementalBackupNumber() {
         int nextNumber = this.currentIncrementalBackupNumber + 1;
         this.currentIncrementalBackupNumber = nextNumber;
@@ -67,6 +80,11 @@ public class App {
         return nextNumber;
     }
 
+    /**
+     * Opens a directory chooser dialog and finalizes the directory opening process.
+     *
+     * @param parent The parent JFrame for the dialog.
+     */
     public void openDirectory(JFrame parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -76,26 +94,45 @@ public class App {
         }
     }
 
+    /**
+     * Finalizes the process of opening a new directory as the workspace.
+     *
+     * @param directory The directory to set as the new workspace.
+     */
     private void finalizeDirectoryOpen(File directory) {
         currentWorkspace = directory;
         FileUtils.saveLastWorkspace(currentWorkspace);
         FileUtils.createDefaultVaiignore(currentWorkspace);
         ignoreList.clear();
         ignoreList.addAll(FileUtils.readVaiignore(currentWorkspace));
-        enabledFiles.clear();
 
-        List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
-        enabledFiles.addAll(loadedEnabledFiles);
-        mainWindow.getProjectPanel().refreshTree(currentWorkspace);
-        currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
-
-        for (File file : loadedEnabledFiles) {
-            addToRecentlyActive(file);
+        if (activeFileManager != null) {
+            activeFileManager.clearActiveFiles();
+            activeFileManager.removeEnabledFilesChangeListener(projectTreeRefresher);
         }
+
+        activeFileManager = new ActiveFileManager(currentWorkspace);
+        activeFileManager.addEnabledFilesChangeListener(projectTreeRefresher);
+
+        currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
 
         FileUtils.addRecentProject(currentWorkspace.getAbsolutePath());
     }
 
+    public ActiveFileManager getActiveFileManager() {
+        return activeFileManager;
+    }
+
+    /**
+     * Listener to refresh the project tree when enabled files change.
+     */
+    private final ActiveFileManager.EnabledFilesChangeListener projectTreeRefresher = updatedEnabledFiles -> mainWindow.getProjectPanel().refreshTree(currentWorkspace);
+
+    /**
+     * Opens a directory as the current workspace.
+     *
+     * @param directory The directory to open.
+     */
     public void openDirectory(File directory) {
         if (directory != null && directory.exists() && directory.isDirectory()) {
             finalizeDirectoryOpen(directory);
@@ -104,93 +141,73 @@ public class App {
         }
     }
 
+    /**
+     * Retrieves the API key from the specified path.
+     *
+     * @return The API key as a String.
+     */
     public static String getApiKey() {
         return FileUtils.readFileToString(new File(Constants.API_KEY_PATH));
     }
 
+    /**
+     * Gets the current workspace directory.
+     *
+     * @return The current workspace.
+     */
     public File getCurrentWorkspace() {
         return currentWorkspace;
     }
 
+    /**
+     * Retrieves the list of paths to ignore.
+     *
+     * @return The ignore list.
+     */
     public Set<String> getIgnoreList() {
         return ignoreList;
     }
 
-    public void toggleFile(File file) {
-        if (enabledFiles.contains(file)) {
-            enabledFiles.remove(file);
-        } else {
-            enabledFiles.add(file);
-            addToRecentlyActive(file);
-        }
-
-        FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-
-        String tree = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
-        System.out.println(tree);
-    }
-
-    private void addToRecentlyActive(File file) {
-        if (file == null) return;
-        List<String> recentFiles = FileUtils.loadRecentlyActiveFiles(currentWorkspace);
-        String filePath = file.getAbsolutePath();
-        recentFiles.remove(filePath);
-        recentFiles.add(0, filePath);
-
-        if (recentFiles.size() > 100) {
-            recentFiles = recentFiles.subList(0, 100);
-        }
-        FileUtils.saveRecentlyActiveFiles(recentFiles, currentWorkspace);
-    }
-
-    public void clearActiveFiles() {
-        enabledFiles.clear();
-        FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-    }
-
+    /**
+     * Gets the list of currently enabled files.
+     *
+     * @return The list of enabled files.
+     */
     public List<File> getEnabledFiles() {
-        return enabledFiles;
+        if (activeFileManager != null) {
+            return activeFileManager.getEnabledFiles();
+        }
+        return Collections.emptyList();
     }
 
+    /**
+     * Retrieves the singleton instance of App.
+     *
+     * @return The App instance.
+     */
     public static App getInstance() {
         return instance;
     }
 
-    public void removeFile(String selectedFile) {
-        enabledFiles.removeIf(file -> file.getName().equals(selectedFile));
-        // Save the updated enabled files list
-        FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-    }
-
-    public void addFile(File file) {
-        if (file != null && file.exists() && file.isFile()) {
-            String newFilePath = file.getAbsolutePath();
-            for (File enabledFile : enabledFiles) {
-                if (enabledFile.getAbsolutePath().equals(newFilePath)) {
-                    // File already exists in enabledFiles
-                    return;
-                }
-            }
-            enabledFiles.add(file);
-            // Save the updated enabled files list
-            FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-
-            String tree = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
-            System.out.println(tree);
-
-            // Also add to recently active files
-            addToRecentlyActive(file);
-        }
-    }
-
+    /**
+     * Retrieves the OpenAIProvider instance.
+     *
+     * @return The OpenAIProvider.
+     */
     public OpenAIProvider getOpenAIProvider() {
         return this.openAIProvider;
     }
 
+    /**
+     * Submits a request to the OpenAI provider with the specified model and description.
+     *
+     * @param model       The model to use for the request.
+     * @param description The description of the request.
+     */
     public void submitRequest(String model, String description) {
         OpenAIProvider openAIProvider = App.getInstance().getOpenAIProvider();
 
-        String structure = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
+        String structure = activeFileManager.formatEnabledFiles();
 
         // Replace the top level directory with a dot
         structure = structure.replaceFirst(this.currentWorkspace.getName() + "/", "./");
@@ -208,7 +225,7 @@ public class App {
         String prompt = PROMPT_TEMPLATE
                 .replace("<REPLACEME_WITH_REQUEST>", description)
                 .replace("<REPLACEME_WITH_STRUCTURE>", structure)
-                .replace("<REPLACEME_WITH_FILES>", formatEnabledFiles());
+                .replace("<REPLACEME_WITH_FILES>", activeFileManager.formatEnabledFiles());
 
         String response = openAIProvider.request(model, prompt);
         System.out.println(response);
@@ -221,6 +238,11 @@ public class App {
         this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
     }
 
+    /**
+     * Handles the response received from the OpenAI provider.
+     *
+     * @param formatted The formatted response string.
+     */
     private void handleCodeResponse(String formatted) {
         boolean valid = false;
         String currentCode = formatted;
@@ -249,6 +271,11 @@ public class App {
         }
     }
 
+    /**
+     * Processes the list of parsed files and updates the workspace accordingly.
+     *
+     * @param parsedFiles The list of parsed FileContent objects.
+     */
     private void processParsedFiles(List<FileContent> parsedFiles) {
         try {
             File vaiDir = FileUtils.getWorkspaceVaiDir(this.currentWorkspace);
@@ -270,7 +297,8 @@ public class App {
                 String fileName = fileContent.getFileName();
                 String newContents = fileContent.getNewContents();
 
-                if (fileName.toUpperCase().contains("SHOW_MESSAGE")) {
+                // Sometimes LLM does not use SHOW_MESSAGE, so we need to check for chat type as well.
+                if (fileName.toUpperCase().contains("SHOW_MESSAGE") || fileContent.getFileType().equals("chat")) {
                     // This is a custom message from the LLM, show it to the user, and continue.
                     JScrollPane scrollPane = createMessageDialog(newContents);
                     JOptionPane.showMessageDialog(null, scrollPane, "Message from model", JOptionPane.INFORMATION_MESSAGE);
@@ -281,8 +309,8 @@ public class App {
 
                 File targetFile = new File(workspacePath + "/" + fileName);
                 File backupFile = new File(backupDirectory.getAbsolutePath() + "/" + fileName);
-                boolean b = backupFile.getParentFile().mkdirs();
-                if (!b) {
+                boolean parentDirsCreated = backupFile.getParentFile().mkdirs();
+                if (!parentDirsCreated) {
                     System.out.println("[WARNING][Backup] Failed to create parent directory for " + backupFile.getAbsolutePath());
                 }
 
@@ -299,15 +327,14 @@ public class App {
 
                 // Write the new contents to the file
                 if (!targetFile.exists()) {
-                    boolean b1 = targetFile.getParentFile().mkdirs();
-                    if (!b1) {
+                    boolean parentCreated = targetFile.getParentFile().mkdirs();
+                    if (!parentCreated) {
                         System.out.println("[WARNING][Backup] Failed to create parent directory for target " + targetFile.getAbsolutePath());
                     }
-                    boolean b2 = targetFile.createNewFile();
-                    if (!b2) {
+                    boolean fileCreated = targetFile.createNewFile();
+                    if (!fileCreated) {
                         System.out.println("[WARNING][Backup] Failed to create target file " + targetFile.getAbsolutePath());
                     }
-
                 }
                 FileUtils.writeStringToFile(targetFile, newContents);
 
@@ -321,6 +348,12 @@ public class App {
         }
     }
 
+    /**
+     * Creates a JScrollPane containing the provided message for display purposes.
+     *
+     * @param newContents The message content.
+     * @return A JScrollPane with the message.
+     */
     @NotNull
     private static JScrollPane createMessageDialog(String newContents) {
         JTextArea messageArea = new JTextArea(newContents);
@@ -330,22 +363,5 @@ public class App {
         JScrollPane scrollPane = new JScrollPane(messageArea);
         scrollPane.setPreferredSize(new Dimension(400, 200));
         return scrollPane;
-    }
-
-    public String formatEnabledFiles() {
-        StringBuilder sb = new StringBuilder();
-        Path workspacePath = Paths.get(this.currentWorkspace.getAbsolutePath());
-
-        for (File file : enabledFiles) {
-            String extension = file.getName().substring(file.getName().lastIndexOf('.') + 1);
-
-            Path relativePath = workspacePath.relativize(Paths.get(file.getAbsolutePath()));
-
-            sb.append("== ").append(relativePath).append(" ==\n");
-            sb.append("```").append(extension).append("\n");
-            sb.append(FileUtils.readFileToString(file));
-            sb.append("\n```\n");
-        }
-        return sb.toString();
     }
 }
