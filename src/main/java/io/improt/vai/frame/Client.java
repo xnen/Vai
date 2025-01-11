@@ -4,6 +4,7 @@ import io.improt.vai.backend.App;
 import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
+import io.improt.vai.frame.component.RecentActiveFilesDialog;
 import io.improt.vai.util.FileUtils;
 
 import javax.swing.*;
@@ -16,7 +17,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
     private final JComboBox<String> modelCombo;
     private final JTextArea textArea;
-    private final FileViewerPanel fileViewerPanel;
+    private FileViewerPanel fileViewerPanel = null;
     private ProjectPanel projectPanel;
     private App backend;
     private JMenu recentMenu;
@@ -38,7 +39,10 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         JMenuItem refreshItem = new JMenuItem("Refresh");
         JMenuItem exitItem = new JMenuItem("Exit");
         JMenuItem configureItem = new JMenuItem("Configure...");
-
+        
+        // New menu items
+        JMenuItem recentActiveFilesItem = new JMenuItem("Recent Active Files");
+        
         openDirItem.addActionListener(e -> {
             backend.openDirectory(this);
             projectPanel.refreshTree(backend.getCurrentWorkspace());
@@ -62,12 +66,24 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         exitItem.addActionListener(e -> System.exit(0));
         configureItem.addActionListener(e -> new Configure(this));
         refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
+        
+        // Action listeners for new menu items
+        recentActiveFilesItem.addActionListener(e -> {
+            RecentActiveFilesDialog dialog = new RecentActiveFilesDialog(this);
+            dialog.setVisible(true);
+        });
 
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
         fileMenu.add(recentMenu);
         fileMenu.add(refreshItem);
+        
+        // Adding new menu items to File menu
+        fileMenu.addSeparator(); // Adds a separator line
+        fileMenu.add(recentActiveFilesItem);
+        fileMenu.addSeparator(); // Adds another separator line to ensure 'Exit' is at the bottom
         fileMenu.add(exitItem);
+        
         configMenu.add(configureItem);
         menuBar.add(fileMenu);
         menuBar.add(configMenu);

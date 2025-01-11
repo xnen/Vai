@@ -13,6 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -64,6 +65,11 @@ public class App {
             // Load enabled files
             List<File> loadedEnabledFiles = FileUtils.loadEnabledFiles(currentWorkspace);
             enabledFiles.addAll(loadedEnabledFiles);
+            
+            // Populate recently active files with currently enabled files
+            for (File file : loadedEnabledFiles) {
+                addToRecentlyActive(file);
+            }
         }
     }
 
@@ -96,6 +102,11 @@ public class App {
         mainWindow.getProjectPanel().refreshTree(currentWorkspace);
         currentIncrementalBackupNumber = FileUtils.loadIncrementalBackupNumber(currentWorkspace);
 
+        // Populate recently active files with currently enabled files
+        for (File file : loadedEnabledFiles) {
+            addToRecentlyActive(file);
+        }
+
         // Add to recent projects
         FileUtils.addRecentProject(currentWorkspace.getAbsolutePath());
     }
@@ -127,6 +138,7 @@ public class App {
             enabledFiles.remove(file);
         } else {
             enabledFiles.add(file);
+            addToRecentlyActive(file);
         }
 
         // Save the updated enabled files list
@@ -134,6 +146,25 @@ public class App {
 
         String tree = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
         System.out.println(tree);
+    }
+
+    // New method to add file to recently active files
+    private void addToRecentlyActive(File file) {
+        if (file == null) return;
+        List<String> recentFiles = FileUtils.loadRecentlyActiveFiles(currentWorkspace);
+        String filePath = file.getAbsolutePath();
+        recentFiles.remove(filePath); // Remove if exists to avoid duplicates
+        recentFiles.add(0, filePath); // Add to the front
+        // Optionally limit the number of recent files, e.g., 100
+        if (recentFiles.size() > 100) {
+            recentFiles = recentFiles.subList(0, 100);
+        }
+        FileUtils.saveRecentlyActiveFiles(recentFiles, currentWorkspace);
+    }
+
+    public void clearActiveFiles() {
+        enabledFiles.clear();
+        FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
     }
 
     public List<File> getEnabledFiles() {
@@ -165,6 +196,9 @@ public class App {
 
             String tree = FileTreeBuilder.createTree(this.currentWorkspace, enabledFiles);
             System.out.println(tree);
+
+            // Also add to recently active files
+            addToRecentlyActive(file);
         }
     }
 
@@ -211,7 +245,13 @@ public class App {
 
         // Some leeway for whitespace, etc.
         if (indexOfMessage != -1 && indexOfMessage < 10) {
-            JOptionPane.showMessageDialog(null, "Message from model: " + response.replace("MAGIC_MESSAGE_START", ""));
+            JTextArea messageArea = new JTextArea("Message from model: " + response.replace("MAGIC_MESSAGE_START", ""));
+            messageArea.setEditable(false);
+            messageArea.setLineWrap(true);
+            messageArea.setWrapStyleWord(true);
+            JScrollPane scrollPane = new JScrollPane(messageArea);
+            scrollPane.setPreferredSize(new Dimension(400, 200));
+            JOptionPane.showMessageDialog(null, scrollPane, "Message from model", JOptionPane.INFORMATION_MESSAGE);
         } else if (response.contains("MAGIC_JSON_START")) {
             handleJsonResponse(response.replace("MAGIC_JSON_START\n", ""));
         }
@@ -346,3 +386,4 @@ public class App {
         return sb.toString();
     }
 }
+// Hello world

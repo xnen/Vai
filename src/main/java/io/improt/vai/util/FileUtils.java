@@ -291,4 +291,38 @@ public class FileUtils {
         }
         saveRecentProjects(recentProjects);
     }
+
+    // New methods to handle recentlyActive files
+    public static List<String> loadRecentlyActiveFiles(File workspace) {
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File recentlyActiveFile = new File(vaiDir, Constants.RECENTLY_ACTIVE_FILES);
+        if (!recentlyActiveFile.exists()) {
+            return new ArrayList<>();
+        }
+        String jsonContent = readFileToString(recentlyActiveFile);
+        if (jsonContent == null || jsonContent.isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            JSONArray jsonArray = new JSONArray(jsonContent);
+            List<String> recentFiles = new ArrayList<>();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                recentFiles.add(jsonArray.getString(i));
+            }
+            return recentFiles;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    public static void saveRecentlyActiveFiles(List<String> recentFiles, File workspace) {
+        JSONArray jsonArray = new JSONArray();
+        for (String path : recentFiles) {
+            jsonArray.put(path);
+        }
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File recentlyActiveFile = new File(vaiDir, Constants.RECENTLY_ACTIVE_FILES);
+        writeStringToFile(recentlyActiveFile, jsonArray.toString(4)); // Pretty print with indent.
+    }
 }
