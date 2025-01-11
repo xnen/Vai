@@ -325,4 +325,44 @@ public class FileUtils {
         File recentlyActiveFile = new File(vaiDir, Constants.RECENTLY_ACTIVE_FILES);
         writeStringToFile(recentlyActiveFile, jsonArray.toString(4)); // Pretty print with indent.
     }
+    
+    // New methods for handling tree configuration
+    public static List<String> loadTreeConfig(File workspace) {
+        if (workspace == null) {
+            return new ArrayList<>();
+        }
+        File treeConfigFile = new File(getWorkspaceVaiDir(workspace), Constants.TREE_CONFIG_FILE);
+        if (!treeConfigFile.exists()) {
+            return new ArrayList<>();
+        }
+        String jsonContent = readFileToString(treeConfigFile);
+        if (jsonContent == null || jsonContent.isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            JSONArray jsonArray = new JSONArray(jsonContent);
+            List<String> expandedPaths = new ArrayList<>();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                expandedPaths.add(jsonArray.getString(i));
+            }
+            return expandedPaths;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    public static void saveTreeConfig(List<String> expandedPaths, File workspace) {
+        System.out.println("Saving tree config");
+        if (workspace == null) {
+            System.out.println("No workspace to save tree config.");
+            return;
+        }
+        JSONArray jsonArray = new JSONArray();
+        for (String path : expandedPaths) {
+            jsonArray.put(path);
+        }
+        File treeConfigFile = new File(getWorkspaceVaiDir(workspace), Constants.TREE_CONFIG_FILE);
+        writeStringToFile(treeConfigFile, jsonArray.toString(4)); // Pretty print with indent
+    }
 }
