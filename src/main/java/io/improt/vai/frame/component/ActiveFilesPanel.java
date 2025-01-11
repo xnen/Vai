@@ -24,7 +24,7 @@ public class ActiveFilesPanel extends JPanel {
     public ActiveFilesPanel(App backend) {
         this.backend = backend;
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder("Active Files"));
+        setBorder(BorderFactory.createTitledBorder("LLM"));
         
         // Initialize table model with column names
         tableModel = new DefaultTableModel(new Object[]{"File Name", "Path"}, 0) {
@@ -61,7 +61,7 @@ public class ActiveFilesPanel extends JPanel {
                     Transferable t = support.getTransferable();
                     List<File> droppedFiles = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
                     for (File file : droppedFiles) {
-                        backend.addFile(file);
+                        backend.getActiveFileManager().addFile(file);
                     }
                     refreshTable();
                     return true;
@@ -87,7 +87,7 @@ public class ActiveFilesPanel extends JPanel {
                     JMenuItem deleteItem = new JMenuItem("Delete");
                     deleteItem.addActionListener(event -> {
                         String fileName = (String) tableModel.getValueAt(selectedRow, 0);
-                        backend.removeFile(fileName);
+                        backend.getActiveFileManager().removeFile(fileName);
                         refreshTable();
                     });
                     contextMenu.add(deleteItem);
@@ -95,7 +95,7 @@ public class ActiveFilesPanel extends JPanel {
                     // Add Clear Active option to the context menu
                     JMenuItem clearActiveItem = new JMenuItem("Clear Active");
                     clearActiveItem.addActionListener(event -> {
-                        backend.clearActiveFiles();
+                        backend.getActiveFileManager().clearActiveFiles();
                         refreshTable();
                         JOptionPane.showMessageDialog(null, "All active files have been cleared.");
                     });
@@ -109,7 +109,7 @@ public class ActiveFilesPanel extends JPanel {
                     if (e.getClickCount() == 2) {
                         // Double-click to delete
                         String fileName = (String) tableModel.getValueAt(selectedRow, 0);
-                        backend.removeFile(fileName);
+                        backend.getActiveFileManager().removeFile(fileName);
                         refreshTable();
                     } else if (e.getClickCount() == 1) {
                         // Single-click to open in File Viewer
@@ -146,13 +146,14 @@ public class ActiveFilesPanel extends JPanel {
             while (true) {
                 try {
                     List<File> enabledFiles = App.getInstance().getEnabledFiles();
+
                     if (enabledFiles.size() != lastSize) {
                         refreshTable();
                     }
 
                     lastSize = enabledFiles.size();
                     // Sleep for 1 second before checking again
-                    Thread.sleep(1000);
+                    Thread.sleep(200);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;

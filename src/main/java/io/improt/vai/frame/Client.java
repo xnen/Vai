@@ -4,7 +4,7 @@ import io.improt.vai.backend.App;
 import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
-import io.improt.vai.frame.component.RecentActiveFilesDialog;
+import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.util.FileUtils;
 
 import javax.swing.*;
@@ -39,10 +39,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         JMenuItem refreshItem = new JMenuItem("Refresh");
         JMenuItem exitItem = new JMenuItem("Exit");
         JMenuItem configureItem = new JMenuItem("Configure...");
-        
-        // New menu items
-        JMenuItem recentActiveFilesItem = new JMenuItem("Recent Active Files");
-        
+
         openDirItem.addActionListener(e -> {
             backend.openDirectory(this);
             projectPanel.refreshTree(backend.getCurrentWorkspace());
@@ -66,54 +63,38 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         exitItem.addActionListener(e -> System.exit(0));
         configureItem.addActionListener(e -> new Configure(this));
         refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
-        
-        // Action listeners for new menu items
-        recentActiveFilesItem.addActionListener(e -> {
-            RecentActiveFilesDialog dialog = new RecentActiveFilesDialog(this);
-            dialog.setVisible(true);
-        });
 
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
         fileMenu.add(recentMenu);
         fileMenu.add(refreshItem);
-        
-        // Adding new menu items to File menu
         fileMenu.addSeparator(); // Adds a separator line
-        fileMenu.add(recentActiveFilesItem);
-        fileMenu.addSeparator(); // Adds another separator line to ensure 'Exit' is at the bottom
         fileMenu.add(exitItem);
-        
+
         configMenu.add(configureItem);
         menuBar.add(fileMenu);
         menuBar.add(configMenu);
         setJMenuBar(menuBar);
 
+
         // Project Panel
         projectPanel = new ProjectPanel();
-
-        // historyPanel = new HistoryPanel(); // Removed HistoryPanel
 
         // Initialize backend before panels that depend on it
         backend = new App(this);
         backend.init();
 
+        projectPanel.init(backend);
+
         // Active Files Panel
         ActiveFilesPanel activeFilesPanel = new ActiveFilesPanel(backend);
         activeFilesPanel.setFileSelectionListener(this);
 
+        // Recent Active Files Panel
+        RecentActiveFilesPanel recentActiveFilesPanel = new RecentActiveFilesPanel();
+
         // File Viewer Panel
         fileViewerPanel = new FileViewerPanel();
-
-        // Create SplitPane for left side with ActiveFilesPanel and ProjectPanel
-        JSplitPane leftSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, activeFilesPanel, projectPanel);
-        leftSplitPane.setDividerLocation(180); // Set initial divider location to 180px
-        leftSplitPane.setResizeWeight(0); // Give extra space to the bottom component (ProjectPanel)
-        leftSplitPane.setOneTouchExpandable(true); // Allow user to expand/collapse with one touch
-
-        // Create SplitPane with leftSplitPane on the left and fileViewerPanel on the right
-        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        mainSplitPane.setLeftComponent(leftSplitPane);
 
         // Right panel contains fileViewerPanel and other components
         JPanel rightPanel = new JPanel();
@@ -164,7 +145,19 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
         rightPanel.add(inputPanel, BorderLayout.SOUTH);
 
-        mainSplitPane.setRightComponent(rightPanel);
+        // Create vertical splits for left side
+        JSplitPane verticalSplitPane1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, activeFilesPanel, projectPanel);
+        verticalSplitPane1.setDividerLocation(180);
+        verticalSplitPane1.setResizeWeight(0);
+        verticalSplitPane1.setOneTouchExpandable(true);
+
+        JSplitPane verticalSplitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, verticalSplitPane1, recentActiveFilesPanel);
+        verticalSplitPane2.setDividerLocation(180+276);
+        verticalSplitPane2.setResizeWeight(0);
+        verticalSplitPane2.setOneTouchExpandable(true);
+
+        // Create main split pane
+        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, verticalSplitPane2, rightPanel);
         mainSplitPane.setDividerLocation(400); // Adjust as needed
 
         // Add the split pane to the frame

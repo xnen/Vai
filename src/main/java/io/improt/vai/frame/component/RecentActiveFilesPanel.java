@@ -1,6 +1,7 @@
 package io.improt.vai.frame.component;
 
 import io.improt.vai.backend.App;
+import io.improt.vai.backend.ActiveFileManager;
 import io.improt.vai.util.FileUtils;
 
 import javax.swing.*;
@@ -8,25 +9,23 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
-public class RecentActiveFilesDialog extends JDialog {
+public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.EnabledFilesChangeListener {
     private final JTable recentFilesTable;
     private final DefaultTableModel tableModel;
-    private final JButton addButton;
     private final App backend;
     private final List<String> recentlyActiveFiles;
 
-    public RecentActiveFilesDialog(JFrame parent) {
-        super(parent, "Recent Active Files", false); // Set modal to false to make it non-blocking
-        setSize(600, 400);
-        setLocationRelativeTo(parent);
+    public RecentActiveFilesPanel() {
+        this.backend = App.getInstance();
+        this.recentlyActiveFiles = FileUtils.loadRecentlyActiveFiles(backend.getCurrentWorkspace());
+        setBorder(BorderFactory.createTitledBorder("Recent"));
 
-        backend = App.getInstance();
-        recentlyActiveFiles = FileUtils.loadRecentlyActiveFiles(backend.getCurrentWorkspace());
+        setLayout(new BorderLayout());
 
         // Initialize table model with columns
         tableModel = new DefaultTableModel(new Object[]{"File Name", "Path"}, 0) {
@@ -46,19 +45,24 @@ public class RecentActiveFilesDialog extends JDialog {
         // Highlight active files in green
         recentFilesTable.setDefaultRenderer(Object.class, new RecentFileTableCellRenderer());
 
+        // Add mouse listener for single-click toggle
+        recentFilesTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = recentFilesTable.rowAtPoint(e.getPoint());
+                if (row >= 0) {
+                    toggleFileAtRow(row);
+                }
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(recentFilesTable);
 
-        // Add button
-        addButton = new JButton("Add Selected");
-        addButton.addActionListener(e -> addSelectedFiles());
+        // Add components to this panel
+        add(scrollPane, BorderLayout.CENTER);
 
-        // Layout
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(addButton);
-
-        getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(scrollPane, BorderLayout.CENTER);
-        getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+        // Register this panel as a listener to enabledFiles changes
+        backend.getActiveFileManager().addEnabledFilesChangeListener(this);
     }
 
     private void populateTable() {
@@ -71,33 +75,22 @@ public class RecentActiveFilesDialog extends JDialog {
         }
     }
 
-    private void addSelectedFiles() {
-        int[] selectedRows = recentFilesTable.getSelectedRows();
-        if (selectedRows.length == 0) {
-            JOptionPane.showMessageDialog(this, "No files selected.", "Warning", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    private void toggleFileAtRow(int row) {
+        String filePath = (String) tableModel.getValueAt(row, 1);
+        File file = new File(filePath);
+        if (backend.getActiveFileManager().isFileActive(file)) {
+            boolean removed = backend.getActiveFileManager().removeFile(file);
 
-        List<File> filesToAdd = new ArrayList<>();
-        for (int row : selectedRows) {
-            String filePath = (String) tableModel.getValueAt(row, 1);
-            File file = new File(filePath);
-            if (file.exists() && file.isFile() && !backend.getEnabledFiles().contains(file)) {
-                filesToAdd.add(file);
+            if (!removed) {
+                JOptionPane.showMessageDialog(this, "Failed to remove file from active files: " + file.getName(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
+        } else {
+            backend.getActiveFileManager().addFile(file);
         }
 
-        if (filesToAdd.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No valid files to add.", "Information", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        for (File file : filesToAdd) {
-            backend.addFile(file);
-        }
-
-        JOptionPane.showMessageDialog(this, filesToAdd.size() + " file(s) added to active files.", "Success", JOptionPane.INFORMATION_MESSAGE);
-        this.dispose(); // Close the dialog after adding
+        // Update the table to reflect changes
+        recentFilesTable.repaint();
     }
 
     // Custom Cell Renderer to highlight active files in green
@@ -111,7 +104,7 @@ public class RecentActiveFilesDialog extends JDialog {
 
             String filePath = (String) table.getValueAt(row, 1);
             File file = new File(filePath);
-            if (backend.getEnabledFiles().contains(file)) {
+            if (backend.getActiveFileManager().isFileActive(file)) {
                 c.setBackground(activeColor);
             } else {
                 c.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
@@ -119,5 +112,11 @@ public class RecentActiveFilesDialog extends JDialog {
 
             return c;
         }
+    }
+
+    @Override
+    public void onEnabledFilesChanged(List<File> updatedEnabledFiles) {
+        // Ensure UI updates are performed on the Event Dispatch Thread
+        SwingUtilities.invokeLater(() -> recentFilesTable.repaint());
     }
 }
