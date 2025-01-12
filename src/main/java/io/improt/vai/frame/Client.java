@@ -22,6 +22,8 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
     private ProjectPanel projectPanel;
     private App backend;
     private JMenu recentMenu;
+    private JMenu recentActiveFilesMenu;
+
     private RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
 
     public Client() {
@@ -34,14 +36,51 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         recentMenu = new JMenu("Recent");
+        recentActiveFilesMenu = new JMenu("Recent");
         populateRecentMenu();
         populateMenu();
         JMenu configMenu = new JMenu("Config");
+        JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
         JMenuItem openPathItem = new JMenuItem("Open Path...");
         JMenuItem refreshItem = new JMenuItem("Refresh");
         JMenuItem exitItem = new JMenuItem("Exit");
         JMenuItem configureItem = new JMenuItem("Configure...");
+
+        // Action Listener for New Project...
+        newProjectItem.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Select Parent Directory for New Project");
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            chooser.setAcceptAllFileFilterUsed(false);
+
+            int result = chooser.showOpenDialog(this);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File parentDir = chooser.getSelectedFile();
+                String projectName = JOptionPane.showInputDialog(this, "Enter new project name:", "New Project", JOptionPane.PLAIN_MESSAGE);
+
+                if (projectName != null) {
+                    projectName = projectName.trim();
+                    if (projectName.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Project name cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    File newProject = new File(parentDir, projectName);
+                    if (newProject.exists()) {
+                        JOptionPane.showMessageDialog(this, "Project \"" + projectName + "\" already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        boolean created = newProject.mkdirs();
+                        if (created) {
+                            backend.openDirectory(newProject);
+                            JOptionPane.showMessageDialog(this, "Project \"" + projectName + "\" created and opened successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Failed to create project directory.", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }
+            }
+        });
 
         openDirItem.addActionListener(e -> {
             backend.openDirectory(this);
@@ -67,6 +106,8 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         configureItem.addActionListener(e -> new Configure(this));
         refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
 
+        // Adding menu items to File menu
+        fileMenu.add(newProjectItem);
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
         fileMenu.add(recentMenu);
@@ -74,9 +115,13 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         fileMenu.addSeparator(); // Adds a separator line
         fileMenu.add(exitItem);
 
+        // Adding menu items to Config menu
         configMenu.add(configureItem);
+
+        // Adding menus to menu bar
         menuBar.add(fileMenu);
         menuBar.add(configMenu);
+        menuBar.add(recentActiveFilesMenu);
         setJMenuBar(menuBar);
 
 
@@ -232,7 +277,6 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
     private void populateMenu() {
         // Add a separator and "Clear Recent Files" menu item
-        recentMenu.addSeparator();
         JMenuItem clearRecentFilesItem = new JMenuItem("Clear Recent Files");
         clearRecentFilesItem.addActionListener(e -> {
             int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to clear all recent files?", "Confirm Clear", JOptionPane.YES_NO_OPTION);
@@ -242,7 +286,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
                 recentActiveFilesPanel.refresh();
             }
         });
-        recentMenu.add(clearRecentFilesItem);
+        recentActiveFilesMenu.add(clearRecentFilesItem);
     }
 
     // Helper method to format the project name using the last two directories

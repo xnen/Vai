@@ -3,7 +3,6 @@ package io.improt.vai.backend;
 import io.improt.vai.frame.Client;
 import io.improt.vai.frame.CodeRepair;
 import io.improt.vai.openai.OpenAIProvider;
-import io.improt.vai.util.FileTreeBuilder;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
 import io.improt.vai.util.CustomParser;
