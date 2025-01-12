@@ -311,6 +311,12 @@ public class App {
                     continue;
                 }
 
+                // Handle LLM_PROMPT
+                if (fileName.toUpperCase().contains("LLM_PROMPT") || fileType.equals("prompt")) {
+                    this.getClient().setLLMPrompt(newContents);
+                    continue;
+                }
+
                 System.out.println("Writing to " + fileName);
 
                 File targetFile = new File(workspacePath + "/" + fileName);

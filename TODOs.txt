@@ -1,0 +1,14 @@
+- The Recent Files menu does not update between projects.
+- When switching projects, the enabled files clears for some reason, probably related to file watching?
+- Add an open workspace button - opens in the default file explorer.
+- Put the workspace path in the title bar.
+- Add a feature system, rather than the SHOW_MESSAGE / RUN_COMMAND / LLM_PROMPT hacks, we'll append to the prompt as needed and remove bloat.
+   - Something to append to the prompt too - maybe a "next prompt" feature.
+
+- Move the Execute button to the left.
+- Add a new file icon.
+- The New Project system is a bit clunky, maybe we can make it more intuitive.
+
+- The RUN_COMMAND feature should have a live-view of the output, as well as source correctly as the shell would.
+- Need to add Windows compatibility to the execute button.
+

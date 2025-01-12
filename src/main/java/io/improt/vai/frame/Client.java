@@ -9,7 +9,11 @@ import io.improt.vai.util.FileUtils;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -202,7 +206,9 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
                 return;
             }
 
-            App.getInstance().submitRequest(modelCombo.getSelectedItem().toString(), textArea.getText());
+            String prompt = textArea.getText();
+            prompt += "Continue prompting as needed to continue writing this game -- analyze any missing or incorrect pieces and implement as you go.";
+            App.getInstance().submitRequest(modelCombo.getSelectedItem().toString(), prompt);
         });
         bottomPanel.add(submitButton);
 
@@ -354,4 +360,43 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
             executeButton.setEnabled(false);
         }
     }
+
+    /**
+     * Sets the prompt in the text area and colors it green until the user interacts.
+     *
+     * @param prompt The prompt text to display.
+     */
+    public void setLLMPrompt(String prompt) {
+        textArea.setText(prompt);
+        textArea.setBackground(new Color(144, 238, 144)); // Light green background
+
+        // Add a DocumentListener to reset the background when the user modifies the text
+        textArea.getDocument().addDocumentListener(new DocumentListener() {
+            private boolean isReset = false;
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                resetBackground();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                resetBackground();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                resetBackground();
+            }
+
+            private void resetBackground() {
+                if (!isReset) {
+                    textArea.setBackground(Color.WHITE);
+                    isReset = true;
+                    textArea.getDocument().removeDocumentListener(this);
+                }
+            }
+        });
+    }
 }
+
