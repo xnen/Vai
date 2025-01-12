@@ -26,6 +26,10 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
     private RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
 
+    // Added Execute button and currentFile variable
+    private JButton executeButton;
+    private File currentFile;
+
     public Client() {
         super("Vai");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -177,6 +181,19 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         clearButton.addActionListener(e -> textArea.setText(""));
         bottomPanel.add(clearButton);
 
+        // Execute button
+        executeButton = new JButton("Execute");
+        executeButton.setEnabled(false); // Initially disabled
+        executeButton.addActionListener(e -> {
+            if (currentFile != null && isExecutable(currentFile)) {
+                int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to execute " + currentFile.getName() + "?", "Execute Confirmation", JOptionPane.YES_NO_OPTION);
+                if (confirmation == JOptionPane.YES_OPTION) {
+                    backend.executeFile(currentFile);
+                }
+            }
+        });
+        bottomPanel.add(executeButton);
+
         // Submit button
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
@@ -200,7 +217,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         verticalSplitPane1.setOneTouchExpandable(true);
 
         JSplitPane verticalSplitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, verticalSplitPane1, recentActiveFilesPanel);
-        verticalSplitPane2.setDividerLocation(180+276);
+        verticalSplitPane2.setDividerLocation(180 + 276);
         verticalSplitPane2.setResizeWeight(0);
         verticalSplitPane2.setOneTouchExpandable(true);
 
@@ -221,8 +238,12 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
             File selectedFile = projectPanel.pathToFile(path);
             if (selectedFile != null && selectedFile.isFile()) {
                 fileViewerPanel.displayFile(selectedFile);
+                this.currentFile = selectedFile;
+                updateExecuteButton();
             } else {
                 fileViewerPanel.clear();
+                this.currentFile = null;
+                updateExecuteButton();
             }
         });
 
@@ -237,6 +258,8 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
     @Override
     public void onFileSelected(File file) {
         fileViewerPanel.displayFile(file);
+        this.currentFile = file;
+        updateExecuteButton();
     }
 
     public ProjectPanel getProjectPanel() {
@@ -308,5 +331,27 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
 
     public RecentActiveFilesPanel getRecentActiveFilesPanel() {
         return recentActiveFilesPanel;
+    }
+
+    /**
+     * Checks if the given file is executable based on its extension.
+     *
+     * @param file The file to check.
+     * @return True if the file is executable, false otherwise.
+     */
+    private boolean isExecutable(File file) {
+        String name = file.getName().toLowerCase();
+        return name.endsWith(".sh") || name.endsWith(".exe") || name.endsWith(".bat"); // Extend as needed
+    }
+
+    /**
+     * Updates the state of the Execute button based on whether the current file is executable.
+     */
+    private void updateExecuteButton() {
+        if (currentFile != null && isExecutable(currentFile)) {
+            executeButton.setEnabled(true);
+        } else {
+            executeButton.setEnabled(false);
+        }
     }
 }

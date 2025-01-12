@@ -224,7 +224,8 @@ public class App {
         String prompt = PROMPT_TEMPLATE
                 .replace("<REPLACEME_WITH_REQUEST>", description)
                 .replace("<REPLACEME_WITH_STRUCTURE>", structure)
-                .replace("<REPLACEME_WITH_FILES>", activeFileManager.formatEnabledFiles());
+                .replace("<REPLACEME_WITH_FILES>", activeFileManager.formatEnabledFiles())
+                .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"));
 
         String response = openAIProvider.request(model, prompt);
         System.out.println(response);
@@ -295,12 +296,18 @@ public class App {
             for (FileContent fileContent : parsedFiles) {
                 String fileName = fileContent.getFileName();
                 String newContents = fileContent.getNewContents();
+                String fileType = fileContent.getFileType();
 
-                // Sometimes LLM does not use SHOW_MESSAGE, so we need to check for chat type as well.
-                if (fileName.toUpperCase().contains("SHOW_MESSAGE") || fileContent.getFileType().equals("chat")) {
-                    // This is a custom message from the LLM, show it to the user, and continue.
+                // Handle SHOW_MESSAGE and chat types
+                if (fileName.toUpperCase().contains("SHOW_MESSAGE") || fileType.equals("chat")) {
                     JScrollPane scrollPane = createMessageDialog(newContents);
                     JOptionPane.showMessageDialog(null, scrollPane, "Message from model", JOptionPane.INFORMATION_MESSAGE);
+                    continue;
+                }
+
+                // Handle RUN_COMMAND and shell types
+                if (fileName.toUpperCase().contains("RUN_COMMAND") || fileType.equals("run")) {
+                    handleRunCommand(newContents);
                     continue;
                 }
 
@@ -348,6 +355,90 @@ public class App {
     }
 
     /**
+     * Handles the RUN_COMMAND functionality by prompting the user and executing the command if approved.
+     *
+     * @param command The shell command to execute.
+     */
+    private void handleRunCommand(String command) {
+        // Prompt the user with the command and options to approve or deny
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        JLabel label = new JLabel("The LLM would like to run this command:");
+        JTextField textField = new JTextField(command);
+        textField.setEditable(false);
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(textField, BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(
+                mainWindow,
+                panel,
+                "Run Command Approval",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (result == JOptionPane.YES_OPTION) {
+            // Execute the command
+            String output = executeShellCommand(command);
+            // Display the output
+            JTextArea textArea = new JTextArea(output);
+            textArea.setEditable(false);
+            textArea.setLineWrap(true);
+            textArea.setWrapStyleWord(true);
+            JScrollPane scrollPane = new JScrollPane(textArea);
+            scrollPane.setPreferredSize(new Dimension(600, 400));
+            JOptionPane.showMessageDialog(
+                    mainWindow,
+                    scrollPane,
+                    "Command Output",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        } else {
+            // User denied the command execution
+            JScrollPane scrollPane = createMessageDialog("Command execution was denied by the user.");
+            JOptionPane.showMessageDialog(null, scrollPane, "Command Denied", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    /**
+     * Executes a shell command in the current workspace directory and returns the output.
+     *
+     * @param command The shell command to execute.
+     * @return The combined output and error streams from the command execution.
+     */
+    private String executeShellCommand(String command) {
+        if (command == null || command.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder outputBuilder = new StringBuilder();
+        try {
+            ProcessBuilder pb = new ProcessBuilder();
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                pb.command("cmd.exe", "/c", command);
+            } else {
+                pb.command("sh", "-c", command);
+            }
+            pb.directory(currentWorkspace);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            // Read the output
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                outputBuilder.append(line).append("\n");
+            }
+
+            int exitCode = process.waitFor();
+            outputBuilder.append("\n").append("Process exited with code ").append(exitCode).append(".");
+
+        } catch (IOException | InterruptedException e) {
+            outputBuilder.append("An error occurred while executing the command: ").append(e.getMessage());
+        }
+        return outputBuilder.toString();
+    }
+
+    /**
      * Creates a JScrollPane containing the provided message for display purposes.
      *
      * @param newContents The message content.
@@ -366,5 +457,38 @@ public class App {
 
     public Client getClient() {
         return this.mainWindow;
+    }
+
+    /**
+     * Executes the given file by opening it in the system's terminal.
+     *
+     * @param file The executable file to run.
+     */
+    public void executeFile(File file) {
+        if (!file.exists()) {
+            JOptionPane.showMessageDialog(mainWindow, "The file does not exist: " + file.getAbsolutePath(), "Execution Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String os = System.getProperty("os.name").toLowerCase();
+        if (!os.contains("linux")) {
+            JOptionPane.showMessageDialog(mainWindow, "Execute functionality is only supported on Linux.", "Unsupported OS", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            // Adjust the terminal command as needed for different Linux terminal emulators
+            ProcessBuilder pb = new ProcessBuilder("gnome-terminal",
+                    "--",
+                    "bash",
+                    "-c",
+                    file.getAbsolutePath() + "; exec bash"
+            );
+            // Set working directory to the file's parent directory
+            pb.directory(file.getParentFile());
+            pb.start();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(mainWindow, "Failed to execute the file: " + e.getMessage(), "Execution Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
