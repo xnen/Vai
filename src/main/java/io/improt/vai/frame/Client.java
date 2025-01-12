@@ -11,6 +11,7 @@ import javax.swing.*;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Client extends JFrame implements ActiveFilesPanel.FileSelectionListener {
@@ -21,6 +22,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
     private ProjectPanel projectPanel;
     private App backend;
     private JMenu recentMenu;
+    private RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
 
     public Client() {
         super("Vai");
@@ -33,6 +35,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         JMenu fileMenu = new JMenu("File");
         recentMenu = new JMenu("Recent");
         populateRecentMenu();
+        populateMenu();
         JMenu configMenu = new JMenu("Config");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
         JMenuItem openPathItem = new JMenuItem("Open Path...");
@@ -91,7 +94,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         activeFilesPanel.setFileSelectionListener(this);
 
         // Recent Active Files Panel
-        RecentActiveFilesPanel recentActiveFilesPanel = new RecentActiveFilesPanel();
+        recentActiveFilesPanel = new RecentActiveFilesPanel(); // Assigned to class field
 
         // File Viewer Panel
         fileViewerPanel = new FileViewerPanel();
@@ -205,6 +208,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
             recentMenu.add(emptyItem);
             return;
         }
+
         for (String path : recentProjects) {
             JMenuItem projectItem = new JMenuItem(formatProjectName(path));
             projectItem.setToolTipText(path);
@@ -216,13 +220,29 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
                     populateRecentMenu();
                 } else {
                     JOptionPane.showMessageDialog(this, "The project directory does not exist.", "Error", JOptionPane.ERROR_MESSAGE);
-                    FileUtils.loadRecentProjects().remove(path);
-                    FileUtils.saveRecentProjects(FileUtils.loadRecentProjects());
+                    List<String> updatedRecentProjects = new ArrayList<>(FileUtils.loadRecentProjects());
+                    updatedRecentProjects.remove(path);
+                    FileUtils.saveRecentProjects(updatedRecentProjects);
                     populateRecentMenu();
                 }
             });
             recentMenu.add(projectItem);
         }
+    }
+
+    private void populateMenu() {
+        // Add a separator and "Clear Recent Files" menu item
+        recentMenu.addSeparator();
+        JMenuItem clearRecentFilesItem = new JMenuItem("Clear Recent Files");
+        clearRecentFilesItem.addActionListener(e -> {
+            int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to clear all recent files?", "Confirm Clear", JOptionPane.YES_NO_OPTION);
+            if (confirmation == JOptionPane.YES_OPTION) {
+                File currentWorkspace = backend.getCurrentWorkspace();
+                FileUtils.saveRecentlyActiveFiles(new ArrayList<>(), currentWorkspace);
+                recentActiveFilesPanel.refresh();
+            }
+        });
+        recentMenu.add(clearRecentFilesItem);
     }
 
     // Helper method to format the project name using the last two directories
@@ -240,5 +260,9 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
             nameBuilder.append(file.getName());
         }
         return nameBuilder.toString();
+    }
+
+    public RecentActiveFilesPanel getRecentActiveFilesPanel() {
+        return recentActiveFilesPanel;
     }
 }
