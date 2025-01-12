@@ -136,6 +136,10 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
      * Saves the currently expanded paths to the tree configuration file.
      */
     private void saveExpandedPaths() {
+        if (expandingFlag) {
+            return;
+        }
+
         File workspace = App.getInstance().getCurrentWorkspace();
         if (workspace == null) {
             return;
@@ -144,12 +148,16 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
         FileUtils.saveTreeConfig(expandedPaths, workspace);
     }
 
+    // We don't need to save these paths if the tree is being expanded via expandSavedPaths()
+    private boolean expandingFlag = false;
+
     /**
      * Expands the tree paths based on the provided list of file paths.
      *
      * @param paths The list of file paths to expand in the tree.
      */
     private void expandSavedPaths(List<String> paths) {
+        expandingFlag = true;
         for (String path : paths) {
             File file = new File(path);
             if (file.exists() && file.isDirectory()) {
@@ -159,6 +167,7 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
                 }
             }
         }
+        expandingFlag = false;
     }
 
     /**
