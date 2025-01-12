@@ -58,30 +58,37 @@ public class CustomParser {
 
             String lang = response.substring(codeStart + 3, langEnd).trim();
 
-            // Look for closing triple backticks
-            int codeEnd = response.indexOf("```\n", langEnd);
-            if (codeEnd == -1) {
+            // Determine where to search for the closing triple backticks
+            int eofIndex = response.indexOf("!EOF", langEnd);
+            int codeEnd;
+            if (eofIndex != -1) {
+                // Find the last occurrence of triple backticks before !EOF
+                codeEnd = response.indexOf("```", eofIndex - 6); // 6 is generous. Can be adjusted if needed.
+                if (codeEnd == -1) {
+                    throw new Exception("Missing closing code block before !EOF.");
+                }
+                // Extract code content
+                String codeContent = response.substring(langEnd + 1, codeEnd);
+
+                // Look for !EOF after code block
+                index = eofIndex + 4;
+                FileContent fileContent = new FileContent(filePath, codeContent, lang);
+                fileContents.add(fileContent);
+            } else {
+                // If !EOF is not found, find the next closing triple backticks
                 codeEnd = response.indexOf("```", langEnd);
                 if (codeEnd == -1) {
                     throw new Exception("Missing code block end.");
                 }
-            }
+                // Extract code content
+                String codeContent = response.substring(langEnd + 1, codeEnd);
 
-            // Extract code content
-            String codeContent = response.substring(langEnd + 1, codeEnd);
-
-            // Look for !EOF after code block
-            int eofIndex = response.indexOf("!EOF", codeEnd);
-            if (eofIndex == -1) {
-                // EOF not found, continue parsing
+                // Continue parsing after the closing backticks
                 index = codeEnd + 3;
-            } else {
-                // EOF found, move index past it
-                index = eofIndex + 4;
-            }
 
-            FileContent fileContent = new FileContent(filePath, codeContent, lang);
-            fileContents.add(fileContent);
+                FileContent fileContent = new FileContent(filePath, codeContent, lang);
+                fileContents.add(fileContent);
+            }
         }
 
         if (fileContents.isEmpty()) {
@@ -118,4 +125,3 @@ public class CustomParser {
         }
     }
 }
-  
