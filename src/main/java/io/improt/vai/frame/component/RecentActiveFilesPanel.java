@@ -12,13 +12,14 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.EnabledFilesChangeListener {
     private final JTable recentFilesTable;
     private final DefaultTableModel tableModel;
     private final App backend;
-    private final List<String> recentlyActiveFiles;
+    private List<String> recentlyActiveFiles; // Removed 'final' to allow refreshing
 
     public RecentActiveFilesPanel() {
         this.backend = App.getInstance();
@@ -118,5 +119,11 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
     public void onEnabledFilesChanged(List<File> updatedEnabledFiles) {
         // Ensure UI updates are performed on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> recentFilesTable.repaint());
+    }
+
+    // New method to refresh the recent active files
+    public void refresh() {
+        recentlyActiveFiles = FileUtils.loadRecentlyActiveFiles(backend.getCurrentWorkspace());
+        populateTable();
     }
 }

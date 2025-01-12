@@ -364,4 +364,8 @@ public class App {
         scrollPane.setPreferredSize(new Dimension(400, 200));
         return scrollPane;
     }
+
+    public Client getClient() {
+        return this.mainWindow;
+    }
 }

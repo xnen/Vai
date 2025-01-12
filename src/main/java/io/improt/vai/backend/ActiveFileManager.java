@@ -1,5 +1,6 @@
 package io.improt.vai.backend;
 
+import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.util.FileUtils;
 
 import java.io.File;
@@ -258,6 +259,12 @@ public class ActiveFileManager {
             recentFiles = recentFiles.subList(0, 100);
         }
         FileUtils.saveRecentlyActiveFiles(recentFiles, currentWorkspace);
+
+        // Refresh the recent active files panel
+        RecentActiveFilesPanel panel = App.getInstance().getClient().getRecentActiveFilesPanel();
+        if (panel != null) {
+            panel.refresh();
+        }
     }
 
     /**
