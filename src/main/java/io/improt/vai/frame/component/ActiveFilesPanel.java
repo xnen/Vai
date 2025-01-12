@@ -97,7 +97,6 @@ public class ActiveFilesPanel extends JPanel {
                     clearActiveItem.addActionListener(event -> {
                         backend.getActiveFileManager().clearActiveFiles();
                         refreshTable();
-                        JOptionPane.showMessageDialog(null, "All active files have been cleared.");
                     });
                     contextMenu.addSeparator();
                     contextMenu.add(clearActiveItem);
