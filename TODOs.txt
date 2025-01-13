@@ -11,4 +11,9 @@
 
 - The RUN_COMMAND feature should have a live-view of the output, as well as source correctly as the shell would.
 - Need to add Windows compatibility to the execute button.
+- We should note when modifications are made in the file viewer, and prompt when changes were made that weren't saved prior to submit.
+- Add CTRL+ENTER to shortcut the submit button.
+- Add auto prompting option for LLM_PROMPTs. Maybe a 3-second timer?
+- Auto add new files created by the LLM.
 
+- "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
