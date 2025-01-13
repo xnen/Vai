@@ -320,6 +320,57 @@ public class App {
                 System.out.println("Writing to " + fileName);
 
                 File targetFile = new File(workspacePath + "/" + fileName);
+
+                // Security Check: Ensure the target file is within the project directory
+                try {
+                    String workspaceCanonicalPath = this.currentWorkspace.getCanonicalPath();
+                    String targetCanonicalPath = targetFile.getCanonicalPath();
+
+                    if (!targetCanonicalPath.startsWith(workspaceCanonicalPath)) {
+                        // Prompt the user for permission to create the file outside the project directory
+                        JPanel panel = new JPanel(new BorderLayout(5, 5));
+                        JLabel label = new JLabel("Allow file creation to '" + targetCanonicalPath + "'?");
+
+                        // Text area with the new contents, initially collapsed
+                        JTextArea textArea = new JTextArea(newContents);
+                        textArea.setEditable(false);
+                        textArea.setLineWrap(true);
+                        textArea.setWrapStyleWord(true);
+                        JScrollPane scrollPane = new JScrollPane(textArea);
+                        scrollPane.setVisible(false);
+
+                        JButton toggleButton = new JButton("Show File Contents");
+                        toggleButton.addActionListener(e -> {
+                            boolean isVisible = scrollPane.isVisible();
+                            scrollPane.setVisible(!isVisible);
+                            toggleButton.setText(isVisible ? "Show File Contents" : "Hide File Contents");
+                            panel.revalidate();
+                            panel.repaint();
+                        });
+
+                        panel.add(label, BorderLayout.NORTH);
+                        panel.add(toggleButton, BorderLayout.CENTER);
+                        panel.add(scrollPane, BorderLayout.SOUTH);
+
+                        int result = JOptionPane.showConfirmDialog(
+                            mainWindow, 
+                            panel, 
+                            "File Creation Approval", 
+                            JOptionPane.YES_NO_OPTION, 
+                            JOptionPane.QUESTION_MESSAGE
+                        );
+
+                        if (result != JOptionPane.YES_OPTION) {
+                            // User declined, skip writing this file
+                            continue;
+                        }
+                    }
+                } catch (IOException e) {
+                    // On error, log the exception and skip writing
+                    e.printStackTrace();
+                    continue;
+                }
+
                 File backupFile = new File(backupDirectory.getAbsolutePath() + "/" + fileName);
                 boolean parentDirsCreated = backupFile.getParentFile().mkdirs();
                 if (!parentDirsCreated) {
