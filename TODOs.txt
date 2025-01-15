@@ -1,19 +1,16 @@
-- The Recent Files menu does not update between projects.
-- When switching projects, the enabled files clears for some reason, probably related to file watching?
-- Add an open workspace button - opens in the default file explorer.
-- Put the workspace path in the title bar.
+- Auto add new files created by the LLM.
+- The New Project system is a bit clunky, maybe we can make it more intuitive.
+   - This is because the open file dialog opens a parent folder, then asks for another folder name. It should just be the folder you select.
+
 - Add a feature system, rather than the SHOW_MESSAGE / RUN_COMMAND / LLM_PROMPT hacks, we'll append to the prompt as needed and remove bloat.
    - Something to append to the prompt too - maybe a "next prompt" feature.
 
-- Move the Execute button to the left.
-- Add a new file icon.
-- The New Project system is a bit clunky, maybe we can make it more intuitive.
-
-- The RUN_COMMAND feature should have a live-view of the output, as well as source correctly as the shell would.
-- Need to add Windows compatibility to the execute button.
-- We should note when modifications are made in the file viewer, and prompt when changes were made that weren't saved prior to submit.
-- Add CTRL+ENTER to shortcut the submit button.
-- Add auto prompting option for LLM_PROMPTs. Maybe a 3-second timer?
-- Auto add new files created by the LLM.
-
 - "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
+- The RUN_COMMAND feature should have a live-view of the output, as well as source correctly as the shell would.
+
+- Add auto prompting option for LLM_PROMPTs. Maybe a 3-second timer? I.e. after the setLLMprompt, if this feature is active, it'll just automatically hit Submit after 3 seconds, unless cancelled.
+
+- Move the Execute button to the left.
+- Need to add Windows compatibility to the execute button.
+- Add a new file icon.
+- We should note when modifications are made in the file viewer, and prompt when changes were made that weren't saved prior to submit.
