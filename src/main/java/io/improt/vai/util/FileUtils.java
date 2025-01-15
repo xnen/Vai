@@ -4,14 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -177,15 +176,18 @@ public class FileUtils {
     public static List<File> loadEnabledFiles(File workspace) {
         List<File> enabledFiles = new ArrayList<>();
         if (workspace == null) {
+            System.out.println("No workspace to load enabled files from.");
             return enabledFiles;
         }
         File vaiDir = getWorkspaceVaiDir(workspace);
         File enabledFilesFile = new File(vaiDir, Constants.ENABLED_FILES_FILE);
         if (!enabledFilesFile.exists()) {
+            System.out.println("No enabled files file found.");
             return enabledFiles;
         }
         String jsonContent = readFileToString(enabledFilesFile);
         if (jsonContent == null || jsonContent.isEmpty()) {
+            System.out.println("Empty JSON content.");
             return enabledFiles;
         }
         try {
@@ -196,11 +198,16 @@ public class FileUtils {
                 File file = new File(filePath);
                 if (file.exists()) {
                     enabledFiles.add(file);
+                } else {
+                    System.out.println("File " + filePath + " does not exist.");
                 }
             }
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        System.out.println("Successful, but " + enabledFiles.size() + " files loaded.");
+
         return enabledFiles;
     }
 
@@ -217,63 +224,14 @@ public class FileUtils {
         }
         File vaiDir = getWorkspaceVaiDir(workspace);
         File enabledFilesFile = new File(vaiDir, Constants.ENABLED_FILES_FILE);
+        System.out.println("Saving " + enabledFiles.size() + " files to " + enabledFilesFile.getAbsolutePath());
         writeStringToFile(enabledFilesFile, jsonArray.toString(4)); // Pretty print with indentation
-    }
-
-    public static List<String> readVaiignore(File workspace) {
-        File vaiDir = getWorkspaceVaiDir(workspace);
-        File vaiignore = new File(vaiDir, Constants.VAIIGNORE_FILE);
-        if (!vaiignore.exists()) {
-            return new ArrayList<>();
-        }
-        try {
-            return Files.readAllLines(vaiignore.toPath());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
-    }
-
-    public static void createDefaultVaiignore(File workspace) {
-        File vaiDir = getWorkspaceVaiDir(workspace);
-        File vaiignore = new File(vaiDir, Constants.VAIIGNORE_FILE);
-        if (vaiignore.exists()) {
-            return;
-        }
-        List<String> defaults = Arrays.asList(
-            Constants.VAI_BACKUP_DIR,
-            Constants.LAST_INCREMENTAL_BACKUP_NUMBER_FILE,
-            Constants.ENABLED_FILES_FILE,
-            Constants.VAIIGNORE_FILE
-        );
-        try {
-            Files.write(vaiignore.toPath(), defaults, StandardOpenOption.CREATE);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     // New methods for handling recent projects
     public static List<String> loadRecentProjects() {
         File recentFile = new File(Constants.RECENT_PROJECTS_FILE);
-        if (!recentFile.exists()) {
-            return new ArrayList<>();
-        }
-        String jsonContent = readFileToString(recentFile);
-        if (jsonContent == null || jsonContent.isEmpty()) {
-            return new ArrayList<>();
-        }
-        try {
-            JSONArray jsonArray = new JSONArray(jsonContent);
-            List<String> recentProjects = new ArrayList<>();
-            for (int i = 0; i < jsonArray.length(); i++) {
-                recentProjects.add(jsonArray.getString(i));
-            }
-            return recentProjects;
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return getStrings(recentFile);
     }
 
     public static void saveRecentProjects(List<String> recentProjects) {
@@ -296,6 +254,11 @@ public class FileUtils {
     public static List<String> loadRecentlyActiveFiles(File workspace) {
         File vaiDir = getWorkspaceVaiDir(workspace);
         File recentlyActiveFile = new File(vaiDir, Constants.RECENTLY_ACTIVE_FILES);
+        return getStrings(recentlyActiveFile);
+    }
+
+    @NotNull
+    private static List<String> getStrings(File recentlyActiveFile) {
         if (!recentlyActiveFile.exists()) {
             return new ArrayList<>();
         }
@@ -332,24 +295,7 @@ public class FileUtils {
             return new ArrayList<>();
         }
         File treeConfigFile = new File(getWorkspaceVaiDir(workspace), Constants.TREE_CONFIG_FILE);
-        if (!treeConfigFile.exists()) {
-            return new ArrayList<>();
-        }
-        String jsonContent = readFileToString(treeConfigFile);
-        if (jsonContent == null || jsonContent.isEmpty()) {
-            return new ArrayList<>();
-        }
-        try {
-            JSONArray jsonArray = new JSONArray(jsonContent);
-            List<String> expandedPaths = new ArrayList<>();
-            for (int i = 0; i < jsonArray.length(); i++) {
-                expandedPaths.add(jsonArray.getString(i));
-            }
-            return expandedPaths;
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return getStrings(treeConfigFile);
     }
 
     public static void saveTreeConfig(List<String> expandedPaths, File workspace) {

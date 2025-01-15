@@ -215,9 +215,6 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
             if (children != null) {
                 for (File child : children) {
                     // Skip files/folders in .vaiignore
-                    if (App.getInstance().getIgnoreList().contains(child.getName())) {
-                        continue;
-                    }
                     if (child.getName().endsWith(".meta")) {
                         // Ignore meta files.
                         continue;
