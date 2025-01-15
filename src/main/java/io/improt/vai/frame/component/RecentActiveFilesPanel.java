@@ -12,7 +12,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.EnabledFilesChangeListener {
@@ -118,7 +117,7 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
     @Override
     public void onEnabledFilesChanged(List<File> updatedEnabledFiles) {
         // Ensure UI updates are performed on the Event Dispatch Thread
-        SwingUtilities.invokeLater(() -> recentFilesTable.repaint());
+        SwingUtilities.invokeLater(recentFilesTable::repaint);
     }
 
     // New method to refresh the recent active files
