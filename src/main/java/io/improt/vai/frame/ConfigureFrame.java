@@ -6,10 +6,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 
-public class Configure extends JFrame {
+public class ConfigureFrame extends JFrame {
     private final JTextField apiKeyField;
 
-    public Configure(Frame parent) {
+    public ConfigureFrame(Frame parent) {
         super("Configure");
         setSize(300, 120);
         setLayout(new FlowLayout());

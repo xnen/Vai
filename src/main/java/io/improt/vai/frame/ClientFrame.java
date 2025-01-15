@@ -1,40 +1,50 @@
 package io.improt.vai.frame;
 
 import io.improt.vai.backend.App;
+import io.improt.vai.frame.actions.NewProjectAction;
+import io.improt.vai.frame.actions.OpenPathAction;
 import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.util.FileUtils;
+import io.improt.vai.util.VaiUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.InputEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Client extends JFrame implements ActiveFilesPanel.FileSelectionListener {
+public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectionListener {
 
     private final JComboBox<String> modelCombo;
     private final JTextArea textArea;
     private FileViewerPanel fileViewerPanel = null;
     private ProjectPanel projectPanel;
     private App backend;
-    private JMenu recentMenu;
-    private JMenu recentActiveFilesMenu;
+    private final JMenu recentMenu;
+    private final JMenu recentActiveFilesMenu;
 
-    private RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
+    private final RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
 
     // Added Execute button and currentFile variable
-    private JButton executeButton;
+    private final JButton executeButton;
     private File currentFile;
 
-    public Client() {
+    // Added "Open Project Directory" menu item
+    private JMenuItem openProjectDirItem;
+
+    public ClientFrame() {
         super("Vai");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
@@ -48,6 +58,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         populateRecentMenu();
         populateMenu();
         JMenu configMenu = new JMenu("Config");
+
         JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
         JMenuItem openPathItem = new JMenuItem("Open Path...");
@@ -56,62 +67,19 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         JMenuItem configureItem = new JMenuItem("Configure...");
 
         // Action Listener for New Project...
-        newProjectItem.addActionListener(e -> {
-            JFileChooser chooser = new JFileChooser();
-            chooser.setDialogTitle("Select Parent Directory for New Project");
-            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            chooser.setAcceptAllFileFilterUsed(false);
-
-            int result = chooser.showOpenDialog(this);
-            if (result == JFileChooser.APPROVE_OPTION) {
-                File parentDir = chooser.getSelectedFile();
-                String projectName = JOptionPane.showInputDialog(this, "Enter new project name:", "New Project", JOptionPane.PLAIN_MESSAGE);
-
-                if (projectName != null) {
-                    projectName = projectName.trim();
-                    if (projectName.isEmpty()) {
-                        JOptionPane.showMessageDialog(this, "Project name cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-
-                    File newProject = new File(parentDir, projectName);
-                    if (newProject.exists()) {
-                        JOptionPane.showMessageDialog(this, "Project \"" + projectName + "\" already exists.", "Error", JOptionPane.ERROR_MESSAGE);
-                    } else {
-                        boolean created = newProject.mkdirs();
-                        if (created) {
-                            backend.openDirectory(newProject);
-                            JOptionPane.showMessageDialog(this, "Project \"" + projectName + "\" created and opened successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Failed to create project directory.", "Error", JOptionPane.ERROR_MESSAGE);
-                        }
-                    }
-                }
-            }
-        });
+        newProjectItem.addActionListener(new NewProjectAction(this));
 
         openDirItem.addActionListener(e -> {
-            backend.openDirectory(this);
+            backend.showWorkspaceOpenDialog(this);
             projectPanel.refreshTree(backend.getCurrentWorkspace());
             populateRecentMenu();
+            updateTitle();
         });
 
-        openPathItem.addActionListener(e -> {
-            String path = JOptionPane.showInputDialog(this, "Enter workspace path:", "Open Path", JOptionPane.PLAIN_MESSAGE);
-            if (path != null && !path.trim().isEmpty()) {
-                File workspace = new File(path.trim());
-                if (workspace.exists() && workspace.isDirectory()) {
-                    backend.openDirectory(workspace);
-                    projectPanel.refreshTree(backend.getCurrentWorkspace());
-                    populateRecentMenu();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Invalid path. Please enter a valid directory.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
+        openPathItem.addActionListener(new OpenPathAction(this));
 
         exitItem.addActionListener(e -> System.exit(0));
-        configureItem.addActionListener(e -> new Configure(this));
+        configureItem.addActionListener(e -> new ConfigureFrame(this));
         refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
 
         // Adding menu items to File menu
@@ -121,6 +89,18 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         fileMenu.add(recentMenu);
         fileMenu.add(refreshItem);
         fileMenu.addSeparator(); // Adds a separator line
+
+        // Initialize and add "Open Project Directory" menu item
+        openProjectDirItem = new JMenuItem("Open Project Directory");
+        openProjectDirItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openProjectDirectory();
+            }
+        });
+        fileMenu.add(openProjectDirItem);
+
+        fileMenu.addSeparator(); // Adds another separator line
         fileMenu.add(exitItem);
 
         // Adding menu items to Config menu
@@ -131,7 +111,6 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         menuBar.add(configMenu);
         menuBar.add(recentActiveFilesMenu);
         setJMenuBar(menuBar);
-
 
         // Project Panel
         projectPanel = new ProjectPanel();
@@ -189,7 +168,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         executeButton = new JButton("Execute");
         executeButton.setEnabled(false); // Initially disabled
         executeButton.addActionListener(e -> {
-            if (currentFile != null && isExecutable(currentFile)) {
+            if (currentFile != null && VaiUtils.isExecutable(currentFile)) {
                 int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to execute " + currentFile.getName() + "?", "Execute Confirmation", JOptionPane.YES_NO_OPTION);
                 if (confirmation == JOptionPane.YES_OPTION) {
                     backend.executeFile(currentFile);
@@ -199,37 +178,14 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         bottomPanel.add(executeButton);
 
         // Submit button
-        JButton submitButton = new JButton("Submit");
-        submitButton.addActionListener(e -> {
-            if (modelCombo.getSelectedItem() == null) {
-                System.out.println("Must select a model");
-                return;
-            }
-
-            String prompt = textArea.getText();
-            prompt += "Continue prompting as needed to continue writing this game -- analyze any missing or incorrect pieces and implement as you go.";
-            App.getInstance().submitRequest(modelCombo.getSelectedItem().toString(), prompt);
-        });
+        JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
 
         inputPanel.add(bottomPanel, BorderLayout.SOUTH);
-
         rightPanel.add(inputPanel, BorderLayout.SOUTH);
 
         // Create vertical splits for left side
-        JSplitPane verticalSplitPane1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, activeFilesPanel, projectPanel);
-        verticalSplitPane1.setDividerLocation(180);
-        verticalSplitPane1.setResizeWeight(0);
-        verticalSplitPane1.setOneTouchExpandable(true);
-
-        JSplitPane verticalSplitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, verticalSplitPane1, recentActiveFilesPanel);
-        verticalSplitPane2.setDividerLocation(180 + 276);
-        verticalSplitPane2.setResizeWeight(0);
-        verticalSplitPane2.setOneTouchExpandable(true);
-
-        // Create main split pane
-        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, verticalSplitPane2, rightPanel);
-        mainSplitPane.setDividerLocation(400); // Adjust as needed
+        JSplitPane mainSplitPane = createLeftPanel(activeFilesPanel, rightPanel);
 
         // Add the split pane to the frame
         getContentPane().add(mainSplitPane, BorderLayout.CENTER);
@@ -253,7 +209,49 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
             }
         });
 
+        // Add CTRL+ENTER shortcut for Submit button
+        addSubmitShortcut(submitButton);
+
+        // Initial title update
+        updateTitle();
+
         setVisible(true);
+    }
+
+    @NotNull
+    private JButton createSubmitButton() {
+        JButton submitButton = new JButton("Submit");
+        submitButton.addActionListener(e -> {
+            if (modelCombo.getSelectedItem() == null) {
+                System.out.println("Must select a model");
+                return;
+            }
+
+            String prompt = textArea.getText();
+            prompt += " Continue prompting as needed to continue writing this game -- analyze any missing or incorrect pieces and implement as you go.";
+
+            App.getInstance().getLLM().submitRequest(modelCombo.getSelectedItem().toString(), prompt);
+        });
+        return submitButton;
+    }
+
+    @NotNull
+    private JSplitPane createLeftPanel(ActiveFilesPanel activeFilesPanel, JPanel rightPanel) {
+        JSplitPane verticalSplitPane1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, activeFilesPanel, projectPanel);
+        verticalSplitPane1.setDividerLocation(180);
+        verticalSplitPane1.setResizeWeight(0);
+        verticalSplitPane1.setOneTouchExpandable(true);
+
+        JSplitPane verticalSplitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, verticalSplitPane1, recentActiveFilesPanel);
+        verticalSplitPane2.setDividerLocation(180 + 276);
+        verticalSplitPane2.setResizeWeight(0);
+        verticalSplitPane2.setOneTouchExpandable(true);
+
+        // Create main split pane
+        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, verticalSplitPane2, rightPanel);
+        mainSplitPane.setDividerLocation(400); // Adjust as needed
+
+        return mainSplitPane;
     }
 
     /**
@@ -273,9 +271,11 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
     }
 
     // New method to populate the Recent menu
-    private void populateRecentMenu() {
+    public void populateRecentMenu() {
         recentMenu.removeAll();
+
         List<String> recentProjects = FileUtils.loadRecentProjects();
+
         if (recentProjects.isEmpty()) {
             JMenuItem emptyItem = new JMenuItem("No Recent Projects");
             emptyItem.setEnabled(false);
@@ -292,6 +292,7 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
                     backend.openDirectory(workspace);
                     projectPanel.refreshTree(backend.getCurrentWorkspace());
                     populateRecentMenu();
+                    updateTitle();
                 } else {
                     JOptionPane.showMessageDialog(this, "The project directory does not exist.", "Error", JOptionPane.ERROR_MESSAGE);
                     List<String> updatedRecentProjects = new ArrayList<>(FileUtils.loadRecentProjects());
@@ -339,33 +340,10 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
         return recentActiveFilesPanel;
     }
 
-    /**
-     * Checks if the given file is executable based on its extension.
-     *
-     * @param file The file to check.
-     * @return True if the file is executable, false otherwise.
-     */
-    private boolean isExecutable(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".sh") || name.endsWith(".exe") || name.endsWith(".bat"); // Extend as needed
-    }
-
-    /**
-     * Updates the state of the Execute button based on whether the current file is executable.
-     */
     private void updateExecuteButton() {
-        if (currentFile != null && isExecutable(currentFile)) {
-            executeButton.setEnabled(true);
-        } else {
-            executeButton.setEnabled(false);
-        }
+        executeButton.setEnabled(currentFile != null && VaiUtils.isExecutable(currentFile));
     }
 
-    /**
-     * Sets the prompt in the text area and colors it green until the user interacts.
-     *
-     * @param prompt The prompt text to display.
-     */
     public void setLLMPrompt(String prompt) {
         textArea.setText(prompt);
         textArea.setBackground(new Color(144, 238, 144)); // Light green background
@@ -398,5 +376,53 @@ public class Client extends JFrame implements ActiveFilesPanel.FileSelectionList
             }
         });
     }
-}
 
+    /**
+     * Updates the JFrame title to the current project path.
+     * If no project is open, sets a default title.
+     */
+    private void updateTitle() {
+        File currentWorkspace = backend.getCurrentWorkspace();
+        if (currentWorkspace != null && currentWorkspace.exists()) {
+            setTitle("Vai - " + currentWorkspace.getAbsolutePath());
+        } else {
+            setTitle("Vai");
+        }
+    }
+
+    /**
+     * Opens the current project directory in the system file explorer.
+     */
+    private void openProjectDirectory() {
+        File currentWorkspace = backend.getCurrentWorkspace();
+        if (currentWorkspace != null && currentWorkspace.exists()) {
+            try {
+                Desktop.getDesktop().open(currentWorkspace);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Unable to open project directory.", "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "No project directory is currently open.", "Information", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    /**
+     * Adds a CTRL+ENTER keyboard shortcut to trigger the Submit button.
+     *
+     * @param submitButton The Submit button to be triggered.
+     */
+    private void addSubmitShortcut(JButton submitButton) {
+        // Define the key stroke for CTRL+ENTER
+        KeyStroke ctrlEnter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK);
+
+        // Get the root pane's input map and action map
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlEnter, "submitAction");
+        getRootPane().getActionMap().put("submitAction", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                submitButton.doClick();
+            }
+        });
+    }
+}

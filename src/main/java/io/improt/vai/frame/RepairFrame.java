@@ -3,12 +3,12 @@ package io.improt.vai.frame;
 import javax.swing.*;
 import java.awt.*;
 
-public class CodeRepair extends JDialog {
+public class RepairFrame extends JDialog {
     private final JTextArea originalCodeArea;
     private final JTextArea correctedCodeArea;
     private String correctedJson = null;
     
-    public CodeRepair(JFrame parent, String jsonString, String exceptionMessage) {
+    public RepairFrame(JFrame parent, String jsonString, String exceptionMessage) {
         super(parent, "formatting Repair", true);
         setLayout(new BorderLayout());
         
