@@ -92,8 +92,8 @@ public class ActiveFileManager {
      * @param file The file to toggle.
      */
     public void toggleFile(File file) {
-        if (enabledFiles.contains(file)) {
-            enabledFiles.remove(file);
+        if (isFileActive(file)) {
+            enabledFiles.removeIf(f -> f.getAbsolutePath().equals(file.getAbsolutePath()));
         } else {
             enabledFiles.add(file);
             addToRecentlyActive(file);
@@ -113,11 +113,11 @@ public class ActiveFileManager {
     public void addFile(File file) {
         if (file != null && file.exists() && file.isFile()) {
             String newFilePath = file.getAbsolutePath();
-            for (File enabledFile : enabledFiles) {
-                if (enabledFile.getAbsolutePath().equals(newFilePath)) {
-                    // File already exists in enabledFiles
-                    return;
-                }
+            boolean alreadyExists = enabledFiles.stream()
+                    .anyMatch(enabledFile -> enabledFile.getAbsolutePath().equals(newFilePath));
+            if (alreadyExists) {
+                // File already exists in enabledFiles
+                return;
             }
             enabledFiles.add(file);
             // Save the updated enabled files list
@@ -146,25 +146,16 @@ public class ActiveFileManager {
     }
 
     public boolean removeFile(File file) {
-        // Not sure if the File object is usable within remove. Let's iterate and remove with the path!
-        // GPTODO: The file object passed here is a new object, not necessarily the one in the enabledFiles list.
-        //         This is why im doing this. If this isn't needed, please correct this.
+        boolean removed = enabledFiles.removeIf(enabledFile ->
+                enabledFile.getAbsolutePath().equals(file.getAbsolutePath()));
 
-        boolean removed = false;
-        List<File> newEnabledFiles = new ArrayList<>(this.enabledFiles);
-        for (File enabledFile : newEnabledFiles) {
-            if (enabledFile.getAbsolutePath().equals(file.getAbsolutePath())) {
-                enabledFiles.remove(enabledFile);
-                removed = true;
-                break;
-            }
+        if (removed) {
+            // Save the updated enabled files list
+            FileUtils.saveEnabledFiles(this.enabledFiles, currentWorkspace);
+
+            // Notify listeners about the enabled files change
+            notifyEnabledFilesChanged();
         }
-
-        // Save the updated enabled files list
-        FileUtils.saveEnabledFiles(this.enabledFiles, currentWorkspace);
-
-        // Notify listeners about the enabled files change
-        notifyEnabledFilesChanged();
 
         return removed;
     }
