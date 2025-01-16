@@ -1,6 +1,7 @@
 package io.improt.vai.backend;
 
 import io.improt.vai.frame.ClientFrame;
+import io.improt.vai.maps.WorkspaceMapper;
 import io.improt.vai.openai.LLMInteraction;
 import io.improt.vai.openai.OpenAIProvider;
 import io.improt.vai.util.FileUtils;
@@ -15,28 +16,17 @@ public class App {
 
     public static final String API_KEY = Constants.API_KEY_PATH;
     private File currentWorkspace;
-
     private static App instance;
     private ClientFrame mainWindow;
     private OpenAIProvider openAIProvider;
-
     private LLMInteraction llmInteraction;
-
     private ActiveFileManager activeFileManager;
 
-    /**
-     * Constructs the App with the specified main window.
-     *
-     * @param mainWindow The main client window.
-     */
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
         instance = this;
     }
 
-    /**
-     * Initializes the application by setting up necessary components and loading the last workspace.
-     */
     public void init() {
         FileUtils.loadWorkspaceMappings();
 
@@ -50,9 +40,16 @@ public class App {
 
             activeFileManager = new ActiveFileManager(currentWorkspace);
             activeFileManager.addEnabledFilesChangeListener(updatedEnabledFiles -> mainWindow.getProjectPanel().refreshTree(currentWorkspace));
+            
+            // Generate workspace map on project launch
+            try {
+                WorkspaceMapper.generateWorkspaceMap(currentWorkspace);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(mainWindow, "Failed to generate workspace map: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
         }
 
-        // Initialize LLM interaction
         this.llmInteraction = new LLMInteraction(this);
         llmInteraction.init();
     }
@@ -61,12 +58,8 @@ public class App {
         return llmInteraction;
     }
 
-    /**
-     * Opens a directory chooser dialog and finalizes the directory opening process.
-     *
-     * @param parent The parent JFrame for the dialog.
-     */
-    public void showWorkspaceOpenDialog(JFrame parent) {
+    // Open File Dialog for Workspace
+    public void showOpenWorkspaceDialog(JFrame parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int result = chooser.showOpenDialog(parent);
@@ -77,8 +70,6 @@ public class App {
 
     /**
      * Finalizes the process of opening a new directory as the workspace.
-     *
-     * @param directory The directory to set as the new workspace.
      */
     private void finalizeOpenProject(File directory) {
         this.currentWorkspace = directory;
@@ -96,6 +87,14 @@ public class App {
         FileUtils.addRecentProject(currentWorkspace.getAbsolutePath());
 
         this.mainWindow.getRecentActiveFilesPanel().refresh();
+        
+        // Generate workspace map on project launch
+        try {
+            WorkspaceMapper.generateWorkspaceMap(this.currentWorkspace);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(mainWindow, "Failed to generate workspace map: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     public ActiveFileManager getActiveFileManager() {
@@ -107,10 +106,7 @@ public class App {
      */
     private final ActiveFileManager.EnabledFilesChangeListener projectTreeRefresher = updatedEnabledFiles -> mainWindow.getProjectPanel().refreshTree(currentWorkspace);
 
-    /**
-     * Opens a directory as the current workspace.
-     */
-    public void openDirectory(File directory) {
+    public void openWorkspace(File directory) {
         if (directory != null && directory.exists() && directory.isDirectory()) {
             finalizeOpenProject(directory);
         } else {
@@ -118,23 +114,14 @@ public class App {
         }
     }
 
-    /**
-     * Retrieves the API key from the specified path.
-     */
     public static String getApiKey() {
         return FileUtils.readFileToString(new File(Constants.API_KEY_PATH));
     }
 
-    /**
-     * Gets the current workspace directory.
-     */
     public File getCurrentWorkspace() {
         return currentWorkspace;
     }
 
-    /**
-     * Gets the list of currently enabled files.
-     */
     public List<File> getEnabledFiles() {
         if (activeFileManager != null) {
             return activeFileManager.getEnabledFiles();
@@ -142,16 +129,10 @@ public class App {
         return Collections.emptyList();
     }
 
-    /**
-     * Retrieves the singleton instance of App.
-     */
     public static App getInstance() {
         return instance;
     }
 
-    /**
-     * Retrieves the OpenAIProvider instance.
-     */
     public OpenAIProvider getOpenAIProvider() {
         return this.openAIProvider;
     }

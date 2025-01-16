@@ -22,7 +22,7 @@ public class OpenPathAction implements ActionListener {
         if (path != null && !path.trim().isEmpty()) {
             File workspace = new File(path.trim());
             if (workspace.exists() && workspace.isDirectory()) {
-                backend.openDirectory(workspace);
+                backend.openWorkspace(workspace);
                 client.getProjectPanel().refreshTree(backend.getCurrentWorkspace());
                 client.populateRecentMenu();
             } else {

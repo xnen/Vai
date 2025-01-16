@@ -70,7 +70,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         newProjectItem.addActionListener(new NewProjectAction(this));
 
         openDirItem.addActionListener(e -> {
-            backend.showWorkspaceOpenDialog(this);
+            backend.showOpenWorkspaceDialog(this);
             projectPanel.refreshTree(backend.getCurrentWorkspace());
             populateRecentMenu();
             updateTitle();
@@ -289,7 +289,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             projectItem.addActionListener(e -> {
                 File workspace = new File(path);
                 if (workspace.exists() && workspace.isDirectory()) {
-                    backend.openDirectory(workspace);
+                    backend.openWorkspace(workspace);
                     projectPanel.refreshTree(backend.getCurrentWorkspace());
                     populateRecentMenu();
                     updateTitle();

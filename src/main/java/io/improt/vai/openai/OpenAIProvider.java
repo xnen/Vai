@@ -31,7 +31,7 @@ public class OpenAIProvider {
                 .apiKey(apiKey)
                 .build();
 
-        System.out.println("OpenAI client initialized");
+        System.out.println("[OpenAIProvider] OpenAI client initialized");
         this.client = client;
     }
 

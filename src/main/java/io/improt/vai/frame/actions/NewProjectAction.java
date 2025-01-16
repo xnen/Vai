@@ -41,7 +41,7 @@ public class NewProjectAction implements ActionListener {
                 } else {
                     boolean created = newProject.mkdirs();
                     if (created) {
-                        App.getInstance().openDirectory(newProject);
+                        App.getInstance().openWorkspace(newProject);
                         JOptionPane.showMessageDialog(client, "Project \"" + projectName + "\" created and opened successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(client, "Failed to create project directory.", "Error", JOptionPane.ERROR_MESSAGE);

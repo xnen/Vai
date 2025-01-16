@@ -206,7 +206,7 @@ public class FileUtils {
             e.printStackTrace();
         }
 
-        System.out.println("Successful, but " + enabledFiles.size() + " files loaded.");
+        System.out.println("Successfully loaded " + enabledFiles.size() + " files.");
 
         return enabledFiles;
     }
