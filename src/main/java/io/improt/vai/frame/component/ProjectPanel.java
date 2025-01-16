@@ -21,17 +21,13 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
     public ProjectPanel() {
         setLayout(new BorderLayout());
 
-        // Initialize the tree
         tree = new JTree();
         tree.setModel(null);
 
-        // Set custom renderer to highlight active files
         tree.setCellRenderer(new ActiveFileTreeCellRenderer());
 
-        // Wrap the JTree in a JScrollPane
         JScrollPane scrollPane = new JScrollPane(tree);
 
-        // Add mouse listener for tree interactions
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -39,10 +35,15 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
                 if (selRow != -1) {
                     TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
                     File selectedFile = pathToFile(selPath);
-                    if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1) {
-                        if (selectedFile != null && selectedFile.isFile()) {
-                            App.getInstance().getActiveFileManager().toggleFile(selectedFile);
-                            // Removed redundant tree.repaint() as it will be handled by listener
+                    if (SwingUtilities.isLeftMouseButton(e)) {
+                        if (e.getClickCount() == 1) {
+                            if (selectedFile != null && selectedFile.isFile()) {
+                                App.getInstance().getActiveFileManager().addFile(selectedFile);
+                            }
+                        } else if (e.getClickCount() == 2) {
+                            if (selectedFile != null && selectedFile.isFile()) {
+                                App.getInstance().getActiveFileManager().removeFile(selectedFile);
+                            }
                         }
                     } else if (SwingUtilities.isRightMouseButton(e) && e.getClickCount() == 1) {
                         if (selectedFile != null) {
@@ -53,12 +54,10 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
             }
         });
 
-        // Add TreeSelectionListener to handle selection changes
         tree.addTreeSelectionListener(e -> {
-            // Notify listeners if needed
+            // Handle tree selection changes if needed
         });
 
-        // Add TreeExpansionListener to auto-expand single directory nodes and handle state saving
         tree.addTreeExpansionListener(new TreeExpansionListener() {
             @Override
             public void treeExpanded(TreeExpansionEvent event) {
@@ -70,17 +69,13 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
             @Override
             public void treeCollapsed(TreeExpansionEvent event) {
                 saveExpandedPaths();
-                // Optional: Implement behavior on collapse if needed
             }
         });
 
-        // Add the scroll pane containing the tree to the panel
         add(scrollPane, BorderLayout.CENTER);
-
     }
 
     public void init(App backend) {
-        // Register as a listener to App for enabledFiles changes
         backend.getActiveFileManager().addEnabledFilesChangeListener(this);
     }
 
@@ -91,18 +86,14 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
      */
     public void refreshTree(File root) {
         if (root != null && root.isDirectory()) {
-            // Collect expanded paths before refreshing
             List<String> expandedPaths = new ArrayList<>();
 
-            // Load tree nodes
             DefaultMutableTreeNode rootNode = createTreeNodes(root);
             tree.setModel(new DefaultTreeModel(rootNode));
 
-            // Expand nodes with a single child directory
             TreePath rootPath = new TreePath(rootNode);
             expandSingleChildNodes(rootPath);
 
-            // Load and expand saved paths
             List<String> savedExpandedPaths = FileUtils.loadTreeConfig(root);
             expandSavedPaths(savedExpandedPaths);
         }
@@ -148,7 +139,6 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
         FileUtils.saveTreeConfig(expandedPaths, workspace);
     }
 
-    // We don't need to save these paths if the tree is being expanded via expandSavedPaths()
     private boolean expandingFlag = false;
 
     /**
@@ -214,9 +204,7 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
             File[] children = file.listFiles();
             if (children != null) {
                 for (File child : children) {
-                    // Skip files/folders in .vaiignore
                     if (child.getName().endsWith(".meta")) {
-                        // Ignore meta files.
                         continue;
                     }
                     if (child.isDirectory()) {
@@ -247,18 +235,14 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
         if (node.getChildCount() == 1) {
             DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(0);
 
-            // Check if the child node is a directory (i.e., has children)
             if (!child.isLeaf()) {
                 TreePath childPath = path.pathByAddingChild(child);
                 tree.expandPath(childPath);
-
-                // Recursive call to continue expanding
                 expandSingleChildNodes(childPath);
             }
         }
     }
 
-    // Custom TreeCellRenderer to highlight active files
     private class ActiveFileTreeCellRenderer extends DefaultTreeCellRenderer {
         private final Color activeColor = new Color(144, 238, 144); // Light Green
 
@@ -288,7 +272,7 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
         useAsWorkspaceItem.addActionListener(e -> {
             File workspaceDir = selectedFile.isDirectory() ? selectedFile : selectedFile.getParentFile();
             if (workspaceDir != null && workspaceDir.exists() && workspaceDir.isDirectory()) {
-                App.getInstance().openDirectory(workspaceDir);
+                App.getInstance().openWorkspace(workspaceDir);
             } else {
                 JOptionPane.showMessageDialog(this, "Selected item is not a valid directory.", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -308,7 +292,6 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
      */
     @Override
     public void onEnabledFilesChanged(java.util.List<File> updatedEnabledFiles) {
-        // Repaint the tree to update the cell renderer
         SwingUtilities.invokeLater(tree::repaint);
     }
 }
