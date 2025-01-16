@@ -42,7 +42,6 @@ public class ActiveFileManager {
     }
 
     public boolean isFileActive(File file) {
-        // Iterate paths.
         for (File enabledFile : enabledFiles) {
             if (enabledFile.getAbsolutePath().equals(file.getAbsolutePath())) {
                 return true;
@@ -87,25 +86,6 @@ public class ActiveFileManager {
     }
 
     /**
-     * Toggles the enabled state of a file. Adds it if it's not enabled, removes it otherwise.
-     *
-     * @param file The file to toggle.
-     */
-    public void toggleFile(File file) {
-        if (isFileActive(file)) {
-            enabledFiles.removeIf(f -> f.getAbsolutePath().equals(file.getAbsolutePath()));
-        } else {
-            enabledFiles.add(file);
-            addToRecentlyActive(file);
-        }
-
-        FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-
-        // Notify listeners about the enabled files change
-        notifyEnabledFilesChanged();
-    }
-
-    /**
      * Adds a new file to the enabled files list.
      *
      * @param file The file to add.
@@ -116,17 +96,11 @@ public class ActiveFileManager {
             boolean alreadyExists = enabledFiles.stream()
                     .anyMatch(enabledFile -> enabledFile.getAbsolutePath().equals(newFilePath));
             if (alreadyExists) {
-                // File already exists in enabledFiles
                 return;
             }
             enabledFiles.add(file);
-            // Save the updated enabled files list
             FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-
-            // Also add to recently active files
             addToRecentlyActive(file);
-
-            // Notify listeners about the enabled files change
             notifyEnabledFilesChanged();
         }
     }
@@ -138,10 +112,7 @@ public class ActiveFileManager {
      */
     public void removeFile(String selectedFile) {
         enabledFiles.removeIf(file -> file.getName().equals(selectedFile));
-        // Save the updated enabled files list
         FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-
-        // Notify listeners about the enabled files change
         notifyEnabledFilesChanged();
     }
 
@@ -150,10 +121,7 @@ public class ActiveFileManager {
                 enabledFile.getAbsolutePath().equals(file.getAbsolutePath()));
 
         if (removed) {
-            // Save the updated enabled files list
             FileUtils.saveEnabledFiles(this.enabledFiles, currentWorkspace);
-
-            // Notify listeners about the enabled files change
             notifyEnabledFilesChanged();
         }
 
@@ -166,8 +134,6 @@ public class ActiveFileManager {
     public void clearActiveFiles() {
         enabledFiles.clear();
         FileUtils.saveEnabledFiles(enabledFiles, currentWorkspace);
-
-        // Notify listeners about the enabled files change
         notifyEnabledFilesChanged();
     }
 
@@ -251,7 +217,6 @@ public class ActiveFileManager {
         }
         FileUtils.saveRecentlyActiveFiles(recentFiles, currentWorkspace);
 
-        // Refresh the recent active files panel
         RecentActiveFilesPanel panel = App.getInstance().getClient().getRecentActiveFilesPanel();
         if (panel != null) {
             panel.refresh();

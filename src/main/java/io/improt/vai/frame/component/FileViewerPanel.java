@@ -251,7 +251,7 @@ public class FileViewerPanel extends JPanel {
 
     private void addCurrentFile() {
         if (currentFile != null && !App.getInstance().getEnabledFiles().contains(currentFile)) {
-            App.getInstance().getActiveFileManager().toggleFile(currentFile);
+            App.getInstance().getActiveFileManager().addFile(currentFile);
             updateButtonStates();
         }
     }
