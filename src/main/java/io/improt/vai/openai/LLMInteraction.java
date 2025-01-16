@@ -170,6 +170,12 @@ public class LLMInteraction {
                     if (!targetFile.createNewFile()) {
                         System.out.println("[WARNING][Backup] Failed to create target file " + targetFile.getAbsolutePath());
                     }
+
+                    // Automatically add to enabled files
+                    // Resolved issue with duplicate due to '.' in path by normalizing the file path
+                    Path normalizedPath = targetFile.toPath().normalize();
+                    File normalizedFile = normalizedPath.toFile();
+                    App.getInstance().getActiveFileManager().addFile(normalizedFile);
                 }
 
                 FileUtils.writeStringToFile(targetFile, newContents);
