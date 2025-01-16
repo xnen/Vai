@@ -12,7 +12,7 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
     <dependencies>
-        <!-- No external UI libraries, just standard Swing -->
+        <!-- Existing Dependencies -->
         <dependency>
             <groupId>com.openai</groupId>
             <artifactId>openai-java</artifactId>
@@ -33,6 +33,23 @@
             <artifactId>json</artifactId>
             <version>20250107</version>
         </dependency>
+        
+<!--        &lt;!&ndash; JavaParser Dependencies &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.github.javaparser</groupId>-->
+<!--            <artifactId>javaparser-symbol-solver-core</artifactId>-->
+<!--            <version>3.26.3</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.github.javaparser</groupId>-->
+<!--            <artifactId>javaparser-core</artifactId>-->
+<!--            <version>3.26.3</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.github.javaparser</groupId>-->
+<!--            <artifactId>javaparser-core-serialization</artifactId>-->
+<!--            <version>3.26.3</version>-->
+<!--        </dependency>-->
     </dependencies>
     <build>
         <plugins>
