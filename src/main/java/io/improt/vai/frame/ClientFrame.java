@@ -228,7 +228,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
 
             String prompt = textArea.getText();
-            prompt += " Continue prompting as needed to continue writing this game -- analyze any missing or incorrect pieces and implement as you go.";
+            prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
 
             App.getInstance().getLLM().submitRequest(modelCombo.getSelectedItem().toString(), prompt);
         });

@@ -62,7 +62,9 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
         add(scrollPane, BorderLayout.CENTER);
 
         // Register this panel as a listener to enabledFiles changes
-        backend.getActiveFileManager().addEnabledFilesChangeListener(this);
+        if (backend.getActiveFileManager() != null) {
+            backend.getActiveFileManager().addEnabledFilesChangeListener(this);
+        }
     }
 
     private void populateTable() {

@@ -146,6 +146,11 @@ public class FileUtils {
     }
 
     public static int loadIncrementalBackupNumber(File workspace) {
+        if (workspace == null) {
+            System.out.println("No workspace found for backups.");
+            return 0;
+        }
+
         File vaiDir = getWorkspaceVaiDir(workspace);
         File file = new File(vaiDir, Constants.LAST_INCREMENTAL_BACKUP_NUMBER_FILE);
         String content = readFileToString(file);
@@ -252,6 +257,11 @@ public class FileUtils {
 
     // New methods to handle recentlyActive files
     public static List<String> loadRecentlyActiveFiles(File workspace) {
+        if (workspace == null) {
+            System.out.println("No workspace found for recently active files.");
+            return new ArrayList<>();
+        }
+
         File vaiDir = getWorkspaceVaiDir(workspace);
         File recentlyActiveFile = new File(vaiDir, Constants.RECENTLY_ACTIVE_FILES);
         return getStrings(recentlyActiveFile);

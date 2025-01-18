@@ -76,7 +76,9 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
     }
 
     public void init(App backend) {
-        backend.getActiveFileManager().addEnabledFilesChangeListener(this);
+        if (backend.getActiveFileManager() != null) {
+            backend.getActiveFileManager().addEnabledFilesChangeListener(this);
+        }
     }
 
     /**

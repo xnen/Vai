@@ -77,7 +77,7 @@ public class LLMInteraction {
         App app = App.getInstance();
         OpenAIProvider openAIProvider = app.getOpenAIProvider();
 
-        String structure = app.getActiveFileManager().formatEnabledFiles();
+        String structure = FileTreeBuilder.createTree(app.getCurrentWorkspace(), app.getEnabledFiles());
 
         // Replace the top level directory with a dot
         structure = structure.replaceFirst(app.getCurrentWorkspace().getName() + "/", "./");
