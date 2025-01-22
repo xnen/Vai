@@ -11,8 +11,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
+import java.util.Objects;
 
 public class App {
 
@@ -23,6 +29,9 @@ public class App {
     private LLMRegistry llmRegistry;
     private LLMInteraction llmInteraction;
     private ActiveFileManager activeFileManager;
+
+    private static final int VAI_INTEGRATION_PORT = 12345; // Port for Vai integration
+    private static final String VAI_INTEGRATION_SALT = "YourSuperSecretSalt"; // GPTODO: Replace with secure configuration
 
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
@@ -61,6 +70,66 @@ public class App {
 
         this.llmInteraction = new LLMInteraction(this);
         llmInteraction.init();
+
+        startSocketListener(); // Start listening for socket connections
+    }
+
+    private void startSocketListener() {
+        Thread socketThread = new Thread(() -> {
+            try (ServerSocket serverSocket = new ServerSocket(VAI_INTEGRATION_PORT, 50, InetAddress.getLoopbackAddress())) {
+                System.out.println("[App] App integration port = " + VAI_INTEGRATION_PORT + " on localhost.");
+                while (true) {
+                    Socket clientSocket = serverSocket.accept();
+                    handleClientConnection(clientSocket);
+                }
+            } catch (IOException e) {
+                System.err.println("[App] Could not listen on port " + VAI_INTEGRATION_PORT + " on localhost: " + e.getMessage());
+            }
+        });
+        socketThread.setDaemon(true);
+        socketThread.start();
+    }
+
+    private void handleClientConnection(Socket clientSocket) {
+        try (
+            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))
+        ) {
+            if (!clientSocket.getInetAddress().isLoopbackAddress()) {
+                System.err.println("Connection rejected: Not from localhost.");
+                return; // Reject connection
+            }
+
+            // 2. Read and verify secret salt
+            String receivedSalt = in.readLine();
+            if (!Objects.equals(receivedSalt, VAI_INTEGRATION_SALT)) {
+                System.err.println("Connection rejected: Invalid secret salt.");
+                return; // Reject connection
+            }
+
+            // 3. Read file path
+            String filePath = in.readLine();
+            if (filePath != null && Files.exists(Paths.get(filePath))) {
+                System.out.println("Received file path: " + filePath);
+                File fileToOpen = new File(filePath);
+                SwingUtilities.invokeLater(() -> {
+                    mainWindow.toFront();
+                    mainWindow.requestFocus();
+                    mainWindow.setState(Frame.NORMAL); // Ensure window is not minimized
+                    activeFileManager.addFile(fileToOpen);
+                    mainWindow.getFileViewerPanel().displayFile(fileToOpen);
+                });
+            } else {
+                System.err.println("Invalid file path received: " + filePath);
+            }
+        } catch (IOException e) {
+            System.err.println("Error handling connection: " + e.getMessage());
+        } finally {
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                // Ignore close exception
+            }
+        }
     }
 
     public LLMInteraction getLLM() {
