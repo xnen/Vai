@@ -73,6 +73,7 @@ def get_mime_type(file_path):
         'wav': 'audio/wav',
         'ogg': 'audio/ogg',
         'flac': 'audio/flac',
+        'mp4': 'video/mp4',
         'image': 'image/*' # Generic image type
     }
     return mime_types.get(file_extension)
