@@ -6,7 +6,10 @@ import io.improt.vai.llm.*;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -177,6 +180,33 @@ public class App {
             pb.start();
         } catch (IOException e) {
             JOptionPane.showMessageDialog(mainWindow, "Failed to execute the file: " + e.getMessage(), "Execution Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public File saveImageAsTempFile(Image image) {
+        if (currentWorkspace == null) {
+            JOptionPane.showMessageDialog(mainWindow, "No workspace is open to save the image.", "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        File tempDir = FileUtils.getWorkspaceVaiDir(currentWorkspace);
+        if (!tempDir.exists() && !tempDir.mkdirs()) {
+            JOptionPane.showMessageDialog(mainWindow, "Failed to create temporary directory.", "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        File tempFile = new File(tempDir, UUID.randomUUID().toString() + ".png"); // Default to PNG
+        try {
+            BufferedImage bufferedImage = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = bufferedImage.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
+            ImageIO.write(bufferedImage, "png", tempFile); // Save as PNG
+            return tempFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(mainWindow, "Failed to save image to file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
         }
     }
 }

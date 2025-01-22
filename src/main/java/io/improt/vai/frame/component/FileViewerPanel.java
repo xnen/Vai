@@ -120,6 +120,9 @@ public class FileViewerPanel extends JPanel {
 
         // Start the watchdog thread
         watchdogThread();
+
+         // Enable paste functionality in the text area (already handled in ClientFrame, no need here)
+        // textArea.setTransferHandler(new TextTransferHandler()); // Removed, handled in ClientFrame now
     }
 
     public void displayFile(File file) {

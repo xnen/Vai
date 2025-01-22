@@ -298,7 +298,7 @@ public class FileUtils {
         File recentlyActiveFile = new File(vaiDir, Constants.RECENTLY_ACTIVE_FILES);
         writeStringToFile(recentlyActiveFile, jsonArray.toString(4)); // Pretty print with indent.
     }
-    
+
     // New methods for handling tree configuration
     public static List<String> loadTreeConfig(File workspace) {
         if (workspace == null) {

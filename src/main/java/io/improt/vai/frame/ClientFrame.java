@@ -17,14 +17,16 @@ import javax.swing.tree.TreePath;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.InputEvent;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectionListener {
 
@@ -41,6 +43,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     // Added Execute button and currentFile variable
     private final JButton executeButton;
     private File currentFile;
+
+    public static boolean pasting = false;
 
     public ClientFrame() {
         super("Vai");
@@ -154,6 +158,31 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         textScrollPane.setPreferredSize(new Dimension(100, 150)); // Set preferred size to make it taller
         inputPanel.add(textScrollPane, BorderLayout.CENTER);
 
+        // Add Paste Listener to textArea
+        textArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    // Show default paste menu, and then handle potentially pasted image
+                    JPopupMenu popup = new JPopupMenu();
+                    JMenuItem pasteMenuItem = new JMenuItem("Paste");
+                    pasteMenuItem.addActionListener(pasteAction -> handlePaste());
+                    popup.add(pasteMenuItem);
+                    popup.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        });
+        textArea.getInputMap().put(KeyStroke.getKeyStroke("control V"), "paste");
+        textArea.getActionMap().put("paste", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!pasting) {
+                    handlePaste();
+                }
+            }
+        });
+
+
         // Panel for buttons and modelCombo
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -220,6 +249,52 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
         setVisible(true);
     }
+
+    private void handlePaste() {
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Transferable contents = clipboard.getContents(null);
+        if (contents != null && contents.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+            try {
+                Image image = (Image) contents.getTransferData(DataFlavor.imageFlavor);
+                if (image != null) {
+                    // Save image as temporary file and add to active files
+                    File tempImageFile = backend.saveImageAsTempFile(image);
+                    if (tempImageFile != null) {
+                        backend.getActiveFileManager().addFile(tempImageFile);
+                        fileViewerPanel.displayFile(tempImageFile); // Immediately display the file
+                        projectPanel.refreshTree(backend.getCurrentWorkspace()); // Refresh file viewer to show new file instantly
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Failed to save image from clipboard.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } catch (UnsupportedFlavorException | IOException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error pasting image: " + ex.getMessage(), "Paste Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } else {
+            // Handle text paste as default
+            pasting = true;
+            try {
+                String text = (String) clipboard.getData(DataFlavor.stringFlavor);
+                // Get selected text
+                String selectedText = textArea.getSelectedText();
+                if (selectedText != null) {
+                    textArea.setText(textArea.getText().replace(selectedText, text)); // replace selected text with pasted text
+                } else {
+                    // get cursor position
+                    int caretPosition = textArea.getCaretPosition();
+                    // insert text
+                    textArea.replaceRange(text, caretPosition, caretPosition);
+                }
+            } catch (UnsupportedFlavorException | IOException ex) {
+//                textArea.paste(); // Fallback to default paste if string flavor fails
+                // tough luck.
+                JOptionPane.showMessageDialog(this, "Failed to paste: " + ex.getMessage(), "Paste Error", JOptionPane.ERROR_MESSAGE);
+            }
+            pasting = false;
+        }
+    }
+
 
     @NotNull
     private JButton createSubmitButton() {
