@@ -180,7 +180,7 @@ public class ActiveFileManager {
                 sb.append(FileUtils.readFileToString(file));
                 sb.append("\n```\n");
             } else {
-                sb.append("<uploaded>"); // Indicate binary content is omitted
+                sb.append("The file is provided as an attachment, look there.\n"); // Indicate binary content is omitted
             }
         }
         return sb.toString();

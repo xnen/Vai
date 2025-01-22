@@ -106,6 +106,10 @@ public class LLMInteraction {
 
         prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
 
+        System.out.println("=== LLM PROMPT ===");
+        System.out.println(prompt);
+        System.out.println("====================");
+
         // Get the list of enabled files to be sent to Gemini. Currently, only text-based files are included in the prompt string.
         // For non-text files (images, audio), we'll pass them separately.
         List<File> filesForContext = app.getActiveFileManager().getEnabledFiles(); // Get all enabled files. You can filter if needed.
