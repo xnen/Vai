@@ -88,8 +88,6 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
      */
     public void refreshTree(File root) {
         if (root != null && root.isDirectory()) {
-            List<String> expandedPaths = new ArrayList<>();
-
             DefaultMutableTreeNode rootNode = createTreeNodes(root);
             tree.setModel(new DefaultTreeModel(rootNode));
 

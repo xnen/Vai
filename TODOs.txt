@@ -7,6 +7,8 @@
    - Something to append to the prompt too - maybe a "next prompt" feature.
 
 - "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
+   - Separate UI for milestones, auto prompting should always prompt "Continue development for milestone X" and then the next prompt
+   .
 - The RUN_COMMAND feature should have a live-view of the output, as well as source correctly as the shell would.
 
 - Add auto prompting option for LLM_PROMPTs. Maybe a 3-second timer? I.e. after the setLLMprompt, if this feature is active, it'll just automatically hit Submit after 3 seconds, unless cancelled.
@@ -18,3 +20,14 @@
 
 - The file viewer should limit the filesize to a certain number of characters, or maybe check if the formatter is the performance bottleneck.
 - It'd be nice to add a "Find" feature to the file viewer.
+
+- We should have a history of messages, and commands run.
+- History of modified files.
+- History of prompts.
+
+- The file viewer does not automatically update when the LLM makes changes.
+- Add "open file location" in the right click menu of project panel.
+
+- The "message dialog" from the model should be resizable, and it should not be blocking. It should also allow users to go forward and backward in the history through two buttons "<" and ">".
+- Make "New file" more accessible.
+- The title bar doesnt update when the project is changed.

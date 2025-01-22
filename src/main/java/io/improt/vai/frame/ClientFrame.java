@@ -3,6 +3,7 @@ package io.improt.vai.frame;
 import io.improt.vai.backend.App;
 import io.improt.vai.frame.actions.NewProjectAction;
 import io.improt.vai.frame.actions.OpenPathAction;
+import io.improt.vai.frame.actions.TempProjectAction;
 import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
@@ -41,9 +42,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private final JButton executeButton;
     private File currentFile;
 
-    // Added "Open Project Directory" menu item
-    private JMenuItem openProjectDirItem;
-
     public ClientFrame() {
         super("Vai");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -62,12 +60,14 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
         JMenuItem openPathItem = new JMenuItem("Open Path...");
+        JMenuItem tempProjectItem = new JMenuItem("Temp Project");
         JMenuItem refreshItem = new JMenuItem("Refresh");
         JMenuItem exitItem = new JMenuItem("Exit");
         JMenuItem configureItem = new JMenuItem("Configure...");
 
         // Action Listener for New Project...
         newProjectItem.addActionListener(new NewProjectAction(this));
+        tempProjectItem.addActionListener(new TempProjectAction(this));
 
         openDirItem.addActionListener(e -> {
             backend.showOpenWorkspaceDialog(this);
@@ -84,6 +84,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
         // Adding menu items to File menu
         fileMenu.add(newProjectItem);
+        fileMenu.add(tempProjectItem);
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
         fileMenu.add(recentMenu);
@@ -91,7 +92,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         fileMenu.addSeparator(); // Adds a separator line
 
         // Initialize and add "Open Project Directory" menu item
-        openProjectDirItem = new JMenuItem("Open Project Directory");
+        // Added "Open Project Directory" menu item
+        JMenuItem openProjectDirItem = new JMenuItem("Open Project Directory");
         openProjectDirItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -228,7 +230,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
 
             String prompt = textArea.getText();
-            prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
+//            prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
 
             App.getInstance().getLLM().submitRequest(modelCombo.getSelectedItem().toString(), prompt);
         });
