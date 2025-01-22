@@ -52,6 +52,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         recentMenu = new JMenu("Recent");
+
         recentActiveFilesMenu = new JMenu("Recent");
         populateRecentMenu();
         populateMenu();
@@ -310,6 +311,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private void populateMenu() {
         // Add a separator and "Clear Recent Files" menu item
         JMenuItem clearRecentFilesItem = new JMenuItem("Clear Recent Files");
+        JMenuItem hack = new JMenuItem("Hack");
         clearRecentFilesItem.addActionListener(e -> {
             int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to clear all recent files?", "Confirm Clear", JOptionPane.YES_NO_OPTION);
             if (confirmation == JOptionPane.YES_OPTION) {
@@ -318,7 +320,15 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 recentActiveFilesPanel.refresh();
             }
         });
+
+        // Giga hack to allow manual testing of a given response.
+        hack.addActionListener(e -> {
+            RepairFrame repairDialog = new RepairFrame(this, "Hello world", "Exception");
+            repairDialog.setVisible(true);
+            backend.getLLM().handleCodeResponse(repairDialog.getCorrectedCode());
+        });
         recentActiveFilesMenu.add(clearRecentFilesItem);
+        recentActiveFilesMenu.add(hack);
     }
 
     // Helper method to format the project name using the last two directories

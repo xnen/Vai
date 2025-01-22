@@ -1,4 +1,4 @@
-package io.improt.vai.openai;
+package io.improt.vai.llm;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
@@ -40,6 +40,9 @@ public class OpenAIProvider {
         System.out.println("Beginning request of ");
         System.out.println(prompt);
         ChatModel modelEnum;
+
+        // Temporary hack to disable the model, so I can talk to Bard.
+        if (true) return null;
 
         if (model.equals("o1-preview")) {
             modelEnum = ChatModel.O1_PREVIEW;

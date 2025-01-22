@@ -1,4 +1,4 @@
-package io.improt.vai.openai;
+package io.improt.vai.llm;
 
 import io.improt.vai.backend.App;
 import io.improt.vai.backend.plugin.PluginManager;
@@ -39,7 +39,7 @@ public class LLMInteraction {
      *
      * @param formatted The formatted response string.
      */
-    private void handleCodeResponse(String formatted) {
+    public void handleCodeResponse(String formatted) {
         boolean valid = false;
         String currentCode = formatted;
         String exceptionMessage;
@@ -100,6 +100,7 @@ public class LLMInteraction {
 
         String response = openAIProvider.request(model, prompt);
         System.out.println(response);
+        if (response == null) return;
 
         // Trim leading and trailing whitespaces
         response = response.trim();

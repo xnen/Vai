@@ -2,8 +2,8 @@ package io.improt.vai.backend;
 
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.maps.WorkspaceMapper;
-import io.improt.vai.openai.LLMInteraction;
-import io.improt.vai.openai.OpenAIProvider;
+import io.improt.vai.llm.LLMInteraction;
+import io.improt.vai.llm.OpenAIProvider;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
 
