@@ -2,8 +2,7 @@ package io.improt.vai.backend;
 
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.maps.WorkspaceMapper;
-import io.improt.vai.llm.LLMInteraction;
-import io.improt.vai.llm.OpenAIProvider;
+import io.improt.vai.llm.*;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
 
@@ -18,7 +17,7 @@ public class App {
     private File currentWorkspace;
     private static App instance;
     private ClientFrame mainWindow;
-    private OpenAIProvider openAIProvider;
+    private LLMRegistry llmRegistry;
     private LLMInteraction llmInteraction;
     private ActiveFileManager activeFileManager;
 
@@ -30,8 +29,15 @@ public class App {
     public void init() {
         FileUtils.loadWorkspaceMappings();
 
-        openAIProvider = new OpenAIProvider();
-        openAIProvider.init();
+        llmRegistry = new LLMRegistry();
+        llmRegistry.registerProvider("openai", new OpenAIProvider());
+        llmRegistry.registerProvider("gemini", new GeminiProvider());
+
+        llmRegistry.registerModel("o1-mini", "openai");
+        llmRegistry.registerModel("o1-preview", "openai");
+        llmRegistry.registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
+
+        llmRegistry.initializeProviders();
 
         currentWorkspace = FileUtils.loadLastWorkspace();
 
@@ -40,7 +46,7 @@ public class App {
 
             activeFileManager = new ActiveFileManager(currentWorkspace);
             activeFileManager.addEnabledFilesChangeListener(updatedEnabledFiles -> mainWindow.getProjectPanel().refreshTree(currentWorkspace));
-            
+
             // Generate workspace map on project launch
             try {
                 WorkspaceMapper.generateWorkspaceMap(currentWorkspace);
@@ -89,7 +95,7 @@ public class App {
 
         this.mainWindow.getRecentActiveFilesPanel().refresh();
         this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
-        
+
         // Generate workspace map on project launch
         try {
             WorkspaceMapper.generateWorkspaceMap(this.currentWorkspace);
@@ -135,8 +141,8 @@ public class App {
         return instance;
     }
 
-    public OpenAIProvider getOpenAIProvider() {
-        return this.openAIProvider;
+    public LLMProvider getLLMProvider(String modelName) {
+        return this.llmRegistry.getProviderForModel(modelName);
     }
 
     public ClientFrame getClient() {

@@ -159,7 +159,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 
         // Model combo
-        modelCombo = new JComboBox<>(new String[]{"o1-mini", "o1-preview"});
+        modelCombo = new JComboBox<>(new String[]{"gemini-2.0-flash-thinking-exp-01-21", "o1-mini", "o1-preview"}); // Added Gemini model
         bottomPanel.add(modelCombo);
 
         // Clear button

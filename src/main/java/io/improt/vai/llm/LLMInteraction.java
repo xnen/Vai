@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.List;
+import java.util.ArrayList;
 
 public class LLMInteraction {
     private int currentIncrementalBackupNumber = 0;
@@ -68,14 +69,19 @@ public class LLMInteraction {
     }
 
     /**
-     * Submits a request to the OpenAI provider with the specified model and description.
+     * Submits a request to the LLM provider with the specified model and description.
      *
      * @param model       The model to use for the request.
      * @param description The description of the request.
      */
     public void submitRequest(String model, String description) {
         App app = App.getInstance();
-        OpenAIProvider openAIProvider = app.getOpenAIProvider();
+        LLMProvider llmProvider = app.getLLMProvider(model); // Get provider based on model name
+
+        if (llmProvider == null) {
+            JOptionPane.showMessageDialog(mainWindow, "No LLM provider found for model: " + model, "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
         String structure = FileTreeBuilder.createTree(app.getCurrentWorkspace(), app.getEnabledFiles());
 
@@ -98,7 +104,26 @@ public class LLMInteraction {
                 .replace("<REPLACEME_WITH_FILES>", app.getActiveFileManager().formatEnabledFiles())
                 .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"));
 
-        String response = openAIProvider.request(model, prompt);
+        prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
+
+        // Get the list of enabled files to be sent to Gemini. Currently, only text-based files are included in the prompt string.
+        // For non-text files (images, audio), we'll pass them separately.
+        List<File> filesForContext = app.getActiveFileManager().getEnabledFiles(); // Get all enabled files. You can filter if needed.
+        List<File> filteredFilesForContext = new ArrayList<>();
+        String[] allowedExtensions = {"png", "jpg", "jpeg", "mp3", "wav", "mp4"};
+
+        for (File file : filesForContext) {
+            String fileName = file.getName().toLowerCase();
+            for (String ext : allowedExtensions) {
+                if (fileName.endsWith("." + ext)) {
+                    filteredFilesForContext.add(file);
+                    break; // No need to check other extensions for this file
+                }
+            }
+        }
+        filesForContext = filteredFilesForContext; // Use the filtered list
+
+        String response = llmProvider.request(model, prompt, filesForContext); // Use the retrieved provider and pass files
         System.out.println(response);
         if (response == null) return;
 

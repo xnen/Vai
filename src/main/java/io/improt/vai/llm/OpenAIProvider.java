@@ -5,10 +5,11 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.*;
 import io.improt.vai.backend.App;
 
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
-public class OpenAIProvider {
+public class OpenAIProvider implements LLMProvider {
 
     private OpenAIClient client;
 
@@ -16,6 +17,7 @@ public class OpenAIProvider {
 
     }
 
+    @Override
     public void init() {
         String apiKey = App.getApiKey();
 
@@ -35,14 +37,16 @@ public class OpenAIProvider {
         this.client = client;
     }
 
-    public String request(String model, String prompt) {
+    @Override
+    public String request(String model, String prompt, List<File> files) {
+        if (files != null && !files.isEmpty()) {
+            System.err.println("[OpenAIProvider] Warning: OpenAI does not support sending files. Ignoring " + files.size() + " files.");
+        }
+
         long start = System.currentTimeMillis();
         System.out.println("Beginning request of ");
         System.out.println(prompt);
         ChatModel modelEnum;
-
-        // Temporary hack to disable the model, so I can talk to Bard.
-        if (true) return null;
 
         if (model.equals("o1-preview")) {
             modelEnum = ChatModel.O1_PREVIEW;
