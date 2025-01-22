@@ -9,9 +9,9 @@ import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.util.FileUtils;
-import io.improt.vai.util.VaiUtils;
 import org.jetbrains.annotations.NotNull;
 
+import javax.sound.sampled.*;
 import javax.swing.*;
 import javax.swing.tree.TreePath;
 import javax.swing.event.DocumentEvent;
@@ -26,7 +26,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import javax.swing.BorderFactory;
+import javax.swing.border.Border;
+import javax.swing.Timer;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 
 public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectionListener {
 
@@ -41,10 +45,21 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private final RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
 
     // Added Execute button and currentFile variable
-    private final JButton executeButton;
     private File currentFile;
-
     public static boolean pasting = false;
+
+    // Recording components
+    private JButton recordButton;
+    private boolean isRecording = false;
+    private TargetDataLine audioLine;
+    private File waveFile;
+    private JLabel recordingTimeLabel; // Will be used in status bar now
+    private Timer recordingTimer;
+    private long recordingStartTime;
+    private ByteArrayOutputStream byteArrayOutputStream; // To capture audio data
+    private Thread recordingThread; // Thread for recording
+    private JLabel statusBarLabel;
+
 
     public ClientFrame() {
         super("Vai");
@@ -99,12 +114,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         // Initialize and add "Open Project Directory" menu item
         // Added "Open Project Directory" menu item
         JMenuItem openProjectDirItem = new JMenuItem("Open Project Directory");
-        openProjectDirItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openProjectDirectory();
-            }
-        });
+        openProjectDirItem.addActionListener(e -> openProjectDirectory());
         fileMenu.add(openProjectDirItem);
 
         fileMenu.addSeparator(); // Adds another separator line
@@ -187,6 +197,10 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 
+        // Record Button
+        recordButton = createRecordButton();
+        bottomPanel.add(recordButton);
+
         // Model combo
         modelCombo = new JComboBox<>(new String[]{"gemini-2.0-flash-thinking-exp-01-21", "o1-mini", "o1-preview"}); // Added Gemini model
         bottomPanel.add(modelCombo);
@@ -196,22 +210,11 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         clearButton.addActionListener(e -> textArea.setText(""));
         bottomPanel.add(clearButton);
 
-        // Execute button
-        executeButton = new JButton("Execute");
-        executeButton.setEnabled(false); // Initially disabled
-        executeButton.addActionListener(e -> {
-            if (currentFile != null && VaiUtils.isExecutable(currentFile)) {
-                int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to execute " + currentFile.getName() + "?", "Execute Confirmation", JOptionPane.YES_NO_OPTION);
-                if (confirmation == JOptionPane.YES_OPTION) {
-                    backend.executeFile(currentFile);
-                }
-            }
-        });
-        bottomPanel.add(executeButton);
 
         // Submit button
         JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
+
 
         inputPanel.add(bottomPanel, BorderLayout.SOUTH);
         rightPanel.add(inputPanel, BorderLayout.SOUTH);
@@ -223,8 +226,9 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         getContentPane().add(mainSplitPane, BorderLayout.CENTER);
 
         // Status bar at the bottom
-        JLabel statusLabel = new JLabel("Ready");
-        getContentPane().add(statusLabel, BorderLayout.SOUTH);
+        statusBarLabel = new JLabel("Ready"); // Initialize status bar label
+        getContentPane().add(statusBarLabel, BorderLayout.SOUTH);
+
 
         // Add listener to ProjectPanel for file selection
         projectPanel.getTree().addTreeSelectionListener(e -> {
@@ -233,11 +237,9 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             if (selectedFile != null && selectedFile.isFile()) {
                 fileViewerPanel.displayFile(selectedFile);
                 this.currentFile = selectedFile;
-                updateExecuteButton();
             } else {
                 fileViewerPanel.clear();
                 this.currentFile = null;
-                updateExecuteButton();
             }
         });
 
@@ -250,22 +252,209 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         setVisible(true);
     }
 
+    private JButton createRecordButton() {
+        JButton button = new JButton();
+        button.setPreferredSize(new Dimension(30, 30)); // Square button
+        Border roundedBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); // Some padding
+        button.setBorder(roundedBorder);
+
+        // Set a default icon or text - you can replace "●" with an actual image icon
+        button.setText("●"); // Using a simple circle character for now
+        button.setFont(new Font("Arial", Font.BOLD, 16)); // Make the circle more visible
+
+        button.setBackground(Color.gray); // Default gray color
+        button.setOpaque(true);
+        button.setBorderPainted(false); // No border
+
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (!isRecording) {
+                        startRecording();
+                        button.setBackground(Color.red); // Change color when recording
+                    } else {
+                        stopRecording(true, true); // Save and Submit on left click
+                        button.setBackground(Color.gray); // Reset color
+                    }
+                } else if (SwingUtilities.isRightMouseButton(e)) {
+                    if (isRecording) {
+                        stopRecording(false, false); // Cancel on right click
+                        button.setBackground(Color.gray); // Reset color
+                    }
+                }
+            }
+        });
+        return button;
+    }
+
+
+    private void startRecording() {
+        try {
+            waveFile = createWavFile();
+            AudioFormat format = getAudioFormat();
+            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+
+            if (!AudioSystem.isLineSupported(info)) {
+                System.err.println("Line not supported: " + info);
+                return;
+            }
+
+            audioLine = (TargetDataLine) AudioSystem.getLine(info);
+            audioLine.open(format);
+            byteArrayOutputStream = new ByteArrayOutputStream(); // Initialize output stream
+
+            audioLine.start();
+            isRecording = true;
+            recordingStartTime = System.currentTimeMillis();
+            startTimer();
+
+            // Start recording thread
+            recordingThread = new Thread(() -> {
+                byte[] buffer = new byte[4096];
+                while (isRecording) {
+                    int bytesRead = audioLine.read(buffer, 0, buffer.length);
+                    if (bytesRead > 0) {
+                        byteArrayOutputStream.write(buffer, 0, bytesRead);
+                    }
+                }
+            });
+            recordingThread.start();
+
+
+            System.out.println("Start recording to " + waveFile.getAbsolutePath());
+        } catch (LineUnavailableException ex) {
+            System.err.println("Line unavailable: " + ex);
+            ex.printStackTrace();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void stopRecording(boolean saveFile, boolean submit) {
+        isRecording = false;
+        stopTimer();
+
+        if (audioLine != null) {
+            audioLine.stop();
+            audioLine.close();
+        }
+        audioLine = null; // Set audioLine to null after closing
+
+        if (recordingThread != null) {
+            try {
+                recordingThread.join(); // Wait for recording thread to finish
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+            recordingThread = null; // Set recordingThread to null after joining
+        }
+
+
+        if (saveFile) {
+            try {
+                byte[] audioData = byteArrayOutputStream.toByteArray();
+                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
+                AudioInputStream audioInputStream = new AudioInputStream(byteArrayInputStream, getAudioFormat(), audioData.length / getAudioFormat().getFrameSize()); // Create AudioInputStream from captured data
+                AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, waveFile);
+                System.out.println("Recording saved to " + waveFile.getAbsolutePath());
+
+                if (submit) {
+                    handleSubmitPromptWav();
+                }
+
+            } catch (IOException ex) {
+                System.err.println("Error saving recording: " + ex);
+                ex.printStackTrace();
+            }
+        } else {
+            if (waveFile != null && waveFile.exists()) {
+                boolean delete = waveFile.delete();
+                System.out.println("Recording cancelled and temporary file deleted - " + delete);
+            }
+        }
+
+        if (byteArrayOutputStream != null) {
+            try {
+                byteArrayOutputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            byteArrayOutputStream = null; // Reset byteArrayOutputStream
+        }
+        statusBarLabel.setText("Ready"); // Reset status bar text
+    }
+
+    private void handleSubmitPromptWav() {
+        File promptWav = this.waveFile;
+        if (promptWav != null && promptWav.exists()) {
+            backend.getActiveFileManager().addFile(promptWav);
+            String promptText = "Review the audio and follow instructions within it.";
+            String selectedModel = (String) modelCombo.getSelectedItem();
+            if (selectedModel != null) {
+		// TODO: Verify this is accurate.
+                backend.getLLM().submitRequest(selectedModel, promptText);
+            } else {
+                System.out.println("No model selected, cannot submit prompt.");
+                backend.getActiveFileManager().removeFile(promptWav); // Clean up if no model selected
+                return; // Exit to prevent further execution
+            }
+
+            // Remove Prompt.wav from active files after submission is initiated
+            // Note: Submission is async, removal happens immediately after submission *starts*.
+            backend.getActiveFileManager().removeFile(promptWav);
+        }
+    }
+
+
+    private File createWavFile() throws IOException {
+        File vaiDir = FileUtils.getWorkspaceVaiDir(backend.getCurrentWorkspace());
+        return new File(vaiDir, "Prompt.wav");
+    }
+
+    private AudioFormat getAudioFormat() {
+        float sampleRate = 44100;
+        int sampleSizeInBits = 16;
+        int channels = 1;
+        boolean signed = true;
+        boolean bigEndian = false;
+        return new AudioFormat(sampleRate, sampleSizeInBits, channels, signed, bigEndian);
+    }
+
+    private void startTimer() {
+        recordingTimer = new Timer(100, e -> {
+            long elapsedTimeSeconds = (System.currentTimeMillis() - recordingStartTime) / 1000;
+            long minutes = (elapsedTimeSeconds / 60) % 60;
+            long seconds = elapsedTimeSeconds % 60;
+            statusBarLabel.setText(String.format("Recording: %02d:%02d", minutes, seconds) + ". Right-click to cancel."); // Update status bar with recording time
+        });
+        recordingTimer.start();
+    }
+
+    private void stopTimer() {
+        if (recordingTimer != null && recordingTimer.isRunning()) {
+            recordingTimer.stop();
+            recordingTimer = null;
+        }
+    }
+
+
     private void handlePaste() {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         Transferable contents = clipboard.getContents(null);
         if (contents != null && contents.isDataFlavorSupported(DataFlavor.imageFlavor)) {
             try {
                 Image image = (Image) contents.getTransferData(DataFlavor.imageFlavor);
-                if (image != null) {
-                    // Save image as temporary file and add to active files
-                    File tempImageFile = backend.saveImageAsTempFile(image);
-                    if (tempImageFile != null) {
-                        backend.getActiveFileManager().addFile(tempImageFile);
-                        fileViewerPanel.displayFile(tempImageFile); // Immediately display the file
-                        projectPanel.refreshTree(backend.getCurrentWorkspace()); // Refresh file viewer to show new file instantly
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Failed to save image from clipboard.", "Error", JOptionPane.ERROR_MESSAGE);
-                    }
+
+                // Save image as temporary file and add to active files
+                File tempImageFile = backend.saveImageAsTempFile(image);
+                if (tempImageFile != null) {
+                    backend.getActiveFileManager().addFile(tempImageFile);
+                    fileViewerPanel.displayFile(tempImageFile); // Immediately display the file
+                    projectPanel.refreshTree(backend.getCurrentWorkspace()); // Refresh file viewer to show new file instantly
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to save image from clipboard.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (UnsupportedFlavorException | IOException ex) {
                 ex.printStackTrace();
@@ -341,7 +530,10 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     public void onFileSelected(File file) {
         fileViewerPanel.displayFile(file);
         this.currentFile = file;
-        updateExecuteButton();
+    }
+
+    public FileViewerPanel getFileViewerPanel() {
+        return this.fileViewerPanel;
     }
 
     public ProjectPanel getProjectPanel() {
@@ -425,10 +617,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
     public RecentActiveFilesPanel getRecentActiveFilesPanel() {
         return recentActiveFilesPanel;
-    }
-
-    private void updateExecuteButton() {
-        executeButton.setEnabled(currentFile != null && VaiUtils.isExecutable(currentFile));
     }
 
     public void setLLMPrompt(String prompt) {
