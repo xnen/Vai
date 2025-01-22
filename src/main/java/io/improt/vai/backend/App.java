@@ -73,6 +73,7 @@ public class App {
      */
     private void finalizeOpenProject(File directory) {
         this.currentWorkspace = directory;
+
         FileUtils.saveLastWorkspace(this.currentWorkspace);
 
         if (this.activeFileManager != null) {
@@ -87,6 +88,7 @@ public class App {
         FileUtils.addRecentProject(currentWorkspace.getAbsolutePath());
 
         this.mainWindow.getRecentActiveFilesPanel().refresh();
+        this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
         
         // Generate workspace map on project launch
         try {
