@@ -12,15 +12,21 @@ import org.fife.ui.rtextarea.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 
 public class FileViewerPanel extends JPanel {
     private final RSyntaxTextArea textArea;
+    private final JLabel imageLabel; // For image display
+    private final JScrollPane imageScrollPane; // Scroll pane for image
     private final JButton addButton;
     private final JButton subtractButton;
     private final JButton saveButton;
     private final JButton newFileButton; // New button for creating files
     private final JTextField filenameField; // New textfield for displaying and renaming file name
     private File currentFile;
+    private JPanel contentPanel; // To hold either textArea or imageLabel
+    private CardLayout cardLayout; // To switch between text and image views
 
     public FileViewerPanel() {
         setLayout(new BorderLayout());
@@ -48,14 +54,26 @@ public class FileViewerPanel extends JPanel {
 
         add(filenamePanel, BorderLayout.NORTH); // Add filenamePanel to the top
 
+        // Initialize content panel with CardLayout
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+
         // Initialize text area
         textArea = new RSyntaxTextArea();
         textArea.setEditable(true); // Make editable
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
         textArea.setCodeFoldingEnabled(true);
+        RTextScrollPane textScrollPane = new RTextScrollPane(textArea);
+        contentPanel.add(textScrollPane, "TEXT"); // Add text area to content panel
 
-        RTextScrollPane scrollPane = new RTextScrollPane(textArea);
-        add(scrollPane, BorderLayout.CENTER);
+        // Initialize image label
+        imageLabel = new JLabel();
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+        imageScrollPane = new JScrollPane(imageLabel);
+        contentPanel.add(imageScrollPane, "IMAGE"); // Add image label to content panel
+
+        add(contentPanel, BorderLayout.CENTER); // Add content panel to FileViewerPanel
 
         // Initialize buttons
         addButton = new JButton();
@@ -105,12 +123,18 @@ public class FileViewerPanel extends JPanel {
     }
 
     public void displayFile(File file) {
+        if (file == null) {
+            clear();
+            return;
+        }
         try {
             currentFile = file;
-            String content = new String(Files.readAllBytes(file.toPath()));
-            textArea.setText(content);
-            textArea.setCaretPosition(0);
-            setSyntaxEditingStyle(file);
+            String fileName = file.getName().toLowerCase();
+            if (fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                displayImageFile(file);
+            } else {
+                displayTextFile(file);
+            }
             if (file != null) {
                 filenameField.setText(file.getName());
                 filenameField.setEditable(true);
@@ -119,15 +143,45 @@ public class FileViewerPanel extends JPanel {
                 filenameField.setEditable(false);
             }
             updateButtonStates();
-        } catch (IOException e) {
+        } catch (Exception e) {
             textArea.setText("Error loading file: " + e.getMessage());
             disableButtons();
         }
     }
 
+    private void displayImageFile(File file) {
+        try {
+            BufferedImage image = ImageIO.read(file);
+            if (image != null) {
+                imageLabel.setIcon(new ImageIcon(image));
+                cardLayout.show(contentPanel, "IMAGE");
+            } else {
+                displayTextFile(file); // Fallback to text view if image cannot be read
+            }
+        } catch (IOException e) {
+            displayTextFile(file); // Fallback to text view on IO error
+        }
+    }
+
+
+    private void displayTextFile(File file) {
+        try {
+            String content = new String(Files.readAllBytes(file.toPath()));
+            textArea.setText(content);
+            textArea.setCaretPosition(0);
+            setSyntaxEditingStyle(file);
+            cardLayout.show(contentPanel, "TEXT");
+        } catch (IOException e) {
+            textArea.setText("Error loading file as text: " + e.getMessage());
+        }
+    }
+
+
     public void clear() {
         currentFile = null;
         textArea.setText("");
+        imageLabel.setIcon(null); // Clear image
+        cardLayout.show(contentPanel, "TEXT"); // Default to text view when clearing
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
         disableButtons();
     }
@@ -265,12 +319,16 @@ public class FileViewerPanel extends JPanel {
 
     private void saveCurrentFile() {
         if (currentFile != null) {
-            try {
-                String newContent = textArea.getText();
-                Files.write(currentFile.toPath(), newContent.getBytes());
-                JOptionPane.showMessageDialog(this, "File saved successfully.", "Save Successful", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
+            if (!isImageFile(currentFile)) { // Only save if not an image file
+                try {
+                    String newContent = textArea.getText();
+                    Files.write(currentFile.toPath(), newContent.getBytes());
+                    JOptionPane.showMessageDialog(this, "File saved successfully.", "Save Successful", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException e) {
+                    JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Save is not applicable for this file type.", "Save Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -314,7 +372,7 @@ public class FileViewerPanel extends JPanel {
             boolean isActive = App.getInstance().getEnabledFiles().contains(currentFile);
             addButton.setEnabled(!isActive);
             subtractButton.setEnabled(isActive);
-            saveButton.setEnabled(true);
+            saveButton.setEnabled(!isImageFile(currentFile)); // Disable save button for image files for now
             newFileButton.setEnabled(true);
             filenameField.setEditable(true);
         } else {
@@ -328,5 +386,10 @@ public class FileViewerPanel extends JPanel {
         saveButton.setEnabled(false);
         newFileButton.setEnabled(false);
         filenameField.setEditable(false);
+    }
+
+    private boolean isImageFile(File file) {
+        String fileName = file.getName().toLowerCase();
+        return fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
     }
 }
