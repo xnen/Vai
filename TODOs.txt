@@ -12,6 +12,8 @@
 - The file viewer does not automatically update when the LLM makes changes.
 - Creating a new project doesn't seem to actually open the project.
 
+- Probably should disable the recording button on llms that don't support non-text input.
+
 == Quality of Life ==
 - The file viewer should warn when they try and exit a file, or prompt the LLM with a file that is not saved.
    - We should note when modifications are made in the file viewer, and prompt when changes were made that weren't saved prior to submit.
@@ -32,6 +34,8 @@
 - The text area does not allow CTRL+Z to undo. In fact, many common text interactions are strange, like hitting End moves to
   the end of the current text line, rather than the end of the real line. Like there's no newlines, hitting End should go to the end.
   So maybe we use a separate text area type? We could try the formatted text area like we did with the file viewer formatted to Markdown.
+
+- Ctrl+Clicking on a file should append it to the prompt, with single tick marks around it.
 
 == New ==
 - We should have a history of all features that have been used, i.e. SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
