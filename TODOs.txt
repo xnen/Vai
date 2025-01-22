@@ -1,33 +1,49 @@
+== Bugs ==
+- There seems to be some ignored responses from the LLM, we should write those into a window with a little notification.
+    - All non-parsed text should be appended to a buffer and shown in a window when the notification is clicked.
+
+- The RUN_COMMAND feature doesn't work with many newline commands (multiple commands). It also doesn't run in the right context usually, at least on Linux.
+   - We should have a wrapper that sources bashrc maybe, on linux. I heard of zshrc too, unsure what that is.
+   - Windows ofc needs to be different, potentially.
+   - But yeah this should just be a pop-up shell window, rather than a custom dialog. That way we get live output as well.
+
+- New File should not be disabled under any circumstances. When there is no dir context, just put in the project root.
+- The title bar doesn't update when the project is changed.
+- The file viewer does not automatically update when the LLM makes changes.
+- Creating a new project doesn't seem to actually open the project.
+
+== Quality of Life ==
+- The file viewer should warn when they try and exit a file, or prompt the LLM with a file that is not saved.
+   - We should note when modifications are made in the file viewer, and prompt when changes were made that weren't saved prior to submit.
+
+- The "message dialog" from the model should be resizable, and it should not be blocking.
+    - It should also allow users to go forward and backward in message history through two buttons "<" and ">".
+
+- Add "open file location" in the right click menu of files in the project panel.
+   - Also remove "Use as workspace" if it's not a directory.
+
+- The file viewer should limit the filesize to a certain number of characters, or maybe check if the formatter is the performance bottleneck.
+- Add an icon for New File.
+- Instead of the default OpenJDK icon, we should create/use a Vai icon, if possible.
 - The New Project system is a bit clunky, maybe we can make it more intuitive.
    - This is because the open file dialog opens a parent folder, then asks for another folder name. It should just be the folder you select.
+   - The Java open file dialog is also just clunky and has no bookmarked directories (documents, desktop, etc).
 
-- Create project didn't seem to actually open the project.
+- The text area does not allow CTRL+Z to undo. In fact, many common text interactions are strange, like hitting End moves to
+  the end of the current text line, rather than the end of the real line. Like there's no newlines, hitting End should go to the end.
+  So maybe we use a separate text area type? We could try the formatted text area like we did with the file viewer formatted to Markdown.
 
-- Add a feature system, rather than the SHOW_MESSAGE / RUN_COMMAND / LLM_PROMPT hacks, we'll append to the prompt as needed and remove bloat.
+== New ==
+- We should have a history of all features that have been used, i.e. SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
+    - Clicking on the entry should show the full context of the feature, i.e. the contents of SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
+    - This should be easily accessible from the "Recent" menu.
+
+- Add a llm feature system, rather than the SHOW_MESSAGE / RUN_COMMAND / LLM_PROMPT hacks, we'll append to the prompt as needed and remove bloat.
+   - This will also reduce the scope of the llm's available responses, i.e. if we only want a message dialog and no file changes.
    - Something to append to the prompt too - maybe a "next prompt" feature.
+   - Just some checkboxes to enable/disable features (including editing files)
 
 - "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
    - Separate UI for milestones, auto prompting should always prompt "Continue development for milestone X" and then the next prompt
-   .
-- The RUN_COMMAND feature should have a live-view of the output, as well as source correctly as the shell would.
 
-- Add auto prompting option for LLM_PROMPTs. Maybe a 3-second timer? I.e. after the setLLMprompt, if this feature is active, it'll just automatically hit Submit after 3 seconds, unless cancelled.
-
-- Move the Execute button to the left.
-- Need to add Windows compatibility to the execute button.
-- Add a new file icon.
-- We should note when modifications are made in the file viewer, and prompt when changes were made that weren't saved prior to submit.
-
-- The file viewer should limit the filesize to a certain number of characters, or maybe check if the formatter is the performance bottleneck.
 - It'd be nice to add a "Find" feature to the file viewer.
-
-- We should have a history of messages, and commands run.
-- History of modified files.
-- History of prompts.
-
-- The file viewer does not automatically update when the LLM makes changes.
-- Add "open file location" in the right click menu of project panel.
-
-- The "message dialog" from the model should be resizable, and it should not be blocking. It should also allow users to go forward and backward in the history through two buttons "<" and ">".
-- Make "New file" more accessible.
-- The title bar doesnt update when the project is changed.
