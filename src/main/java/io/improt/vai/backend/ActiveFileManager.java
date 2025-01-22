@@ -154,21 +154,34 @@ public class ActiveFileManager {
     public String formatEnabledFiles() {
         StringBuilder sb = new StringBuilder();
         Path workspacePath = Paths.get(this.currentWorkspace.getAbsolutePath());
+        String[] binaryExtensions = {"png", "jpg", "jpeg", "mp3", "wav", "mp4"};
 
         for (File file : enabledFiles) {
             String extension = "";
+            boolean isBinary = false;
 
             int dotIndex = file.getName().lastIndexOf('.');
             if (dotIndex != -1 && dotIndex < file.getName().length() - 1) {
-                extension = file.getName().substring(dotIndex + 1);
+                extension = file.getName().substring(dotIndex + 1).toLowerCase();
+            }
+
+            for (String binaryExt : binaryExtensions) {
+                if (extension.equals(binaryExt)) {
+                    isBinary = true;
+                    break;
+                }
             }
 
             Path relativePath = workspacePath.relativize(Paths.get(file.getAbsolutePath()));
 
             sb.append("== ").append(relativePath).append(" ==\n");
-            sb.append("```").append(extension).append("\n");
-            sb.append(FileUtils.readFileToString(file));
-            sb.append("\n```\n");
+            if (!isBinary) {
+                sb.append("```").append(extension).append("\n");
+                sb.append(FileUtils.readFileToString(file));
+                sb.append("\n```\n");
+            } else {
+                sb.append("<uploaded>"); // Indicate binary content is omitted
+            }
         }
         return sb.toString();
     }
