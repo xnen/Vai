@@ -4,6 +4,7 @@ import io.improt.vai.backend.App;
 import io.improt.vai.backend.plugin.PluginManager;
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.frame.RepairFrame;
+import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.util.*;
 
 import javax.swing.*;
@@ -76,7 +77,7 @@ public class LLMInteraction {
      */
     public void submitRequest(String model, String description) {
         App app = App.getInstance();
-        LLMProvider llmProvider = app.getLLMProvider(model); // Get provider based on model name
+        IModelProvider llmProvider = app.getLLMProvider(model); // Get provider based on model name
 
         if (llmProvider == null) {
             JOptionPane.showMessageDialog(mainWindow, "No LLM provider found for model: " + model, "Error", JOptionPane.ERROR_MESSAGE);
@@ -127,7 +128,7 @@ public class LLMInteraction {
         }
         filesForContext = filteredFilesForContext; // Use the filtered list
 
-        String response = llmProvider.request(model, prompt, filesForContext); // Use the retrieved provider and pass files
+        String response = llmProvider.request(model, prompt, description, filesForContext); // Use the retrieved provider and pass files
         System.out.println(response);
         if (response == null) return;
 
@@ -209,6 +210,12 @@ public class LLMInteraction {
                 }
 
                 FileUtils.writeStringToFile(targetFile, newContents);
+
+                // Refresh FileViewer if the currently displayed file is modified
+                File currentFileDisplayed = mainWindow.getCurrentFile();
+                if (currentFileDisplayed != null && targetFile.getAbsolutePath().equals(currentFileDisplayed.getAbsolutePath())) {
+                    mainWindow.refreshFileViewer();
+                }
 
                 // Launch diff tool (meld)
                 MeldLauncher.launchMeld(backupFile.toPath(), targetFile.toPath());

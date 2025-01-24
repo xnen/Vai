@@ -1,13 +1,15 @@
 package io.improt.vai.llm;
 
+import io.improt.vai.llm.providers.*;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class LLMRegistry {
-    private final Map<String, LLMProvider> providers = new HashMap<>();
+    private final Map<String, IModelProvider> providers = new HashMap<>();
     private final Map<String, String> modelProviderMap = new HashMap<>();
 
-    public void registerProvider(String providerName, LLMProvider provider) {
+    public void registerProvider(String providerName, IModelProvider provider) {
         providers.put(providerName, provider);
     }
 
@@ -18,7 +20,7 @@ public class LLMRegistry {
         modelProviderMap.put(modelName, providerName);
     }
 
-    public LLMProvider getProviderForModel(String modelName) {
+    public IModelProvider getProviderForModel(String modelName) {
         String providerName = modelProviderMap.get(modelName);
         if (providerName == null) {
             return null;
@@ -27,8 +29,22 @@ public class LLMRegistry {
     }
 
     public void initializeProviders() {
-        for (LLMProvider provider : providers.values()) {
+        for (IModelProvider provider : providers.values()) {
             provider.init();
         }
+    }
+
+    public void registerProviders() {
+        registerProvider("openai-commons", new O1Provider()); // For O1
+        registerProvider("openai-preview-commons", new O1PreviewProvider()); // For O1-Preview
+        registerProvider("openai-mini-commons", new O1MiniProvider()); // For O1-Mini
+        registerProvider("gemini", new GeminiProvider());
+    }
+
+    public void registerModels() {
+        registerModel("o1", "openai-commons");
+        registerModel("o1-preview", "openai-preview-commons");
+        registerModel("o1-mini", "openai-mini-commons");
+        registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
     }
 }

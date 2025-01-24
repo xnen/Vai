@@ -1,6 +1,7 @@
 package io.improt.vai.backend;
 
 import io.improt.vai.frame.ClientFrame;
+import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.maps.WorkspaceMapper;
 import io.improt.vai.llm.*;
 import io.improt.vai.util.FileUtils;
@@ -42,13 +43,8 @@ public class App {
         FileUtils.loadWorkspaceMappings();
 
         llmRegistry = new LLMRegistry();
-        llmRegistry.registerProvider("openai", new OpenAIProvider());
-        llmRegistry.registerProvider("gemini", new GeminiProvider());
-
-        llmRegistry.registerModel("o1-mini", "openai");
-        llmRegistry.registerModel("o1-preview", "openai");
-        llmRegistry.registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
-
+        llmRegistry.registerProviders();
+        llmRegistry.registerModels();
         llmRegistry.initializeProviders();
 
         currentWorkspace = FileUtils.loadLastWorkspace();
@@ -167,6 +163,7 @@ public class App {
 
         this.mainWindow.getRecentActiveFilesPanel().refresh();
         this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
+        mainWindow.updateTitle(); // Call updateTitle here!
 
         // Generate workspace map on project launch
         try {
@@ -213,7 +210,7 @@ public class App {
         return instance;
     }
 
-    public LLMProvider getLLMProvider(String modelName) {
+    public IModelProvider getLLMProvider(String modelName) {
         return this.llmRegistry.getProviderForModel(modelName);
     }
 
