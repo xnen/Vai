@@ -14,6 +14,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class FileViewerPanel extends JPanel {
     private final RSyntaxTextArea textArea;
@@ -27,6 +29,7 @@ public class FileViewerPanel extends JPanel {
     private File currentFile;
     private JPanel contentPanel; // To hold either textArea or imageLabel
     private CardLayout cardLayout; // To switch between text and image views
+    private boolean isModified = false; // Flag to track modifications
 
     public FileViewerPanel() {
         setLayout(new BorderLayout());
@@ -65,6 +68,25 @@ public class FileViewerPanel extends JPanel {
         textArea.setCodeFoldingEnabled(true);
         RTextScrollPane textScrollPane = new RTextScrollPane(textArea);
         contentPanel.add(textScrollPane, "TEXT"); // Add text area to content panel
+
+        // Add DocumentListener to track changes in textArea
+        textArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                setModified(true);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                setModified(true);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                setModified(true);
+            }
+        });
+
 
         // Initialize image label
         imageLabel = new JLabel();
@@ -130,6 +152,23 @@ public class FileViewerPanel extends JPanel {
             clear();
             return;
         }
+
+        if (isModified) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Do you want to save changes to " + (currentFile != null ? currentFile.getName() : "current file") + "?",
+                    "Save Changes?",
+                    JOptionPane.YES_NO_CANCEL_OPTION
+            );
+            if (choice == JOptionPane.CANCEL_OPTION) {
+                return; // Do not switch file
+            }
+            if (choice == JOptionPane.YES_OPTION) {
+                saveCurrentFile(); // Save current file before switching
+            }
+            // If NO_OPTION, discard changes and proceed
+        }
+
         try {
             currentFile = file;
             String fileName = file.getName().toLowerCase();
@@ -146,6 +185,7 @@ public class FileViewerPanel extends JPanel {
                 filenameField.setEditable(false);
             }
             updateButtonStates();
+            setModified(false); // Reset modified flag after loading new file
         } catch (Exception e) {
             textArea.setText("Error loading file: " + e.getMessage());
             disableButtons();
@@ -181,12 +221,28 @@ public class FileViewerPanel extends JPanel {
 
 
     public void clear() {
+        if (isModified) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Do you want to save changes to " + (currentFile != null ? currentFile.getName() : "current file") + "?",
+                    "Save Changes?",
+                    JOptionPane.YES_NO_CANCEL_OPTION
+            );
+            if (choice == JOptionPane.CANCEL_OPTION) {
+                return; // Do not clear
+            }
+            if (choice == JOptionPane.YES_OPTION) {
+                saveCurrentFile(); // Save current file before clearing
+            }
+            // If NO_OPTION, discard changes and proceed
+        }
         currentFile = null;
         textArea.setText("");
         imageLabel.setIcon(null); // Clear image
         cardLayout.show(contentPanel, "TEXT"); // Default to text view when clearing
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
         disableButtons();
+        setModified(false); // Reset modified flag after clearing
     }
 
     private void renameFile(String newName) {
@@ -208,6 +264,7 @@ public class FileViewerPanel extends JPanel {
             App.getInstance().getActiveFileManager().addFile(newFile);
             filenameField.setText(newName);
             JOptionPane.showMessageDialog(this, "File renamed successfully to '" + newName + "'.", "Rename Successful", JOptionPane.INFORMATION_MESSAGE);
+            setModified(false); // Reset modified flag after rename
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Failed to rename the file: " + e.getMessage(), "Rename Error", JOptionPane.ERROR_MESSAGE);
             filenameField.setText(currentFile.getName()); // Revert to original name
@@ -264,6 +321,7 @@ public class FileViewerPanel extends JPanel {
     private void createNewFile() {
         // Determine the directory to create the new file in
         File targetDir;
+
         if (currentFile != null) {
             if (currentFile.isDirectory()) {
                 targetDir = currentFile;
@@ -321,18 +379,17 @@ public class FileViewerPanel extends JPanel {
     }
 
     private void saveCurrentFile() {
-        if (currentFile != null) {
-            if (!isImageFile(currentFile)) { // Only save if not an image file
-                try {
-                    String newContent = textArea.getText();
-                    Files.write(currentFile.toPath(), newContent.getBytes());
-                    JOptionPane.showMessageDialog(this, "File saved successfully.", "Save Successful", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } else {
-                JOptionPane.showMessageDialog(this, "Save is not applicable for this file type.", "Save Error", JOptionPane.ERROR_MESSAGE);
+        if (currentFile != null && !isImageFile(currentFile)) {
+            try {
+                String newContent = textArea.getText();
+                Files.write(currentFile.toPath(), newContent.getBytes());
+                JOptionPane.showMessageDialog(this, "File saved successfully.", "Save Successful", JOptionPane.INFORMATION_MESSAGE);
+                setModified(false); // Reset modified flag after saving
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
             }
+        } else if (currentFile != null && isImageFile(currentFile)) {
+            JOptionPane.showMessageDialog(this, "Save is not applicable for this file type.", "Save Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -376,7 +433,6 @@ public class FileViewerPanel extends JPanel {
             addButton.setEnabled(!isActive);
             subtractButton.setEnabled(isActive);
             saveButton.setEnabled(!isImageFile(currentFile)); // Disable save button for image files for now
-            newFileButton.setEnabled(true);
             filenameField.setEditable(true);
         } else {
             disableButtons();
@@ -387,12 +443,25 @@ public class FileViewerPanel extends JPanel {
         addButton.setEnabled(false);
         subtractButton.setEnabled(false);
         saveButton.setEnabled(false);
-        newFileButton.setEnabled(false);
         filenameField.setEditable(false);
     }
 
     private boolean isImageFile(File file) {
         String fileName = file.getName().toLowerCase();
         return fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
+    }
+
+    // Method to set the modified flag
+    private void setModified(boolean modified) {
+        if (currentFile != null && !isImageFile(currentFile)) { // No modification tracking for images
+            isModified = modified;
+        } else {
+            isModified = false; // Never modified for image files
+        }
+    }
+
+    // Method to check if the file is modified
+    public boolean isModified() {
+        return isModified;
     }
 }
