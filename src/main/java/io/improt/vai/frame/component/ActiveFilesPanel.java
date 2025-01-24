@@ -1,8 +1,10 @@
 package io.improt.vai.frame.component;
 
 import io.improt.vai.backend.App;
+import io.improt.vai.llm.providers.IModelProvider;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
@@ -18,14 +20,14 @@ public class ActiveFilesPanel extends JPanel {
     private final JTable fileTable;
     private final DefaultTableModel tableModel;
     private final App backend;
-    
+
     private FileSelectionListener fileSelectionListener;
 
     public ActiveFilesPanel(App backend) {
         this.backend = backend;
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createTitledBorder("LLM"));
-        
+
         // Initialize table model with column names
         tableModel = new DefaultTableModel(new Object[]{"File Name", "Path"}, 0) {
             @Override
@@ -33,11 +35,42 @@ public class ActiveFilesPanel extends JPanel {
                 return false; // Make table non-editable
             }
         };
-        
+
         fileTable = new JTable(tableModel);
         fileTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         fileTable.setFillsViewportHeight(true);
-        
+
+        // Custom cell renderer to highlight unsupported files
+        // TODO: This doesn't refresh when the model changes.
+        fileTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) { // Avoid overriding selection color
+                    String fileName = (String) tableModel.getValueAt(row, 0);
+                    String modelName = (String) App.getInstance().getClient().getModelList().getSelectedItem();
+                    IModelProvider provider = App.getInstance().getLLMProvider(modelName);
+
+                    if (provider != null) {
+                        if (!provider.supportsAudio() && isAudioFile(fileName)) {
+                            c.setForeground(Color.RED);
+                        } else if (!provider.supportsVision() && isImageFile(fileName)) {
+                            c.setForeground(Color.RED);
+                        } else if (!provider.supportsVideo() && isVideoFile(fileName)) {
+                            c.setForeground(Color.RED);
+                        }
+                         else {
+                            c.setForeground(Color.BLACK); // Default color
+                        }
+                    } else {
+                        c.setForeground(Color.BLACK); // Default color if no provider
+                    }
+                }
+                return c;
+            }
+        });
+
+
         // Enable drag and drop
         setTransferHandler(new TransferHandler() {
             @Override
@@ -72,7 +105,7 @@ public class ActiveFilesPanel extends JPanel {
                 return false;
             }
         });
-        
+
         // Add mouse listener for context menu, single-click selection, and double-click deletion
         fileTable.addMouseListener(new MouseAdapter() {
             @Override
@@ -91,7 +124,7 @@ public class ActiveFilesPanel extends JPanel {
                         refreshTable();
                     });
                     contextMenu.add(deleteItem);
-                    
+
                     // Add Clear Active option to the context menu
                     JMenuItem clearActiveItem = new JMenuItem("Clear Active");
                     clearActiveItem.addActionListener(event -> {
@@ -100,10 +133,10 @@ public class ActiveFilesPanel extends JPanel {
                     });
                     contextMenu.addSeparator();
                     contextMenu.add(clearActiveItem);
-                    
+
                     contextMenu.show(fileTable, e.getX(), e.getY());
                 }
-                
+
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     if (e.getClickCount() == 2) {
                         // Double-click to delete
@@ -122,13 +155,29 @@ public class ActiveFilesPanel extends JPanel {
                 }
             }
         });
-        
+
         JScrollPane scrollPane = new JScrollPane(fileTable);
         add(scrollPane, BorderLayout.CENTER);
 
         // Start the watchdog thread
         startWatchdogThread();
     }
+
+    private boolean isAudioFile(String fileName) {
+        String lowerFileName = fileName.toLowerCase();
+        return lowerFileName.endsWith(".wav") || lowerFileName.endsWith(".mp3"); // Add more audio extensions if needed
+    }
+
+    private boolean isImageFile(String fileName) {
+        String lowerFileName = fileName.toLowerCase();
+        return lowerFileName.endsWith(".png") || lowerFileName.endsWith(".jpg") || lowerFileName.endsWith(".jpeg"); // Add more image extensions if needed
+    }
+
+    private boolean isVideoFile(String fileName) {
+        String lowerFileName = fileName.toLowerCase();
+        return lowerFileName.endsWith(".mp4") || lowerFileName.endsWith(".avi"); // Add more video extensions if needed
+    }
+
 
     public void refreshTable() {
         List<File> enabledFiles = backend.getEnabledFiles();
