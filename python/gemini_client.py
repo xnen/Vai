@@ -12,13 +12,41 @@ def main():
         sys.exit(1)
 
     model_name = sys.argv[1] if len(sys.argv) > 1 else "gemini-pro" # Default model
-    prompt = sys.argv[2] if len(sys.argv) > 2 else ""
-    file_paths = sys.argv[3:] if len(sys.argv) > 3 else []
+    prompt_file_path = sys.argv[2] if len(sys.argv) > 2 else None # Path to prompt file
+    file_list_path = sys.argv[3] if len(sys.argv) > 3 else None # Path to file list
+
+    prompt_text = ""
+    if prompt_file_path:
+        try:
+            with open(prompt_file_path, 'r') as f:
+                prompt_text = f.read()
+        except FileNotFoundError:
+            print(f"Error: Prompt file not found: {prompt_file_path}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error reading prompt file {prompt_file_path}: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        print("DO NOT.")
+        sys.exit(1)
 
     client = genai.Client(api_key=api_key)
 
     contents = []
-    contents.append(types.Part.from_text(prompt))
+    contents.append(types.Part.from_text(prompt_text))
+
+    file_paths = []
+    if file_list_path:
+        try:
+            with open(file_list_path, 'r') as f:
+                file_paths = [line.strip() for line in f if line.strip()] # Read file paths from temp file
+        except FileNotFoundError:
+            print(f"Error: File list not found: {file_list_path}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error reading file list {file_list_path}: {e}", file=sys.stderr)
+            sys.exit(1)
+
 
     for file_path in file_paths:
         try:

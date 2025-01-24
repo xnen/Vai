@@ -1,11 +1,14 @@
-package io.improt.vai.llm;
+package io.improt.vai.llm.providers;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GeminiProvider implements LLMProvider {
+public class GeminiProvider implements IModelProvider {
 
     private String apiKey;
     private final String pythonScriptPath; // Path to the python script
@@ -33,7 +36,7 @@ public class GeminiProvider implements LLMProvider {
     }
 
     @Override
-    public String request(String model, String prompt, List<File> files) {
+    public String request(String model, String prompt, String userRequest, List<File> files) {
         if (apiKey == null || apiKey.trim().isEmpty()) {
             System.out.println("[GeminiProvider] Gemini API key is not configured. Cannot make request.");
             return null;
@@ -44,17 +47,33 @@ public class GeminiProvider implements LLMProvider {
             return null;
         }
 
-        List<String> commandList = new ArrayList<>();
-        commandList.add("python3");
-        commandList.add(pythonScriptPath);
-        commandList.add(model);
-        commandList.add(prompt);
-        commandList.addAll(files.stream().map(File::getAbsolutePath).collect(Collectors.toList()));
-
-        ProcessBuilder pb = new ProcessBuilder(commandList);
-        pb.redirectErrorStream(false); // Separate error stream
-
+        File tempFile = null;
+        File promptTempFile = null; // New temp file for prompt
         try {
+            tempFile = File.createTempFile("file_paths", ".txt");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                for (File file : files) {
+                    writer.write(file.getAbsolutePath());
+                    writer.newLine();
+                }
+            }
+
+            promptTempFile = File.createTempFile("prompt", ".txt"); // Create temp file for prompt
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(promptTempFile))) {
+                writer.write(prompt);
+            }
+
+
+            List<String> commandList = new ArrayList<>();
+            commandList.add("python3");
+            commandList.add(pythonScriptPath);
+            commandList.add(model);
+            commandList.add(promptTempFile.getAbsolutePath()); // Pass prompt temp file path
+            commandList.add(tempFile.getAbsolutePath()); // Pass temp file path
+
+            ProcessBuilder pb = new ProcessBuilder(commandList);
+            pb.redirectErrorStream(false); // Separate error stream
+
             Process process = pb.start();
 
             // Capture stdout
@@ -88,6 +107,13 @@ public class GeminiProvider implements LLMProvider {
             System.err.println("[GeminiProvider] Error executing Python script: " + e.getMessage());
             e.printStackTrace();
             return null;
+        } finally {
+            if (tempFile != null) {
+                tempFile.delete(); // Delete temp file
+            }
+            if (promptTempFile != null) {
+                promptTempFile.delete(); // Delete prompt temp file
+            }
         }
     }
 
@@ -104,5 +130,20 @@ public class GeminiProvider implements LLMProvider {
             e.printStackTrace();
         }
         return null; // Or throw an exception if parsing failure should halt process.
+    }
+
+    @Override
+    public boolean supportsAudio() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsVideo() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsVision() {
+        return true;
     }
 }
