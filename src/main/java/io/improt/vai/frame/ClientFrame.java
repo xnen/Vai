@@ -8,6 +8,7 @@ import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
+import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.util.FileUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,7 +45,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
     private final RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
 
-    // Added Execute button and currentFile variable
     private File currentFile;
     public static boolean pasting = false;
 
@@ -66,6 +66,14 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
         setResizable(true);
+
+        // Set application icon, but doesn't work lol? OpenJDK haha.
+        try {
+            setIconImage(Toolkit.getDefaultToolkit().getImage("/images/icon.png"));
+        } catch (Exception e) {
+            System.err.println("Icon 'icon.ico' not found, using default Java icon.");
+        }
+
 
         // Menu
         JMenuBar menuBar = new JMenuBar();
@@ -202,7 +210,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         bottomPanel.add(recordButton);
 
         // Model combo
-        modelCombo = new JComboBox<>(new String[]{"gemini-2.0-flash-thinking-exp-01-21", "o1-mini", "o1-preview"}); // Added Gemini model
+        modelCombo = new JComboBox<>(new String[]{"gemini-2.0-flash-thinking-exp-01-21", "o1", "o1-mini", "o1-preview"}); // Added Gemini model
+        modelCombo.addActionListener(e -> updateRecordButtonState());
         bottomPanel.add(modelCombo);
 
         // Clear button
@@ -248,8 +257,29 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
         // Initial title update
         updateTitle();
+        updateRecordButtonState();
 
         setVisible(true);
+    }
+
+    private void updateRecordButtonState() {
+        String selectedModel = (String) modelCombo.getSelectedItem();
+        if (selectedModel != null) {
+            IModelProvider provider = backend.getLLMProvider(selectedModel);
+
+            if (provider != null && !provider.supportsAudio()) {
+                System.out.println("Disabling record button for model: " + selectedModel);
+                recordButton.setEnabled(false);
+                recordButton.setToolTipText("Audio recording disabled for model: " + selectedModel);
+            } else {
+                System.out.println("Enabling record button for model: " + selectedModel);
+                recordButton.setEnabled(true);
+                recordButton.setToolTipText(null); // Clear tooltip
+            }
+        } else {
+            recordButton.setEnabled(false); // Disable if no model selected (or handle differently)
+            recordButton.setToolTipText(null);
+        }
     }
 
     private JButton createRecordButton() {
@@ -656,7 +686,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
      * Updates the JFrame title to the current project path.
      * If no project is open, sets a default title.
      */
-    private void updateTitle() {
+    public void updateTitle() {
         File currentWorkspace = backend.getCurrentWorkspace();
         if (currentWorkspace != null && currentWorkspace.exists()) {
             setTitle("Vai - " + currentWorkspace.getAbsolutePath());
@@ -699,5 +729,20 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 submitButton.doClick();
             }
         });
+    }
+
+    public JComboBox<String> getModelList() {
+        return modelCombo;
+    }
+
+    // New method to refresh the FileViewerPanel
+    public void refreshFileViewer() {
+        if (this.currentFile != null) {
+            fileViewerPanel.displayFile(this.currentFile);
+        }
+    }
+
+    public File getCurrentFile() {
+        return this.currentFile;
     }
 }
