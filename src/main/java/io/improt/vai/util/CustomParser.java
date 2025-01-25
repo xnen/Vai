@@ -29,6 +29,23 @@ public class CustomParser {
     public static List<FileContent> parse(String response) throws Exception {
         List<FileContent> fileContents = new ArrayList<>();
 
+        // Remove <think>...</think> blocks of DeepSeek and similar models.
+        // TODO: This is somewhat naive, but it works for now.
+        int thinkStart = response.indexOf("<think>");
+        while (thinkStart != -1) {
+            int thinkEnd = response.indexOf("</think>", thinkStart);
+            if (thinkEnd != -1) {
+                response = response.substring(0, thinkStart) + response.substring(thinkEnd + "</think>".length());
+            } else {
+                // Handle case where </think> is missing (maybe log a warning or throw an exception)
+                // For now, just remove from <think> to the end of the string.
+                response = response.substring(0, thinkStart);
+                break; // Exit loop as the rest of the string is removed.
+            }
+            thinkStart = response.indexOf("<think>"); // Look for next occurrence
+        }
+
+
         int index = 0;
         while (index < response.length()) {
             // Look for the next '['

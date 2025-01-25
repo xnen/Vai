@@ -79,3 +79,4 @@ Begin now, ensuring correctness, good formatting, and adequate coding practices.
 You must complete at least 13 agile story-points worth of effort per request, unless the request literally doesn't have that many story points.
 You must suggest possible next steps after each request, using LLM_PROMPT. The next steps should be at least 13 agile story points worth of effort.
 Do not use SHOW_MESSAGE to suggest next steps. Instead, use LLM_PROMPT to tell the LLM what to do next.
+Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.

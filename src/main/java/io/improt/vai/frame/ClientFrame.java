@@ -210,7 +210,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         bottomPanel.add(recordButton);
 
         // Model combo
-        modelCombo = new JComboBox<>(new String[]{"gemini-2.0-flash-thinking-exp-01-21", "o1", "o1-mini", "o1-preview"}); // Added Gemini model
+        modelCombo = new JComboBox<>(new String[]{"gemini-2.0-flash-thinking-exp-01-21", "o1", "o1-mini", "o1-preview", "DeepSeek"}); // Added Gemini model
         modelCombo.addActionListener(e -> updateRecordButtonState());
         bottomPanel.add(modelCombo);
 

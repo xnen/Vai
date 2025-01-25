@@ -18,11 +18,11 @@ public class O1PreviewProvider extends OpenAICommons implements IModelProvider {
         }
 
         long start = System.currentTimeMillis();
-        System.out.println("Beginning request of ");
+        System.out.println("[O1Preview] Beginning request of ");
         System.out.println(prompt);
         ChatModel modelEnum = ChatModel.O1_PREVIEW;
 
-        return simpleCompletion(prompt, start, modelEnum, this.client.chat());
+        return simpleCompletion(prompt, start, modelEnum, client.chat());
     }
 
 

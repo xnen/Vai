@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public abstract class OpenAICommons implements IModelProvider {
 
-    protected OpenAIClient client;
+    protected static OpenAIClient client;
 
     @Override
     public void init() {
@@ -25,13 +25,14 @@ public abstract class OpenAICommons implements IModelProvider {
 
         // Trim newlines and whitespace from the API key
         apiKey = apiKey.trim();
+        if (OpenAICommons.client == null) {
+            OpenAIClient client = OpenAIOkHttpClient.builder()
+                    .apiKey(apiKey)
+                    .build();
 
-        OpenAIClient client = OpenAIOkHttpClient.builder()
-                .apiKey(apiKey)
-                .build();
-
-        System.out.println("[OpenAICommonsProvider] OpenAI client initialized");
-        this.client = client;
+            System.out.println("[OpenAICommonsProvider] OpenAI client initialized");
+            OpenAICommons.client = client;
+        }
     }
 
     @Nullable

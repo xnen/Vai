@@ -18,7 +18,7 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
     @Override
     public String request(String model, String prompt, String userRequest, List<File> files) {
         long start = System.currentTimeMillis();
-        System.out.println("Beginning request of ");
+        System.out.println("[O1] Beginning request of ");
         System.out.println(prompt);
 
 
@@ -49,7 +49,7 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
                 .model(ChatModel.O1).build();
 
 
-        ChatCompletion completion = this.client.chat().completions().create(params);
+        ChatCompletion completion = client.chat().completions().create(params);
         ChatCompletion validate = completion.validate();
         List<ChatCompletion.Choice> choices = validate.choices();
 

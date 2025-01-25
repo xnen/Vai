@@ -91,6 +91,13 @@ public class LLMInteraction {
 
         String PROMPT_TEMPLATE = FileUtils.readFileToString(new File(Constants.PROMPT_TEMPLATE_FILE));
 
+        // Temporary Hack for DeepSeek.
+        // TODO: Different prompts for different models?
+        if (model.equals("DeepSeek")) {
+            PROMPT_TEMPLATE = FileUtils.readFileToString(new File("data/deepseek.template"));
+            System.out.println("Using DeepSeek template");
+        }
+
         if (PROMPT_TEMPLATE == null) {
             String defaultPromptBase64 = Constants.DEFAULT_PROMPT_TEMPLATE_B64;
             byte[] decodedBytes = Base64.getDecoder().decode(defaultPromptBase64);
@@ -104,8 +111,6 @@ public class LLMInteraction {
                 .replace("<REPLACEME_WITH_STRUCTURE>", structure)
                 .replace("<REPLACEME_WITH_FILES>", app.getActiveFileManager().formatEnabledFiles())
                 .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"));
-
-        prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
 
         System.out.println("=== LLM PROMPT ===");
         System.out.println(prompt);
