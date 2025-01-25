@@ -27,6 +27,10 @@
 
 - Ctrl+Clicking on a file should append it to the prompt, with single tick marks around it.
 
+- Add a temporary file feature, allows instant random file name open in the file viewer for quick scratch llm context.
+- The prompt text area should be resizable, atm it's fixed at the bottom of the window.
+- Save the last model used.
+
 == New ==
 - We should have a history of all features that have been used, i.e. SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
     - Clicking on the entry should show the full context of the feature, i.e. the contents of SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
@@ -39,5 +43,7 @@
 
 - "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
    - Separate UI for milestones, auto prompting should always prompt "Continue development for milestone X" and then the next prompt
+
+- Context groups - Allow for a set of files to be grouped together, and prompted together. User specifies group name given the current active files.
 
 - It'd be nice to add a "Find" feature to the file viewer.
