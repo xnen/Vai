@@ -3,7 +3,8 @@ package io.improt.vai.util;
 import java.nio.file.Paths;
 
 public class Constants {
-    public static final String API_KEY_PATH = Paths.get(System.getProperty("user.home"), "openai-api-key.dat").toString();
+    public static final String OAI_API_KEY_PATH = Paths.get(System.getProperty("user.home"), "openai-api-key.dat").toString();
+    public static final String NV_API_KEY_PATH = Paths.get(System.getProperty("user.home"), "nvidia-api-key.dat").toString();
     public static final String VAI_HOME_DIR = Paths.get(System.getProperty("user.home"), ".vai").toString();
     public static final String PROMPT_TEMPLATE_FILE = "data/prompt.template";
     public static final String WORKSPACES_FILE = Paths.get(VAI_HOME_DIR, "workspaces.json").toString();

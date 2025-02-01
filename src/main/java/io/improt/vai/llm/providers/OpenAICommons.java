@@ -16,7 +16,7 @@ public abstract class OpenAICommons implements IModelProvider {
 
     @Override
     public void init() {
-        String apiKey = App.getApiKey();
+        String apiKey = App.GetOpenAIKey();
 
         if (apiKey == null) {
             System.out.println("No API key found");
