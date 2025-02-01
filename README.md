@@ -8,13 +8,11 @@
   </p>
 </div>
 
----
 
 ## Intro
 
 Welcome to **Vai**, AI slop dev tool written in Java.
 
----
 
 ## Some Features ✨
 
@@ -24,7 +22,6 @@ Welcome to **Vai**, AI slop dev tool written in Java.
 - **Plugin Architecture:** Extend functionality with versatile plugins for running shell commands, displaying messages, and more.
 - **Workspace Awareness:** Effortlessly switch between projects while retaining context and settings across sessions.
 
----
 
 ## Quickstart 🚀
 
@@ -105,7 +102,6 @@ Follow us on social media (none of these are real):
 - **Blog:** [blog.example.com](#)
 - **Twitter:** [@vai_project](#)
 
----
 
 ## Shoutouts & Acknowledgements 🙏
 
@@ -115,8 +111,6 @@ A heartfelt thanks to:
 - **RSyntaxTextArea & AutoComplete:** Enhancing the code editing experience.
 - **Meld:** Providing an indispensable diffing tool.
 - **And many more:** We rely on the amazing work of countless open source contributors to bring Vai to life!
-
----
 
 ## Contributing 💡
 
