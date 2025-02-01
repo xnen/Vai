@@ -229,11 +229,9 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         clearButton.addActionListener(e -> textArea.setText(""));
         bottomPanel.add(clearButton);
 
-
         // Submit button
         JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
-
 
         inputPanel.add(bottomPanel, BorderLayout.SOUTH);
         rightPanel.add(inputPanel, BorderLayout.SOUTH);
@@ -247,7 +245,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         // Status bar at the bottom
         statusBarLabel = new JLabel("Ready"); // Initialize status bar label
         getContentPane().add(statusBarLabel, BorderLayout.SOUTH);
-
 
         // Add listener to ProjectPanel for file selection
         projectPanel.getTree().addTreeSelectionListener(e -> {
@@ -328,7 +325,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         return button;
     }
 
-
     private void startRecording() {
         try {
             waveFile = createWavFile();
@@ -361,7 +357,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             });
             recordingThread.start();
 
-
             System.out.println("Start recording to " + waveFile.getAbsolutePath());
         } catch (LineUnavailableException ex) {
             System.err.println("Line unavailable: " + ex);
@@ -390,7 +385,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
             recordingThread = null; // Set recordingThread to null after joining
         }
-
 
         if (saveFile) {
             try {
@@ -433,20 +427,21 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             String promptText = "Review the audio and follow instructions within it.";
             String selectedModel = (String) modelCombo.getSelectedItem();
             if (selectedModel != null) {
-		// TODO: Verify this is accurate.
-                backend.getLLM().submitRequest(selectedModel, promptText);
+                Runnable retryAction = () -> backend.getLLM().submitRequest(selectedModel, promptText);
+                try {
+                    backend.getLLM().submitRequest(selectedModel, promptText);
+                } catch (RuntimeException ex) {
+                    showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
+                }
             } else {
                 System.out.println("No model selected, cannot submit prompt.");
                 backend.getActiveFileManager().removeFile(promptWav); // Clean up if no model selected
                 return; // Exit to prevent further execution
             }
-
             // Remove Prompt.wav from active files after submission is initiated
-            // Note: Submission is async, removal happens immediately after submission *starts*.
             backend.getActiveFileManager().removeFile(promptWav);
         }
     }
-
 
     private File createWavFile() throws IOException {
         File vaiDir = FileUtils.getWorkspaceVaiDir(backend.getCurrentWorkspace());
@@ -478,7 +473,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             recordingTimer = null;
         }
     }
-
 
     private void handlePaste() {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -516,28 +510,28 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                     textArea.replaceRange(text, caretPosition, caretPosition);
                 }
             } catch (UnsupportedFlavorException | IOException ex) {
-//                textArea.paste(); // Fallback to default paste if string flavor fails
-                // tough luck.
                 JOptionPane.showMessageDialog(this, "Failed to paste: " + ex.getMessage(), "Paste Error", JOptionPane.ERROR_MESSAGE);
             }
             pasting = false;
         }
     }
 
-
     @NotNull
     private JButton createSubmitButton() {
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
-            if (modelCombo.getSelectedItem() == null) {
+            String model = (String) modelCombo.getSelectedItem();
+            if (model == null) {
                 System.out.println("Must select a model");
                 return;
             }
-
             String prompt = textArea.getText();
-//            prompt += " Continue prompting as needed to continue writing this program -- analyze any missing or incorrect pieces and implement as you go.";
-
-            App.getInstance().getLLM().submitRequest(modelCombo.getSelectedItem().toString(), prompt);
+            Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
+            try {
+                App.getInstance().getLLM().submitRequest(model, prompt);
+            } catch (RuntimeException ex) {
+                showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
+            }
         });
         return submitButton;
     }
@@ -702,6 +696,28 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             setTitle("Vai - " + currentWorkspace.getAbsolutePath());
         } else {
             setTitle("Vai");
+        }
+    }
+
+    /**
+     * Displays an error popup for LLM related errors, providing a Retry button.
+     *
+     * @param errorMsg    The error message to display.
+     * @param retryAction The action to perform when the user clicks Retry.
+     */
+    public void showLLMErrorPopup(String errorMsg, Runnable retryAction) {
+        int option = JOptionPane.showOptionDialog(
+                this,
+                errorMsg,
+                "LLM Execution Error",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.ERROR_MESSAGE,
+                null,
+                new Object[]{"Retry", "Cancel"},
+                "Retry"
+        );
+        if (option == JOptionPane.YES_OPTION) {
+            retryAction.run();
         }
     }
 

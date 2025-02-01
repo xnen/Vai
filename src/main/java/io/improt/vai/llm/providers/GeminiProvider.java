@@ -4,9 +4,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class GeminiProvider implements IModelProvider {
 
@@ -23,13 +21,13 @@ public class GeminiProvider implements IModelProvider {
     public void init() {
         this.apiKey = System.getenv("GOOGLE_API_KEY");
         if (apiKey == null || apiKey.trim().isEmpty()) {
-            System.out.println("[GeminiProvider] API key not found in environment variable GOOGLE_API_KEY. Gemini will be disabled.");
+            throw new RuntimeException("[GeminiProvider] API key not found in environment variable GOOGLE_API_KEY. Gemini will be disabled.");
         } else {
             System.out.println("[GeminiProvider] Gemini API key found.");
         }
         File scriptFile = new File(pythonScriptPath);
         if (!scriptFile.exists()) {
-            System.err.println("[GeminiProvider] Python script not found at: " + pythonScriptPath);
+            throw new RuntimeException("[GeminiProvider] Python script not found at: " + pythonScriptPath);
         } else {
             System.out.println("[GeminiProvider] Python script found at: " + pythonScriptPath);
         }
@@ -37,19 +35,18 @@ public class GeminiProvider implements IModelProvider {
 
     @Override
     public String request(String model, String prompt, String userRequest, List<File> files) {
+        // Ensure necessary configuration is present
         if (apiKey == null || apiKey.trim().isEmpty()) {
-            System.out.println("[GeminiProvider] Gemini API key is not configured. Cannot make request.");
-            return null;
+            throw new RuntimeException("[GeminiProvider] Gemini API key is not configured. Cannot make request.");
         }
-
         if (!new File(pythonScriptPath).exists()) {
-            System.err.println("[GeminiProvider] Python script not found at: " + pythonScriptPath + ". Cannot make request.");
-            return null;
+            throw new RuntimeException("[GeminiProvider] Python script not found at: " + pythonScriptPath + ". Cannot make request.");
         }
 
         File tempFile = null;
         File promptTempFile = null; // New temp file for prompt
         try {
+            // Create temp file listing file paths
             tempFile = File.createTempFile("file_paths", ".txt");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
                 for (File file : files) {
@@ -58,18 +55,18 @@ public class GeminiProvider implements IModelProvider {
                 }
             }
 
-            promptTempFile = File.createTempFile("prompt", ".txt"); // Create temp file for prompt
+            // Create temp file for prompt text
+            promptTempFile = File.createTempFile("prompt", ".txt");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(promptTempFile))) {
                 writer.write(prompt);
             }
-
 
             List<String> commandList = new ArrayList<>();
             commandList.add("python3");
             commandList.add(pythonScriptPath);
             commandList.add(model);
             commandList.add(promptTempFile.getAbsolutePath()); // Pass prompt temp file path
-            commandList.add(tempFile.getAbsolutePath()); // Pass temp file path
+            commandList.add(tempFile.getAbsolutePath()); // Pass file paths temp file path
 
             ProcessBuilder pb = new ProcessBuilder(commandList);
             pb.redirectErrorStream(false); // Separate error stream
@@ -98,15 +95,12 @@ public class GeminiProvider implements IModelProvider {
             if (exitCode == 0) {
                 return parseResponse(stdout);
             } else {
-                System.err.println("[GeminiProvider] Python script execution failed with exit code: " + exitCode);
-                System.err.println("[GeminiProvider] Script stdout: " + stdout);
-                System.err.println("[GeminiProvider] Script stderr: " + stderr); // Log stderr
-                return null;
+                String errorMsg = "[GeminiProvider] Python script execution failed with exit code: " + exitCode +
+                        "\nStderr: " + stderr;
+                throw new RuntimeException(errorMsg);
             }
         } catch (IOException | InterruptedException e) {
-            System.err.println("[GeminiProvider] Error executing Python script: " + e.getMessage());
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("[GeminiProvider] Error executing Python script: " + e.getMessage(), e);
         } finally {
             if (tempFile != null) {
                 tempFile.delete(); // Delete temp file
@@ -117,19 +111,16 @@ public class GeminiProvider implements IModelProvider {
         }
     }
 
-
     private String parseResponse(String responseBody) {
-        // Basic parsing - assumes the simplest successful response structure from Gemini API docs.
-        // Robust error handling and more detailed parsing might be needed based on full API spec.
         try {
-            // The python script directly returns the text, so no need to parse JSON anymore.
+            // The python script directly returns the text.
             return responseBody.trim();
         } catch (Exception e) {
             System.err.println("[GeminiProvider] Error parsing Gemini API response: " + e.getMessage());
-            System.err.println("[GeminiProvider] Response body: " + responseBody); // Log the response body for debugging
+            System.err.println("[GeminiProvider] Response body: " + responseBody);
             e.printStackTrace();
+            throw new RuntimeException("Failed to parse Gemini API response.", e);
         }
-        return null; // Or throw an exception if parsing failure should halt process.
     }
 
     @Override
