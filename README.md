@@ -1,126 +1,125 @@
-# Vai Project
+<div align="center">
+  <img src="images/VAI-LOGO.png" alt="VAI Logo" width="130" height="130" style="margin-bottom: -30px;" />
+  <h1>Vai Project - Java</h1>
+  <p>
+    <a href="#">Official Website</a> |
+    <a href="#">Documentation</a> |
+    <a href="#">Community</a>
+  </p>
+</div>
 
-![Project Logo](./images/logo.png)
+---
 
-## Introduction
+## Intro
 
-Vai facilitates quick iterative workflows for your projects using `o1-preview` or `o1-mini`. It is an AI-assisted IDE designed for rapid development cycles. To use Vai, an OpenAI API key is required. Vai also supports Gemini models, which require a Google API Key.
+Welcome to **Vai**, AI slop dev tool written in Java.
 
-**Warning:** This is a new release that can overwrite existing files. It is highly recommended to back up your work before using Vai. While it does create backups of every file it modifies, edge cases may still occur.
+---
 
-## Installation
+## Some Features ✨
+
+- Generate Code 
+- Choose from various models like OpenAI’s `o1`, `o1-preview`, `o1-mini`, Gemini, and more.
+- **Audio & Voice Integration:** Record audio prompts and convert them into actionable code changes on some models.
+- **Plugin Architecture:** Extend functionality with versatile plugins for running shell commands, displaying messages, and more.
+- **Workspace Awareness:** Effortlessly switch between projects while retaining context and settings across sessions.
+
+---
+
+## Quickstart 🚀
 
 ### Prerequisites
+- **Java 11+**  
+  [Download from Oracle](https://www.oracle.com/java/technologies/javase-downloads.html)
+- **Maven**  
+  [Download Maven](https://maven.apache.org/download.cgi)
+- **Python 3.x & pip:** Required for Gemini support.
+- **Meld:** For viewing file diffs  
+  - **Linux (Debian):** `sudo apt-get update && sudo apt-get install meld`  
+  - **Linux (Fedora):** `sudo dnf install meld`  
+  - **macOS:** `brew install --cask meld`  
+  - **Windows:** [Download Installer](https://meldmerge.org/)
 
-- **Java Development Kit (JDK 11 or higher):** Ensure that Java is installed on your system. You can download it from [Oracle's official website](https://www.oracle.com/java/technologies/javase-downloads.html).
-- **Maven:** This project uses Maven for dependency management. You can download it from [Maven's official website](https://maven.apache.org/download.cgi).
-- **Python 3.x:** Required for Gemini model support. Ensure Python 3 is installed and accessible in your system's PATH.
-- **pip:** Python package installer, usually comes with Python installations.
-
-### Installing Python Dependencies for Gemini (Optional)
-
-If you intend to use Gemini models, you need to install the required Python package. Navigate to the `vai` project directory in your terminal and run:
-
-```bash
-pip install -r requirements.txt
-```
-
-This will install the `google-generativeai` library, which is necessary for interacting with Gemini models.
-
-### Installing Meld
-
-#### On Windows:
-
-(Windows support is untested. Proceed with caution.)
-
-1. Download the Meld installer from the [official website](https://meldmerge.org/).
-2. Run the installer and follow the on-screen instructions.
-
-#### On macOS:
-
-You can install Meld using Homebrew:
-
-```bash
-brew install --cask meld
-```
-
-#### On Linux:
-
-For Debian-based distributions:
-
-```bash
-sudo apt-get update
-sudo apt-get install meld
-```
-
-For Fedora:
-
-```bash
-sudo dnf install meld
-```
-
-### Setup
+### Installation
 
 1. **Clone the Repository:**
-
     ```bash
     git clone https://github.com/xnen/vai.git
     cd vai
     ```
 
-2. **Install Dependencies and Build the Project:**
-
-    Ensure that Maven and JDK 11 are installed. Navigate to the project directory and run:
-
+2. **Build the Project:**
     ```bash
     mvn clean package
     ```
-
-    Alternatively, in IntelliJ, use a JDK 11 and run `maven package` from the IDE.
-
-    This command will compile the project into a fat JAR file, resulting in the `target` directory.
+    This compiles the project and creates a fat JAR package in the `target` directory.
 
 3. **Configure API Keys:**
+   - **OpenAI API Key:** Launch Vai, navigate to `Config > Configure...`, and enter your API key.
+   - **Google API Key (for Gemini):** Set the `GOOGLE_API_KEY` environment variable in your system.
 
-    - **OpenAI API Key:**
-        - Launch the application:
+4. **Run Vai:**
+    ```bash
+    java -jar target/VaiProject-1.0.0.jar
+    ```
 
-        ```bash
-        java -jar VaiProject-1.0.0.jar
-        ```
+---
 
-        - Go to `Config` > `Configure...` in the menu.
-        - Enter your OpenAI API Key and save.
-        - Restart Vai to ensure the provider initializes.
+## Gemini Client Setup (Python) 🐍
 
-        Alternatively, you can manually add your API key to the `openai-api-key.dat` file located in your user's home directory.
+The Gemini client is a dependency to run the Gemini API, since I haven't found any Java SDK for Google's GenAI. So you'll need these to run the gemini models.
+### Prerequisites
 
-    - **Google API Key (for Gemini):**
-        - Set the `GOOGLE_API_KEY` environment variable in your operating system.
-          - **On Linux/macOS:** Add `export GOOGLE_API_KEY='YOUR_API_KEY'` to your `.bashrc`, `.zshrc`, or similar shell configuration file. Replace `YOUR_API_KEY` with your actual Google API key.
-          - **On Windows:**  Set a system environment variable named `GOOGLE_API_KEY` with your API key as the value. You can do this through the System Properties dialog.
+- **Python 3.x**  
+- **pip**
 
-## Usage
+### Steps
 
-1. **Opening a Workspace:**
+1. **Install Python Dependencies:**
+    Navigate to the root of the project and run:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-    - Navigate to `File` > `Open Directory...` to select your project's workspace directory.
-    - The project structure will be displayed in the `Project Panel`.
+2. **Set the Google API Key:**
+    Make sure the environment variable `GOOGLE_API_KEY` is set. For example, on Linux/macOS:
+    ```bash
+    export GOOGLE_API_KEY="your_google_api_key_here"
+    ```
+    On Windows (CMD):
+    ```cmd
+    set GOOGLE_API_KEY=your_google_api_key_here
+    ```
 
-2. **Managing Active Files:**
+    Prior to running the application.
+---
 
-    - Use the `Active Files Panel` to view and manage files marked as active.
-    - Right-click on files to perform actions like deleting from active files.
+## News & Updates 📰
 
-3. **Viewing File Contents:**
+Stay in the loop with the latest from Vai:
 
-    - Select a file from the `Project Panel` to view its contents in the `File Viewer` with syntax highlighting.
+- **Version 1.0.0 Released:** Initial release featuring AI integration and dynamic workspace management.
 
-4. **Submitting Requests to OpenAI:**
+Follow us on social media (none of these are real):
+- **Website:** [example.com](#)
+- **Blog:** [blog.example.com](#)
+- **Twitter:** [@vai_project](#)
 
-    - Select any relevant files in the project viewer that the LLM should see.
-    - Enter your request in the text area at the bottom of the application.
-    - Select the desired OpenAI model (`o1-mini` or `o1-preview`) or Gemini model (`gemini-2.0-flash-thinking-exp-01-21`) from the dropdown.
-    - Click `Submit` to send the request.
-    - The application will handle the response, update files, and create backups as necessary.
-    - Each response shows all diffs using Meld, which allow you to merge or fix AI-generated changes.
+---
+
+## Shoutouts & Acknowledgements 🙏
+
+A heartfelt thanks to:
+- **OpenAI Java SDK:** For powering our AI integrations.
+- **FlatLaf:** Delivering a modern UI design.
+- **RSyntaxTextArea & AutoComplete:** Enhancing the code editing experience.
+- **Meld:** Providing an indispensable diffing tool.
+- **And many more:** We rely on the amazing work of countless open source contributors to bring Vai to life!
+
+---
+
+## Contributing 💡
+
+We welcome your contributions! Check our [TODOs.txt](TODOs.txt) for current issues and upcoming tasks. Your ideas, code, and feedback are always appreciated. Let's build something amazing together!
+
+Happy Coding! 👩‍💻👨‍💻  
