@@ -9,6 +9,7 @@ import io.improt.vai.util.Constants;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -23,7 +24,7 @@ import java.util.Objects;
 
 public class App {
 
-    public static final String API_KEY = Constants.API_KEY_PATH;
+    public static final String API_KEY = Constants.OAI_API_KEY_PATH;
     private File currentWorkspace;
     private static App instance;
     private ClientFrame mainWindow;
@@ -108,9 +109,21 @@ public class App {
                 System.out.println("Received file path: " + filePath);
                 File fileToOpen = new File(filePath);
                 SwingUtilities.invokeLater(() -> {
+                    mainWindow.setState(Frame.NORMAL); // Ensure window is not minimized
+                    String os = System.getProperty("os.name").toLowerCase();
+                    boolean isLinux = os.contains("linux");
+                    if (isLinux) {
+                        // Workaround: temporarily force the window always on top to gain focus
+                        mainWindow.setAlwaysOnTop(true);
+                    }
                     mainWindow.toFront();
                     mainWindow.requestFocus();
-                    mainWindow.setState(Frame.NORMAL); // Ensure window is not minimized
+                    if (isLinux) {
+                        // Remove the always-on-top flag after a short delay
+                        Timer timer = new Timer(200, e -> mainWindow.setAlwaysOnTop(false));
+                        timer.setRepeats(false);
+                        timer.start();
+                    }
                     activeFileManager.addFile(fileToOpen);
                     mainWindow.getFileViewerPanel().displayFile(fileToOpen);
                 });
@@ -191,8 +204,12 @@ public class App {
         }
     }
 
-    public static String getApiKey() {
-        return FileUtils.readFileToString(new File(Constants.API_KEY_PATH));
+    public static String GetOpenAIKey() {
+        return FileUtils.readFileToString(new File(Constants.OAI_API_KEY_PATH));
+    }
+
+    public static String GetNvidiaKey() {
+        return FileUtils.readFileToString(new File(Constants.NV_API_KEY_PATH));
     }
 
     public File getCurrentWorkspace() {
