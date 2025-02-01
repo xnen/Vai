@@ -74,7 +74,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             System.err.println("Icon 'icon.ico' not found, using default Java icon.");
         }
 
-
         // Menu
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
@@ -84,6 +83,15 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         populateRecentMenu();
         populateMenu();
         JMenu configMenu = new JMenu("Config");
+
+        // NEW: Features menu
+        JMenu featuresMenu = new JMenu("Features");
+        JMenuItem configureFeaturesItem = new JMenuItem("Configure Features");
+        configureFeaturesItem.addActionListener(e -> {
+            FeaturesDialog featuresDialog = new FeaturesDialog(this);
+            featuresDialog.setVisible(true);
+        });
+        featuresMenu.add(configureFeaturesItem);
 
         JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
@@ -134,6 +142,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         // Adding menus to menu bar
         menuBar.add(fileMenu);
         menuBar.add(configMenu);
+        menuBar.add(featuresMenu);
         menuBar.add(recentActiveFilesMenu);
         setJMenuBar(menuBar);
 

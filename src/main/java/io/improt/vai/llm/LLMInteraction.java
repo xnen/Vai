@@ -2,6 +2,7 @@ package io.improt.vai.llm;
 
 import io.improt.vai.backend.App;
 import io.improt.vai.backend.plugin.PluginManager;
+import io.improt.vai.backend.plugin.AbstractPlugin;
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.frame.RepairFrame;
 import io.improt.vai.llm.providers.IModelProvider;
@@ -29,6 +30,7 @@ public class LLMInteraction {
     public LLMInteraction(App app) {
         this.mainWindow = app.getClient();
         this.app = app;
+        // Initialize PluginManager so that it becomes available through its singleton accessor.
         this.pluginManager = new PluginManager();
     }
 
@@ -110,7 +112,9 @@ public class LLMInteraction {
                 .replace("<REPLACEME_WITH_REQUEST>", description)
                 .replace("<REPLACEME_WITH_STRUCTURE>", structure)
                 .replace("<REPLACEME_WITH_FILES>", app.getActiveFileManager().formatEnabledFiles())
-                .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"));
+                .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"))
+                .replace("<REPLACEME_WITH_FEATURES>", buildFeaturesBlock());
+
 
         System.out.println("=== LLM PROMPT ===");
         System.out.println(prompt);
@@ -143,6 +147,24 @@ public class LLMInteraction {
 
         // Refresh the directory tree
         app.getClient().getProjectPanel().refreshTree(app.getCurrentWorkspace());
+    }
+    
+    /**
+     * Builds a block of enabled features (plugin identifiers) to insert into the prompt.
+     */
+    private String buildFeaturesBlock() {
+        PluginManager pm = PluginManager.getInstance();
+        if (pm == null) return "";
+
+        StringBuilder sb = new StringBuilder();
+
+        for (AbstractPlugin plugin : pm.getPlugins()) {
+            if (plugin.isActive()) {
+                sb.append(plugin.getFeaturePrompt()).append("\n");
+            }
+        }
+
+        return sb.toString();
     }
 
     /**

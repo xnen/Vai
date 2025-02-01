@@ -23,6 +23,23 @@ public class RunCommandPlugin extends AbstractPlugin {
     protected void actionPerformed(String actionBody) {
         handleRunCommand(actionBody);
     }
+    
+    @Override
+    public String getFeaturePrompt() {
+        return "You can suggest a shell command to run, by utilizing the path [RUN_COMMAND] rather than a file path, with the `run` lang. It will prompt the user to run the command, and then respond with the output.\n" +
+                "\n" +
+                "EXAMPLE:\n" +
+                "[RUN_COMMAND]\n" +
+                "```run\n" +
+                "echo \"Hello, world!\"\n" +
+                "```\n" +
+                "!EOF";
+    }
+
+    @Override
+    public String getFeatureDescription() {
+        return "Allow LLM to run a command";
+    }
 
     /**
      * Handles the RUN_COMMAND functionality by prompting the user and executing the command if approved.
