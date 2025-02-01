@@ -2,10 +2,7 @@ package io.improt.vai.llm.providers;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.models.ChatCompletion;
-import com.openai.models.ChatCompletionCreateParams;
-import com.openai.models.ChatCompletionUserMessageParam;
-import com.openai.models.ChatModel;
+import com.openai.models.*;
 import com.openai.services.blocking.ChatService;
 import io.improt.vai.backend.App;
 import org.jetbrains.annotations.Nullable;
@@ -23,38 +20,37 @@ public class NVIDIADeepSeekProvider implements IModelProvider {
 
     @Override
     public void init() {
-        String apiKey = App.GetNvidiaKey();//"LocalLLM";
+        String apiKey = App.GetNvidiaKey();
         if (apiKey == null) {
             System.out.println("[NVIDIA-DeepSeek] Nvidia API key was not found. NVIDIA will be disabled.");
-            // todo; disable it.
             return;
         }
-
+        apiKey = apiKey.trim();
         // TODO: ENDPOINT CUSTOMIZATION.
-        OpenAIClient client = OpenAIOkHttpClient.builder()
-                .apiKey(apiKey.trim())
+        client = OpenAIOkHttpClient.builder()
+                .apiKey(apiKey)
                 .baseUrl("https://integrate.api.nvidia.com/v1")
                 .build();
-
-        System.out.println("[NVIDIA-DeepSeek] OpenAI client initialized");
-        this.client = client;
+        System.out.println("[NVIDIA-DeepSeek] OpenAI client lazily initialized");
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files) {
+    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
         if (files != null && !files.isEmpty()) {
             System.err.println("[NVIDIADeepSeekProvider] Warning: Nvidia does not support sending files. Ignoring " + files.size() + " files.");
+        }
+        if (client == null) {
+            init();
         }
         long start = System.currentTimeMillis();
         ChatModel modelEnum = ChatModel.O1_MINI;
 
-        return simpleCompletion(prompt, start, modelEnum, this.client.chat(), userRequest);
+        return simpleCompletion(prompt, start, modelEnum, client.chat(), userRequest);
     }
 
     @Nullable
     protected static String simpleCompletion(String prompt, long start, ChatModel modelEnum, ChatService chat, String userRequest) {
         prompt += "\n\n REQUEST: " + userRequest;
-
         ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
                 .addMessage(ChatCompletionUserMessageParam.builder()
                         .content(prompt)
@@ -64,15 +60,12 @@ public class NVIDIADeepSeekProvider implements IModelProvider {
                 .topP(0.7)
                 .maxCompletionTokens(4096L)
                 .build();
-
         ChatCompletion completion = chat.completions().create(params);
         ChatCompletion validate = completion.validate();
         List<ChatCompletion.Choice> choices = validate.choices();
-
         if (choices.isEmpty()) {
             return null;
         }
-
         Optional<String> content = choices.get(0).message().content();
         long end = System.currentTimeMillis();
         System.out.println("Request took " + (end - start) + " milliseconds");
@@ -91,6 +84,11 @@ public class NVIDIADeepSeekProvider implements IModelProvider {
 
     @Override
     public boolean supportsVision() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsReasoningEffort() {
         return false;
     }
 }

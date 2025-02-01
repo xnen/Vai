@@ -4,6 +4,7 @@ import io.improt.vai.llm.providers.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class LLMRegistry {
     private final Map<String, IModelProvider> providers = new HashMap<>();
@@ -29,24 +30,18 @@ public class LLMRegistry {
     }
 
     public void initializeProviders() {
-        for (IModelProvider provider : providers.values()) {
-            provider.init();
-        }
+        // Lazy initialization is used. Providers will initialize on first request.
+        System.out.println("Providers will be lazily initialized on request.");
     }
 
     public void registerProviders() {
-        registerProvider("openai-commons", new O1Provider()); // For O1
-        registerProvider("openai-preview-commons", new O1PreviewProvider()); // For O1-Preview
-        registerProvider("openai-mini-commons", new O1MiniProvider()); // For O1-Mini
-        registerProvider("openai-mini-commons", new O1MiniProvider()); // For O1-Mini
-        registerProvider("deepseek", new DeepSeekProvider()); // For DeepSeek
-        registerProvider("deepseek-nv", new NVIDIADeepSeekProvider()); // For DeepSeek
+        registerProvider("openai-commons", new O1Provider());
+        registerProvider("openai-preview-commons", new O1PreviewProvider());
+        registerProvider("openai-mini-commons", new O1MiniProvider());
+        registerProvider("deepseek", new DeepSeekProvider());
+        registerProvider("deepseek-nv", new NVIDIADeepSeekProvider());
         registerProvider("gemini", new GeminiProvider());
-
-        registerProvider("o3-mini-hi", new O3MiniHighProvider());
-        registerProvider("o3-mini-med", new O3MiniMediumProvider());
-        registerProvider("o3-mini-low", new O3MiniLowProvider());
-
+        registerProvider("o3-mini", new O3MiniProvider());
     }
 
     public void registerModels() {
@@ -56,10 +51,11 @@ public class LLMRegistry {
         registerModel("DeepSeek (Local)", "deepseek");
         registerModel("DeepSeek (NVIDIA)", "deepseek-nv");
         registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
-
-        registerModel("o3-mini-high", "o3-mini-hi");
-        registerModel("o3-mini-medium", "o3-mini-med");
-        registerModel("o3-mini-low", "o3-mini-low");
-
+        registerModel("o3-mini", "o3-mini");
+    }
+    
+    // NEW: Method to retrieve all registered model names.
+    public Set<String> getRegisteredModelNames() {
+        return modelProviderMap.keySet();
     }
 }

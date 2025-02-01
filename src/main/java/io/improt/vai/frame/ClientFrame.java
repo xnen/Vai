@@ -11,6 +11,7 @@ import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.util.FileUtils;
 import org.jetbrains.annotations.NotNull;
+import com.openai.models.ChatCompletionReasoningEffort;
 
 import javax.sound.sampled.*;
 import javax.swing.*;
@@ -26,6 +27,8 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.border.Border;
@@ -59,12 +62,14 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private ByteArrayOutputStream byteArrayOutputStream; // To capture audio data
     private Thread recordingThread; // Thread for recording
     private JLabel statusBarLabel;
-
+    
+    // NEW: Reasoning effort slider and label
+    private JSlider reasoningSlider;
 
     public ClientFrame() {
         super("Vai");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 700);
+        setSize(1100, 700);
         setResizable(true);
 
         // Set application icon, but doesn't work lol? OpenJDK haha.
@@ -210,7 +215,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
 
 
-        // Panel for buttons and modelCombo
+        // Panel for buttons, modelCombo, and reasoning slider
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 
@@ -218,27 +223,55 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         recordButton = createRecordButton();
         bottomPanel.add(recordButton);
 
-        // Model combo
-        modelCombo = new JComboBox<>(new String[]{
-                "gemini-2.0-flash-thinking-exp-01-21",
-                "o3-mini-high",
-                "o3-mini-medium",
-                "o3-mini-low",
-                "o1",
-                "o1-mini",
-                "o1-preview",
-                "DeepSeek (Local)",
-                "DeepSeek (NVIDIA)",
-        }); // Added Gemini model
-        modelCombo.addActionListener(e -> updateRecordButtonState());
+        // Reasoning Effort Slider and Label (default hidden)
+        reasoningSlider = new JSlider(0, 2, 1);
+        reasoningSlider.setMajorTickSpacing(1);
+        reasoningSlider.setPaintTicks(true);
+        reasoningSlider.setPaintLabels(true);
+        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+        Font tinyFont = new Font("Arial", Font.PLAIN, 8);
+        JLabel low = new JLabel("Low");
+        JLabel med = new JLabel("Medium");
+        JLabel hi = new JLabel("High");
+
+        low.setFont(tinyFont);
+        med.setFont(tinyFont);
+        hi.setFont(tinyFont);
+
+        labelTable.put(0, low);
+        labelTable.put(1, med);
+        labelTable.put(2, hi);
+
+        reasoningSlider.setLabelTable(labelTable);
+        reasoningSlider.setPreferredSize(new Dimension(150, 50));
+        reasoningSlider.setVisible(false);
+        bottomPanel.add(reasoningSlider);
+
+        // Dynamically populate model combo from registered models
+        java.util.Set<String> modelNamesSet = App.getInstance().getLLMRegistry().getRegisteredModelNames();
+        java.util.List<String> modelNames = new ArrayList<>(modelNamesSet);
+        java.util.Collections.sort(modelNames);
+        Collections.reverse(modelNames);
+        modelCombo = new JComboBox<>(modelNames.toArray(new String[0]));
+        // Set default to o3-mini-medium if available, else try o3-mini.
+        if(modelNames.contains("o3-mini")){
+            modelCombo.setSelectedItem("o3-mini");
+            updateReasoningSliderVisibility();
+        }
+        modelCombo.addActionListener(e -> {
+            updateRecordButtonState();
+            updateReasoningSliderVisibility();
+        });
         bottomPanel.add(modelCombo);
+
+
 
         // Clear button
         JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(e -> textArea.setText(""));
         bottomPanel.add(clearButton);
 
-        // Submit button
+        // Submit button with updated action listener to pass reasoning effort if supported.
         JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
 
@@ -278,6 +311,20 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         setVisible(true);
     }
 
+    private void updateReasoningSliderVisibility() {
+        String selectedModel = (String) modelCombo.getSelectedItem();
+        if (selectedModel != null) {
+            IModelProvider provider = backend.getLLMProvider(selectedModel);
+            if (provider != null && provider.supportsReasoningEffort()) {
+                reasoningSlider.setVisible(true);
+            } else {
+                reasoningSlider.setVisible(false);
+            }
+            this.revalidate();
+            this.repaint();
+        }
+    }
+
     private void updateRecordButtonState() {
         String selectedModel = (String) modelCombo.getSelectedItem();
         if (selectedModel != null) {
@@ -286,9 +333,11 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             if (provider != null && !provider.supportsAudio()) {
                 System.out.println("Disabling record button for model: " + selectedModel);
                 recordButton.setEnabled(false);
+                recordButton.setVisible(false);
                 recordButton.setToolTipText("Audio recording disabled for model: " + selectedModel);
             } else {
                 System.out.println("Enabling record button for model: " + selectedModel);
+                recordButton.setVisible(true);
                 recordButton.setEnabled(true);
                 recordButton.setToolTipText(null); // Clear tooltip
             }
@@ -436,9 +485,10 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             String promptText = "Review the audio and follow instructions within it.";
             String selectedModel = (String) modelCombo.getSelectedItem();
             if (selectedModel != null) {
-                Runnable retryAction = () -> backend.getLLM().submitRequest(selectedModel, promptText);
+                // For audio submissions we do not use the reasoning slider; pass null.
+                Runnable retryAction = () -> backend.getLLM().submitRequest(selectedModel, promptText, null);
                 try {
-                    backend.getLLM().submitRequest(selectedModel, promptText);
+                    backend.getLLM().submitRequest(selectedModel, promptText, null);
                 } catch (RuntimeException ex) {
                     showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
                 }
@@ -535,9 +585,30 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 return;
             }
             String prompt = textArea.getText();
-            Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
+            IModelProvider provider = backend.getLLMProvider(model);
+            ChatCompletionReasoningEffort reasoningEffort = null;
+            if (provider != null && provider.supportsReasoningEffort()) {
+                int sliderValue = reasoningSlider.getValue();
+                switch(sliderValue) {
+                    case 0:
+                        reasoningEffort = ChatCompletionReasoningEffort.LOW;
+                        break;
+                    case 1:
+                        reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
+                        break;
+                    case 2:
+                        reasoningEffort = ChatCompletionReasoningEffort.HIGH;
+                        break;
+                    default:
+                        reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
+                }
+            }
+            ChatCompletionReasoningEffort finalReasoningEffort = reasoningEffort;
+            Runnable retryAction = () -> {
+                App.getInstance().getLLM().submitRequest(model, prompt, finalReasoningEffort);
+            };
             try {
-                App.getInstance().getLLM().submitRequest(model, prompt);
+                App.getInstance().getLLM().submitRequest(model, prompt, reasoningEffort);
             } catch (RuntimeException ex) {
                 showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
             }
@@ -781,3 +852,4 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         return this.currentFile;
     }
 }
+

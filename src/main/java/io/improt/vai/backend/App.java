@@ -230,6 +230,11 @@ public class App {
     public IModelProvider getLLMProvider(String modelName) {
         return this.llmRegistry.getProviderForModel(modelName);
     }
+    
+    // NEW: Expose the LLMRegistry to allow dynamic model population.
+    public LLMRegistry getLLMRegistry() {
+        return this.llmRegistry;
+    }
 
     public ClientFrame getClient() {
         return this.mainWindow;

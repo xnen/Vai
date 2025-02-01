@@ -12,7 +12,7 @@ public class O1PreviewProvider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files) {
+    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
         if (files != null && !files.isEmpty()) {
             System.err.println("[O1PreviewProvider] Warning: o1-preview does not support sending files. Ignoring " + files.size() + " files.");
         }
@@ -22,10 +22,8 @@ public class O1PreviewProvider extends OpenAICommons implements IModelProvider {
         System.out.println(prompt);
         ChatModel modelEnum = ChatModel.O1_PREVIEW;
 
-        return simpleCompletion(prompt, userRequest, start, modelEnum, client.chat());
+        return simpleCompletion(prompt, userRequest, start, modelEnum, getClient().chat());
     }
-
-
 
     @Override
     public boolean supportsAudio() {
@@ -42,4 +40,8 @@ public class O1PreviewProvider extends OpenAICommons implements IModelProvider {
         return false;
     }
 
+    @Override
+    public boolean supportsReasoningEffort() {
+        return false;
+    }
 }

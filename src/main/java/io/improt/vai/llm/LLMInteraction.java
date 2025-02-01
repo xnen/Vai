@@ -20,6 +20,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.ArrayList;
 
+import com.openai.models.ChatCompletionReasoningEffort;
+
 public class LLMInteraction {
     private int currentIncrementalBackupNumber = 0;
     private final ClientFrame mainWindow;
@@ -72,12 +74,13 @@ public class LLMInteraction {
     }
 
     /**
-     * Submits a request to the LLM provider with the specified model and description.
+     * Submits a request to the LLM provider with the specified model, description, and (optionally) reasoning effort.
      *
-     * @param model       The model to use for the request.
-     * @param description The description of the request.
+     * @param model           The model to use for the request.
+     * @param description     The description of the request.
+     * @param reasoningEffort The reasoning effort selected via the UI slider, or null.
      */
-    public void submitRequest(String model, String description) {
+    public void submitRequest(String model, String description, ChatCompletionReasoningEffort reasoningEffort) {
         App app = App.getInstance();
         IModelProvider llmProvider = app.getLLMProvider(model); // Get provider based on model name
 
@@ -115,7 +118,6 @@ public class LLMInteraction {
                 .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"))
                 .replace("<REPLACEME_WITH_FEATURES>", buildFeaturesBlock());
 
-
         System.out.println("=== LLM PROMPT ===");
         System.out.println(prompt);
         System.out.println("====================");
@@ -137,7 +139,7 @@ public class LLMInteraction {
         }
         filesForContext = filteredFilesForContext; // Use the filtered list
 
-        String response = llmProvider.request(model, prompt, description, filesForContext); // Use the retrieved provider and pass files
+        String response = llmProvider.request(model, prompt, description, filesForContext, reasoningEffort); // Pass the reasoningEffort parameter.
         System.out.println(response);
         if (response == null) return;
 
@@ -148,6 +150,13 @@ public class LLMInteraction {
         // Refresh the directory tree
         app.getClient().getProjectPanel().refreshTree(app.getCurrentWorkspace());
     }
+    
+    // Overloaded method for backward compatibility when no reasoning effort is provided.
+    public void submitRequest(String model, String description) {
+        submitRequest(model, description, null);
+    }
+    
+    // ... (rest of the file remains unchanged)
     
     /**
      * Builds a block of enabled features (plugin identifiers) to insert into the prompt.

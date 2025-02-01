@@ -12,7 +12,7 @@ public class O1MiniProvider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files) {
+    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
         if (files != null && !files.isEmpty()) {
             System.err.println("[O1MiniProvider] Warning: OpenAI does not support sending files. Ignoring " + files.size() + " files.");
         }
@@ -22,7 +22,7 @@ public class O1MiniProvider extends OpenAICommons implements IModelProvider {
         System.out.println(prompt);
         ChatModel modelEnum = ChatModel.O1_MINI;
 
-        return simpleCompletion(prompt, userRequest, start, modelEnum, client.chat());
+        return simpleCompletion(prompt, userRequest, start, modelEnum, getClient().chat());
     }
 
     @Override
@@ -37,6 +37,11 @@ public class O1MiniProvider extends OpenAICommons implements IModelProvider {
 
     @Override
     public boolean supportsVision() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsReasoningEffort() {
         return false;
     }
 }

@@ -16,18 +16,20 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files) {
+    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
         long start = System.currentTimeMillis();
         System.out.println("[O1] Beginning request of ");
         System.out.println(prompt);
 
-
         ChatCompletionDeveloperMessageParam developerMessage = ChatCompletionDeveloperMessageParam.builder()
-                .content(prompt).build();
+                .content(prompt)
+                .build();
 
-        ChatCompletionContentPartText text = ChatCompletionContentPartText.builder().text(userRequest).build();
+        ChatCompletionContentPartText text = ChatCompletionContentPartText.builder()
+                .text(userRequest)
+                .build();
 
-        List<com.openai.models.ChatCompletionContentPart> parts = new ArrayList<>();
+        List<ChatCompletionContentPart> parts = new ArrayList<>();
 
         if (files != null && !files.isEmpty()) {
             for (File file : files) {
@@ -39,17 +41,22 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
         }
         parts.add(ChatCompletionContentPart.ofChatCompletionContentPartText(text));
 
-
-        ChatCompletionUserMessageParam build = ChatCompletionUserMessageParam
+        ChatCompletionUserMessageParam userMessage = ChatCompletionUserMessageParam
                 .builder().contentOfArrayOfContentParts(parts).build();
 
-        ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
+        ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder()
                 .addMessage(developerMessage)
-                .addMessage(build)
-                .model(ChatModel.O1).build();
+                .addMessage(userMessage)
+                .model(ChatModel.O1);
 
+        if (supportsReasoningEffort() && reasoningEffort != null) {
+            System.out.println("USING EFFORT = " + reasoningEffort);
+            paramsBuilder.reasoningEffort(reasoningEffort);
+        }
 
-        ChatCompletion completion = client.chat().completions().create(params);
+        ChatCompletionCreateParams params = paramsBuilder.build();
+
+        ChatCompletion completion = getClient().chat().completions().create(params);
         ChatCompletion validate = completion.validate();
         List<ChatCompletion.Choice> choices = validate.choices();
 
@@ -76,8 +83,9 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
             String mimeType = "image/" + extension;
             String dataUrl = "data:" + mimeType + ";base64," + base64Image;
 
-            com.openai.models.ChatCompletionContentPartImage.ImageUrl imageUrl = com.openai.models.
-                    ChatCompletionContentPartImage.ImageUrl.builder().url(dataUrl).build();
+            ChatCompletionContentPartImage.ImageUrl imageUrl = ChatCompletionContentPartImage.ImageUrl.builder()
+                    .url(dataUrl)
+                    .build();
             return ChatCompletionContentPartImage.builder().imageUrl(imageUrl).build();
 
         } catch (IOException e) {
@@ -87,8 +95,13 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
+    public boolean supportsReasoningEffort() {
+        return true;
+    }
+
+    @Override
     public boolean supportsAudio() {
-        return false; // tbh idk
+        return false;
     }
 
     @Override
@@ -98,6 +111,6 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
 
     @Override
     public boolean supportsVision() {
-        return true; // O1 supports vision
+        return true; // O1 supports vision.
     }
 }
