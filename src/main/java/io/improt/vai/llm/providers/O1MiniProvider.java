@@ -22,7 +22,7 @@ public class O1MiniProvider extends OpenAICommons implements IModelProvider {
         System.out.println(prompt);
         ChatModel modelEnum = ChatModel.O1_MINI;
 
-        return simpleCompletion(prompt, start, modelEnum, client.chat());
+        return simpleCompletion(prompt, userRequest, start, modelEnum, client.chat());
     }
 
     @Override

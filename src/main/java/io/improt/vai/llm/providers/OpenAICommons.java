@@ -36,10 +36,13 @@ public abstract class OpenAICommons implements IModelProvider {
     }
 
     @Nullable
-    protected static String simpleCompletion(String prompt, long start, ChatModel modelEnum, ChatService chat) {
+    protected static String simpleCompletion(String prompt, String request, long start, ChatModel modelEnum, ChatService chat) {
         ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
                 .addMessage(ChatCompletionUserMessageParam.builder()
                         .content(prompt)
+                        .build())
+                .addMessage(ChatCompletionUserMessageParam.builder()
+                        .content("REQUEST: " + request)
                         .build())
                 .model(modelEnum)
                 .build();
