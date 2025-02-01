@@ -46,30 +46,26 @@ public class ActiveFilesPanel extends JPanel {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) { // Avoid overriding selection color
-                    String fileName = (String) tableModel.getValueAt(row, 0);
-                    String modelName = (String) App.getInstance().getClient().getModelList().getSelectedItem();
-                    IModelProvider provider = App.getInstance().getLLMProvider(modelName);
+                String fileName = (String) tableModel.getValueAt(row, 0);
+                String modelName = (String) App.getInstance().getClient().getModelList().getSelectedItem();
+                IModelProvider provider = App.getInstance().getLLMProvider(modelName);
 
-                    if (provider != null) {
-                        if (!provider.supportsAudio() && isAudioFile(fileName)) {
-                            c.setForeground(Color.RED);
-                        } else if (!provider.supportsVision() && isImageFile(fileName)) {
-                            c.setForeground(Color.RED);
-                        } else if (!provider.supportsVideo() && isVideoFile(fileName)) {
-                            c.setForeground(Color.RED);
-                        }
-                         else {
-                            c.setForeground(Color.BLACK); // Default color
-                        }
+                if (provider != null) {
+                    if (!provider.supportsAudio() && isAudioFile(fileName)) {
+                        c.setForeground(Color.RED);
+                    } else if (!provider.supportsVision() && isImageFile(fileName)) {
+                        c.setForeground(Color.RED);
+                    } else if (!provider.supportsVideo() && isVideoFile(fileName)) {
+                        c.setForeground(Color.RED);
                     } else {
-                        c.setForeground(Color.BLACK); // Default color if no provider
+                        c.setForeground(Color.BLACK); // Default color
                     }
+                } else {
+                    c.setForeground(Color.BLACK); // Default color if no provider
                 }
                 return c;
             }
         });
-
 
         // Enable drag and drop
         setTransferHandler(new TransferHandler() {
@@ -89,7 +85,6 @@ public class ActiveFilesPanel extends JPanel {
                 if (!canImport(support)) {
                     return false;
                 }
-
                 try {
                     Transferable t = support.getTransferable();
                     List<File> droppedFiles = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
@@ -101,7 +96,6 @@ public class ActiveFilesPanel extends JPanel {
                 } catch (UnsupportedFlavorException | IOException e) {
                     e.printStackTrace();
                 }
-
                 return false;
             }
         });
@@ -114,7 +108,6 @@ public class ActiveFilesPanel extends JPanel {
                 if (selectedRow == -1) {
                     return; // No row selected
                 }
-
                 if (SwingUtilities.isRightMouseButton(e)) {
                     JPopupMenu contextMenu = new JPopupMenu();
                     JMenuItem deleteItem = new JMenuItem("Delete");
@@ -136,7 +129,6 @@ public class ActiveFilesPanel extends JPanel {
 
                     contextMenu.show(fileTable, e.getX(), e.getY());
                 }
-
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     if (e.getClickCount() == 2) {
                         // Double-click to delete
@@ -178,12 +170,20 @@ public class ActiveFilesPanel extends JPanel {
         return lowerFileName.endsWith(".mp4") || lowerFileName.endsWith(".avi"); // Add more video extensions if needed
     }
 
-
     public void refreshTable() {
         List<File> enabledFiles = backend.getEnabledFiles();
         tableModel.setRowCount(0); // Clear existing rows
+        File workspace = backend.getCurrentWorkspace();
         for (File file : enabledFiles) {
-            tableModel.addRow(new Object[]{file.getName(), file.getAbsolutePath()});
+            String relativePath = file.getAbsolutePath();
+            if (workspace != null) {
+                try {
+                    relativePath = workspace.toPath().relativize(file.toPath()).toString();
+                } catch(Exception e) {
+                    // fallback to absolute path on error
+                }
+            }
+            tableModel.addRow(new Object[]{file.getName(), relativePath});
         }
     }
 
@@ -194,11 +194,9 @@ public class ActiveFilesPanel extends JPanel {
             while (true) {
                 try {
                     List<File> enabledFiles = App.getInstance().getEnabledFiles();
-
                     if (enabledFiles.size() != lastSize) {
                         refreshTable();
                     }
-
                     lastSize = enabledFiles.size();
                     // Sleep for 1 second before checking again
                     Thread.sleep(200);

@@ -13,32 +13,32 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.image.BufferedImage;
 
 public class FileViewerPanel extends JPanel {
     private final RSyntaxTextArea textArea;
-    private final JLabel imageLabel; // For image display
-    private final JScrollPane imageScrollPane; // Scroll pane for image
+    private final JLabel imageLabel;
+    private final JScrollPane imageScrollPane;
     private final JButton addButton;
     private final JButton subtractButton;
     private final JButton saveButton;
-    private final JButton newFileButton; // New button for creating files
-    private final JTextField filenameField; // New textfield for displaying and renaming file name
+    private final JButton newFileButton;
+    private final JTextField filenameField;
     private File currentFile;
-    private JPanel contentPanel; // To hold either textArea or imageLabel
-    private CardLayout cardLayout; // To switch between text and image views
-    private boolean isModified = false; // Flag to track modifications
+    private JPanel contentPanel;
+    private CardLayout cardLayout;
+    private boolean isModified = false;
 
     public FileViewerPanel() {
+        // Apply a flat, modern titled border with a subtle line
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder("File Viewer"));
+        setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.decode("#CCCCCC")), "File Viewer"));
 
-        // Initialize filenameField
         filenameField = new JTextField();
-        filenameField.setEditable(false); // Initially non-editable
-        filenameField.setPreferredSize(new Dimension(200, 25)); // Set preferred height
+        filenameField.setEditable(false);
+        filenameField.setPreferredSize(new Dimension(200, 25));
         filenameField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
@@ -51,23 +51,21 @@ public class FileViewerPanel extends JPanel {
             }
         });
 
-        // Panel for filename label and textfield
         JPanel filenamePanel = new JPanel(new BorderLayout());
         filenamePanel.add(filenameField, BorderLayout.CENTER);
+        add(filenamePanel, BorderLayout.NORTH);
 
-        add(filenamePanel, BorderLayout.NORTH); // Add filenamePanel to the top
-
-        // Initialize content panel with CardLayout
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
 
-        // Initialize text area
         textArea = new RSyntaxTextArea();
-        textArea.setEditable(true); // Make editable
+        textArea.setEditable(true);
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
         textArea.setCodeFoldingEnabled(true);
+        // Use a monospaced font in the file viewer panel
+        textArea.setFont(new Font("Liberation Mono", Font.PLAIN, 14));
         RTextScrollPane textScrollPane = new RTextScrollPane(textArea);
-        contentPanel.add(textScrollPane, "TEXT"); // Add text area to content panel
+        contentPanel.add(textScrollPane, "TEXT");
 
         // Add DocumentListener to track changes in textArea
         textArea.getDocument().addDocumentListener(new DocumentListener() {
@@ -86,37 +84,54 @@ public class FileViewerPanel extends JPanel {
                 setModified(true);
             }
         });
-
-
-        // Initialize image label
         imageLabel = new JLabel();
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
         imageScrollPane = new JScrollPane(imageLabel);
-        contentPanel.add(imageScrollPane, "IMAGE"); // Add image label to content panel
+        contentPanel.add(imageScrollPane, "IMAGE");
 
-        add(contentPanel, BorderLayout.CENTER); // Add content panel to FileViewerPanel
+        add(contentPanel, BorderLayout.CENTER);
 
-        // Initialize buttons
         addButton = new JButton();
         subtractButton = new JButton();
         saveButton = new JButton();
-        newFileButton = new JButton("New File"); // Initialize newFileButton
+        newFileButton = new JButton("New File");
 
-        // Set icons for buttons
-        try {
-            addButton.setIcon(new ImageIcon("images/add.png"));
-            subtractButton.setIcon(new ImageIcon("images/sub.png"));
-            saveButton.setIcon(new ImageIcon("images/save.png"));
-            // Optionally set an icon for newFileButton if available
-            // newFileButton.setIcon(new ImageIcon("images/newfile.png"));
-        } catch (Exception e) {
-            // If icons not found, set text
+        // Load and resize icons to 32x32 for a more appropriate size.
+        ImageIcon addIcon = loadAndResizeIcon("images/add.png");
+        if (addIcon != null) {
+            addButton.setIcon(addIcon);
+        } else {
             addButton.setText("Add");
+        }
+
+        ImageIcon subIcon = loadAndResizeIcon("images/sub.png");
+        if (subIcon != null) {
+            subtractButton.setIcon(subIcon);
+        } else {
             subtractButton.setText("Subtract");
+        }
+
+        ImageIcon saveIcon = loadAndResizeIcon("images/save.png");
+        if (saveIcon != null) {
+            saveButton.setIcon(saveIcon);
+        } else {
             saveButton.setText("Save");
+        }
+
+        ImageIcon newFileIcon = loadAndResizeIcon("images/newfile.png");
+        if (newFileIcon != null) {
+            newFileButton.setIcon(newFileIcon);
+        } else {
             newFileButton.setText("New File");
         }
+
+        // Set modern flat button backgrounds with a lighter blue tone.
+        Color lightBlue = Color.decode("#B3D4FC");
+        addButton.setBackground(lightBlue);
+        subtractButton.setBackground(lightBlue);
+        saveButton.setBackground(lightBlue);
+        newFileButton.setBackground(lightBlue);
 
         // Add action listeners
         addButton.addActionListener(e -> addCurrentFile());
@@ -124,13 +139,13 @@ public class FileViewerPanel extends JPanel {
         saveButton.addActionListener(e -> saveCurrentFile());
         newFileButton.addActionListener(e -> createNewFile()); // Action for newFileButton
 
-        // Create button panel
+
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.add(addButton);
         buttonPanel.add(subtractButton);
         buttonPanel.add(saveButton);
-        buttonPanel.add(newFileButton); // Add newFileButton to the panel
-        filenamePanel.add(buttonPanel, BorderLayout.EAST); // Add buttonPanel to the right side of filenamePanel
+        buttonPanel.add(newFileButton);
+        filenamePanel.add(buttonPanel, BorderLayout.EAST);
 
 //        add(buttonPanel, BorderLayout.SOUTH); // Add buttonPanel to the bottom
 
@@ -142,9 +157,16 @@ public class FileViewerPanel extends JPanel {
 
         // Start the watchdog thread
         watchdogThread();
+    }
 
-         // Enable paste functionality in the text area (already handled in ClientFrame, no need here)
-        // textArea.setTransferHandler(new TextTransferHandler()); // Removed, handled in ClientFrame now
+    private ImageIcon loadAndResizeIcon(String path) {
+        try {
+            ImageIcon icon = new ImageIcon(path);
+            Image img = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+            return new ImageIcon(img);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public void displayFile(File file) {
@@ -206,7 +228,6 @@ public class FileViewerPanel extends JPanel {
         }
     }
 
-
     private void displayTextFile(File file) {
         try {
             String content = new String(Files.readAllBytes(file.toPath()));
@@ -218,7 +239,6 @@ public class FileViewerPanel extends JPanel {
             textArea.setText("Error loading file as text: " + e.getMessage());
         }
     }
-
 
     public void clear() {
         if (isModified) {
@@ -429,7 +449,16 @@ public class FileViewerPanel extends JPanel {
 
     private void updateButtonStates() {
         if (currentFile != null) {
-            boolean isActive = App.getInstance().getEnabledFiles().contains(currentFile);
+            boolean isActive = false;
+            for (File file : App.getInstance().getEnabledFiles()) {
+                if (currentFile == file) {
+                    isActive = true;
+                } else if (file.getAbsolutePath().equals(currentFile.getAbsolutePath())) {
+                    isActive = true;
+                    System.out.println("Didnt match but is equal.");
+                }
+            }
+
             addButton.setEnabled(!isActive);
             subtractButton.setEnabled(isActive);
             saveButton.setEnabled(!isImageFile(currentFile)); // Disable save button for image files for now

@@ -69,10 +69,19 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
 
     private void populateTable() {
         tableModel.setRowCount(0); // Clear existing rows
+        File workspace = backend.getCurrentWorkspace();
         for (String filePath : recentlyActiveFiles) {
             File file = new File(filePath);
             if (file.exists() && file.isFile()) {
-                tableModel.addRow(new Object[]{file.getName(), file.getAbsolutePath()});
+                String relativePath = file.getAbsolutePath();
+                if (workspace != null) {
+                    try {
+                        relativePath = workspace.toPath().relativize(file.toPath()).toString();
+                    } catch (Exception ex) {
+                        // fallback to absolute path if error occurs
+                    }
+                }
+                tableModel.addRow(new Object[]{file.getName(), relativePath});
             }
         }
     }

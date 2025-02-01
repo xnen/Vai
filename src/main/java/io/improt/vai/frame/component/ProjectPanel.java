@@ -21,6 +21,12 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
     public ProjectPanel() {
         setLayout(new BorderLayout());
 
+        // Set custom icons for tree arrows to improve contrast
+        UIManager.put("Tree.expandedIcon", new ImageIcon("images/arrow_down.png"));
+        UIManager.put("Tree.collapsedIcon", new ImageIcon("images/arrow_right.png"));
+        // Adjust tree line color for better visibility
+        UIManager.put("Tree.line", new Color(0, 0, 0));//, 150, 150));
+
         tree = new JTree();
         tree.setModel(null);
 
@@ -52,10 +58,6 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
                     }
                 }
             }
-        });
-
-        tree.addTreeSelectionListener(e -> {
-            // Handle tree selection changes if needed
         });
 
         tree.addTreeExpansionListener(new TreeExpansionListener() {
@@ -245,12 +247,44 @@ public class ProjectPanel extends JPanel implements ActiveFileManager.EnabledFil
 
     private class ActiveFileTreeCellRenderer extends DefaultTreeCellRenderer {
         private final Color activeColor = new Color(144, 238, 144); // Light Green
+        private final ImageIcon folderClosedIcon;
+        private final ImageIcon folderOpenIcon;
+        private final ImageIcon fileIcon;
+
+        public ActiveFileTreeCellRenderer() {
+            super();
+            // Load custom icons for folders and files
+            folderClosedIcon = new ImageIcon("images/folder.png");
+            folderOpenIcon = new ImageIcon("images/folder-open.png");
+            fileIcon = new ImageIcon("images/file.png");
+
+            // Set default icons to be used by the renderer
+            setClosedIcon(folderClosedIcon);
+            setOpenIcon(folderOpenIcon);
+            setLeafIcon(fileIcon);
+            
+            // Adjust text colors for better contrast
+            setTextNonSelectionColor(Color.decode("#202124"));
+            setTextSelectionColor(Color.WHITE);
+            setBackgroundNonSelectionColor(Color.decode("#FFFFFF"));
+            setBackgroundSelectionColor(Color.decode("#4285F4"));
+        }
 
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected,
                                                       boolean expanded, boolean leaf, int row, boolean hasFocus) {
             Component c = super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
+
             File file = pathToFile(tree.getPathForRow(row));
+            if (file != null) {
+                if (file.isDirectory()) {
+                    setIcon(expanded ? folderOpenIcon : folderClosedIcon);
+                } else if(file.isFile()){
+                    setIcon(fileIcon);
+                }
+            }
+            
+            // Set background specifically for active files (only if it's a file)
             if (file != null && file.isFile() && App.getInstance().getEnabledFiles().contains(file)) {
                 c.setBackground(activeColor);
                 if (c instanceof JComponent) {

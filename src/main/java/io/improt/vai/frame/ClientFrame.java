@@ -15,14 +15,12 @@ import com.openai.models.ChatCompletionReasoningEffort;
 
 import javax.sound.sampled.*;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.tree.TreePath;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +29,6 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import javax.swing.BorderFactory;
-import javax.swing.border.Border;
 import javax.swing.Timer;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
@@ -45,51 +42,45 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private App backend;
     private final JMenu recentMenu;
     private final JMenu recentActiveFilesMenu;
-
-    private final RecentActiveFilesPanel recentActiveFilesPanel; // Added as a class field
-
+    private final RecentActiveFilesPanel recentActiveFilesPanel;
     private File currentFile;
     public static boolean pasting = false;
-
-    // Recording components
     private JButton recordButton;
     private boolean isRecording = false;
     private TargetDataLine audioLine;
     private File waveFile;
-    private JLabel recordingTimeLabel; // Will be used in status bar now
+    private JLabel recordingTimeLabel;
     private Timer recordingTimer;
     private long recordingStartTime;
-    private ByteArrayOutputStream byteArrayOutputStream; // To capture audio data
-    private Thread recordingThread; // Thread for recording
+    private ByteArrayOutputStream byteArrayOutputStream;
+    private Thread recordingThread;
     private JLabel statusBarLabel;
-    
-    // NEW: Reasoning effort slider and label
     private JSlider reasoningSlider;
 
     public ClientFrame() {
         super("Vai");
+        applyTheme();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1100, 700);
         setResizable(true);
 
-        // Set application icon, but doesn't work lol? OpenJDK haha.
         try {
             setIconImage(Toolkit.getDefaultToolkit().getImage("/images/icon.png"));
         } catch (Exception e) {
             System.err.println("Icon 'icon.ico' not found, using default Java icon.");
         }
 
-        // Menu
+        // Menu configuration with flat, modern appearance
         JMenuBar menuBar = new JMenuBar();
+        menuBar.setBackground(Color.decode("#FFFFFF"));
+        menuBar.setForeground(Color.decode("#202124"));
+
         JMenu fileMenu = new JMenu("File");
         recentMenu = new JMenu("Recent");
-
         recentActiveFilesMenu = new JMenu("Recent");
         populateRecentMenu();
         populateMenu();
         JMenu configMenu = new JMenu("Config");
-
-        // NEW: Features menu
         JMenu featuresMenu = new JMenu("Features");
         JMenuItem configureFeaturesItem = new JMenuItem("Configure Features");
         configureFeaturesItem.addActionListener(e -> {
@@ -106,7 +97,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         JMenuItem exitItem = new JMenuItem("Exit");
         JMenuItem configureItem = new JMenuItem("Configure...");
 
-        // Action Listener for New Project...
         newProjectItem.addActionListener(new NewProjectAction(this));
         tempProjectItem.addActionListener(new TempProjectAction(this));
 
@@ -118,84 +108,61 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
 
         openPathItem.addActionListener(new OpenPathAction(this));
-
         exitItem.addActionListener(e -> System.exit(0));
         configureItem.addActionListener(e -> new ConfigureFrame(this));
         refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
 
-        // Adding menu items to File menu
         fileMenu.add(newProjectItem);
         fileMenu.add(tempProjectItem);
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
         fileMenu.add(recentMenu);
         fileMenu.add(refreshItem);
-        fileMenu.addSeparator(); // Adds a separator line
+        fileMenu.addSeparator();
 
-        // Initialize and add "Open Project Directory" menu item
-        // Added "Open Project Directory" menu item
         JMenuItem openProjectDirItem = new JMenuItem("Open Project Directory");
         openProjectDirItem.addActionListener(e -> openProjectDirectory());
         fileMenu.add(openProjectDirItem);
 
-        fileMenu.addSeparator(); // Adds another separator line
+        fileMenu.addSeparator();
         fileMenu.add(exitItem);
-
-        // Adding menu items to Config menu
         configMenu.add(configureItem);
 
-        // Adding menus to menu bar
         menuBar.add(fileMenu);
         menuBar.add(configMenu);
         menuBar.add(featuresMenu);
         menuBar.add(recentActiveFilesMenu);
         setJMenuBar(menuBar);
 
-        // Project Panel
+        // Panels configuration
         projectPanel = new ProjectPanel();
-
-        // Initialize backend before panels that depend on it
         backend = new App(this);
         backend.init();
-
         projectPanel.init(backend);
-
-        // Active Files Panel
         ActiveFilesPanel activeFilesPanel = new ActiveFilesPanel(backend);
         activeFilesPanel.setFileSelectionListener(this);
-
-        // Recent Active Files Panel
-        recentActiveFilesPanel = new RecentActiveFilesPanel(); // Assigned to class field
-
-        // File Viewer Panel
+        recentActiveFilesPanel = new RecentActiveFilesPanel();
         fileViewerPanel = new FileViewerPanel();
 
-        // Right panel contains fileViewerPanel and other components
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new BorderLayout());
-
-        // Add fileViewerPanel at the center
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setBackground(Color.decode("#F1F3F4"));
         rightPanel.add(fileViewerPanel, BorderLayout.CENTER);
 
-        // Panel for textArea and buttons
-        JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new BorderLayout());
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        inputPanel.setBackground(Color.decode("#F1F3F4"));
 
-        // Text area
-        textArea = new JTextArea(5, 40); // Set initial rows and columns for better visibility
+        textArea = new JTextArea(5, 40);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        textArea.setFont(new Font("Inter", Font.PLAIN, 14));
+        textArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         JScrollPane textScrollPane = new JScrollPane(textArea);
-        textScrollPane.setPreferredSize(new Dimension(100, 150)); // Set preferred size to make it taller
+        textScrollPane.setPreferredSize(new Dimension(100, 150));
         inputPanel.add(textScrollPane, BorderLayout.CENTER);
 
-        // Add Paste Listener to textArea
         textArea.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (e.isPopupTrigger()) {
-                    // Show default paste menu, and then handle potentially pasted image
                     JPopupMenu popup = new JPopupMenu();
                     JMenuItem pasteMenuItem = new JMenuItem("Paste");
                     pasteMenuItem.addActionListener(pasteAction -> handlePaste());
@@ -214,46 +181,36 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
         });
 
-
-        // Panel for buttons, modelCombo, and reasoning slider
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-
-        // Record Button
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottomPanel.setBackground(Color.decode("#F1F3F4"));
         recordButton = createRecordButton();
         bottomPanel.add(recordButton);
 
-        // Reasoning Effort Slider and Label (default hidden)
         reasoningSlider = new JSlider(0, 2, 1);
         reasoningSlider.setMajorTickSpacing(1);
         reasoningSlider.setPaintTicks(true);
         reasoningSlider.setPaintLabels(true);
         Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
-        Font tinyFont = new Font("Arial", Font.PLAIN, 8);
+        Font tinyFont = new Font("Segoe UI", Font.PLAIN, 10);
         JLabel low = new JLabel("Low");
         JLabel med = new JLabel("Medium");
         JLabel hi = new JLabel("High");
-
         low.setFont(tinyFont);
         med.setFont(tinyFont);
         hi.setFont(tinyFont);
-
         labelTable.put(0, low);
         labelTable.put(1, med);
         labelTable.put(2, hi);
-
         reasoningSlider.setLabelTable(labelTable);
         reasoningSlider.setPreferredSize(new Dimension(150, 50));
         reasoningSlider.setVisible(false);
         bottomPanel.add(reasoningSlider);
 
-        // Dynamically populate model combo from registered models
         java.util.Set<String> modelNamesSet = App.getInstance().getLLMRegistry().getRegisteredModelNames();
         java.util.List<String> modelNames = new ArrayList<>(modelNamesSet);
         java.util.Collections.sort(modelNames);
         Collections.reverse(modelNames);
         modelCombo = new JComboBox<>(modelNames.toArray(new String[0]));
-        // Set default to o3-mini-medium if available, else try o3-mini.
         if(modelNames.contains("o3-mini")){
             modelCombo.setSelectedItem("o3-mini");
             updateReasoningSliderVisibility();
@@ -264,31 +221,22 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
         bottomPanel.add(modelCombo);
 
-
-
-        // Clear button
         JButton clearButton = new JButton("Clear");
         clearButton.addActionListener(e -> textArea.setText(""));
         bottomPanel.add(clearButton);
 
-        // Submit button with updated action listener to pass reasoning effort if supported.
         JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
 
         inputPanel.add(bottomPanel, BorderLayout.SOUTH);
         rightPanel.add(inputPanel, BorderLayout.SOUTH);
 
-        // Create vertical splits for left side
         JSplitPane mainSplitPane = createLeftPanel(activeFilesPanel, rightPanel);
-
-        // Add the split pane to the frame
         getContentPane().add(mainSplitPane, BorderLayout.CENTER);
 
-        // Status bar at the bottom
-        statusBarLabel = new JLabel("Ready"); // Initialize status bar label
+        statusBarLabel = new JLabel("Ready");
         getContentPane().add(statusBarLabel, BorderLayout.SOUTH);
 
-        // Add listener to ProjectPanel for file selection
         projectPanel.getTree().addTreeSelectionListener(e -> {
             TreePath path = e.getPath();
             File selectedFile = projectPanel.pathToFile(path);
@@ -301,14 +249,17 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
         });
 
-        // Add CTRL+ENTER shortcut for Submit button
         addSubmitShortcut(submitButton);
-
-        // Initial title update
         updateTitle();
         updateRecordButtonState();
 
         setVisible(true);
+    }
+
+    private void applyTheme() {
+        // Apply global theme settings for a modern, flat design.
+        getContentPane().setBackground(Color.decode("#F1F3F4"));
+        setFont(new Font("Segoe UI", Font.PLAIN, 14));
     }
 
     private void updateReasoningSliderVisibility() {
@@ -852,4 +803,3 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         return this.currentFile;
     }
 }
-

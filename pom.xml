@@ -33,6 +33,11 @@
             <artifactId>json</artifactId>
             <version>20250107</version>
         </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5.4</version>
+        </dependency>
         
 <!--        &lt;!&ndash; JavaParser Dependencies &ndash;&gt;-->
 <!--        <dependency>-->
