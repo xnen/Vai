@@ -7,8 +7,6 @@
    - Windows ofc needs to be different, potentially.
    - But yeah this should just be a pop-up shell window, rather than a custom dialog. That way we get live output as well.
 
-- Errors are not handled in user-space. Show the user if an error occurred with the LLM, and give a Retry button.
-
 == Quality of Life ==
 - The "message dialog" from the model should be resizable, and it should not be blocking.
     - It should also allow users to go forward and backward in message history through two buttons "<" and ">".
@@ -41,7 +39,7 @@
 - Add a llm feature system, rather than the SHOW_MESSAGE / RUN_COMMAND / LLM_PROMPT hacks, we'll append to the prompt as needed and remove bloat.
    - This will also reduce the scope of the llm's available responses, i.e. if we only want a message dialog and no file changes.
    - Something to append to the prompt too - maybe a "next prompt" feature.
-   - Just some checkboxes to enable/disable features (including editing files)
+   - Just some checkboxes to enable/disable features (including the capacity to edit files)
 
 - "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
    - Separate UI for milestones, auto prompting should always prompt "Continue development for milestone X" and then the next prompt
