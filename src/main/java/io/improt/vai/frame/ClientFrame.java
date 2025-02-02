@@ -10,8 +10,10 @@ import io.improt.vai.frame.component.ActiveFilesPanel;
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.frame.dialogs.FeaturesDialog;
 import io.improt.vai.frame.dialogs.RepairDialog;
+import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
 import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.util.FileUtils;
+import io.improt.vai.util.MessageHistoryManager;
 import org.jetbrains.annotations.NotNull;
 import com.openai.models.ChatCompletionReasoningEffort;
 
@@ -646,6 +648,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         // Add a separator and "Clear Recent Files" menu item
         JMenuItem clearRecentFilesItem = new JMenuItem("Clear Recent Files");
         JMenuItem hack = new JMenuItem("Hack");
+        JMenuItem messages = new JMenuItem("Messages");
+
         clearRecentFilesItem.addActionListener(e -> {
             int confirmation = JOptionPane.showConfirmDialog(this, "Are you sure you want to clear all recent files?", "Confirm Clear", JOptionPane.YES_NO_OPTION);
             if (confirmation == JOptionPane.YES_OPTION) {
@@ -661,8 +665,19 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             repairDialog.setVisible(true);
             backend.getLLM().handleCodeResponse(repairDialog.getCorrectedCode());
         });
+
+        messages.addActionListener(e -> {
+            MessageHistoryManager historyManager = new MessageHistoryManager(App.getInstance().getCurrentWorkspace());
+            SwingUtilities.invokeLater(() -> {
+                ResizableMessageHistoryDialog dialog = new ResizableMessageHistoryDialog(historyManager);
+                dialog.setVisible(true);
+            });
+        });
+
         recentActiveFilesMenu.add(clearRecentFilesItem);
         recentActiveFilesMenu.add(hack);
+
+        recentActiveFilesMenu.add(messages);
     }
 
     // Helper method to format the project name using the last two directories

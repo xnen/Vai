@@ -1,10 +1,17 @@
 package io.improt.vai.backend.plugin.impl;
 
+import io.improt.vai.backend.App;
 import io.improt.vai.backend.plugin.AbstractPlugin;
-import io.improt.vai.util.VaiUtils;
+import io.improt.vai.util.MessageHistoryManager;
+import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
 
 import javax.swing.*;
+import java.io.File;
 
+/**
+ * Updated ShowMessagePlugin to use a resizable and non-blocking message dialog
+ * that supports navigation through message history.
+ */
 public class ShowMessagePlugin extends AbstractPlugin {
     @Override
     protected String getIdentifier() {
@@ -18,8 +25,22 @@ public class ShowMessagePlugin extends AbstractPlugin {
 
     @Override
     protected void actionPerformed(String actionBody) {
-        JScrollPane scrollPane = VaiUtils.createMessageDialog(actionBody);
-        JOptionPane.showMessageDialog(null, scrollPane, "Message from model", JOptionPane.INFORMATION_MESSAGE);
+        // Ensure a current workspace exists to store message history.
+        File workspace = App.getInstance().getCurrentWorkspace();
+        if (workspace == null) {
+            JOptionPane.showMessageDialog(null, "Cannot show message as a workspace is not open!?", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // Initialize the MessageHistoryManager for the current workspace.
+        MessageHistoryManager historyManager = new MessageHistoryManager(workspace);
+        // Add the new message from the model into history.
+        historyManager.addMessage(actionBody);
+
+        // Create and show a custom non-blocking, resizable dialog with navigation.
+        SwingUtilities.invokeLater(() -> {
+            ResizableMessageHistoryDialog dialog = new ResizableMessageHistoryDialog(historyManager);
+            dialog.setVisible(true);
+        });
     }
     
     @Override
@@ -31,13 +52,12 @@ public class ShowMessagePlugin extends AbstractPlugin {
                 "```chat\n" +
                 "Your request is impossible, for the following reason: <reason>\n" +
                 "```\n" +
-                "!EOF";
+                "!EOF\n" +
+                "Your message must be formatted in HTML, as it's displayed in a JEditorPane with text/html.";
     }
 
     @Override
     public String getFeatureDescription() {
         return "Allow LLM to show you a message in a dialog.";
     }
-
-
 }
