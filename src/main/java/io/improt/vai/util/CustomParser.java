@@ -3,120 +3,97 @@ package io.improt.vai.util;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * CustomParser is designed to parse LLM responses that follow a specific custom format.
- * <p>
- * The expected format is:
- * <pre>
- * [Full Filename Path]
- * ```&lt;lang&gt;
- * &lt;file contents&gt;
- * ```
- * !EOF
- * </pre>
- * The parser reads the response string and extracts file paths and their corresponding contents.
- * It handles multiple such blocks in a single response.
- * <p>
- */
 public class CustomParser {
 
-    /**
-     * Parses the LLM response and extracts file paths and contents.
-     *
-     * @param response The LLM response string.
-     * @return A list of FileContent objects containing the fileName and newContents, or null if parsing fails.
-     */
     public static List<FileContent> parse(String response) throws Exception {
         List<FileContent> fileContents = new ArrayList<>();
+        StringBuilder leftoverBuffer = new StringBuilder();
 
-        // Remove <think>...</think> blocks of DeepSeek and similar models.
-        // TODO: This is somewhat naive, but it works for now.
+        // First, strip out <think>...</think> blocks.
         int thinkStart = response.indexOf("<think>");
         while (thinkStart != -1) {
             int thinkEnd = response.indexOf("</think>", thinkStart);
             if (thinkEnd != -1) {
                 response = response.substring(0, thinkStart) + response.substring(thinkEnd + "</think>".length());
             } else {
-                // Handle case where </think> is missing (maybe log a warning or throw an exception)
-                // For now, just remove from <think> to the end of the string.
+                // If closing tag is missing, remove everything from <think> to end.
                 response = response.substring(0, thinkStart);
-                break; // Exit loop as the rest of the string is removed.
+                break;
             }
-            thinkStart = response.indexOf("<think>"); // Look for next occurrence
+            thinkStart = response.indexOf("<think>");
         }
-
 
         int index = 0;
         while (index < response.length()) {
-            // Look for the next '['
+            // Look for the next file path start.
             int startBracket = response.indexOf('[', index);
             if (startBracket == -1) {
+                // Append any remaining text to leftoverBuffer.
+                leftoverBuffer.append(response.substring(index));
                 break;
+            }
+            // Accumulate any text before the file path marker.
+            if (startBracket > index) {
+                leftoverBuffer.append(response.substring(index, startBracket));
             }
 
             int endBracket = response.indexOf(']', startBracket);
             if (endBracket == -1) {
-                throw new Exception("Missing closing bracket for file path.");
+                throw new Exception("Missing closing ']' for file path starting at index " + startBracket);
             }
-
             String filePath = response.substring(startBracket + 1, endBracket).trim();
 
-            // Look for triple backticks
+            // Find the next triple-backticks for code block start.
             int codeStart = response.indexOf("```", endBracket);
             if (codeStart == -1) {
-                throw new Exception("Missing code block start.");
+                throw new Exception("Missing opening code block for file: " + filePath);
             }
-
-            // Get language identifier
             int langEnd = response.indexOf('\n', codeStart);
             if (langEnd == -1) {
-                throw new Exception("Missing code block language end.");
+                throw new Exception("Missing newline after language declaration for file: " + filePath);
             }
-
             String lang = response.substring(codeStart + 3, langEnd).trim();
 
-            // Determine where to search for the closing triple backticks
+            // Now determine if we have an !EOF marker.
             int eofIndex = response.indexOf("!EOF", langEnd);
             int codeEnd;
             if (eofIndex != -1) {
-                // Find the last occurrence of triple backticks before !EOF
-                codeEnd = response.indexOf("```", eofIndex - 6); // 6 is generous. Can be adjusted if needed.
-                if (codeEnd == -1) {
-                    throw new Exception("Missing closing code block before !EOF.");
+                // Use lastIndexOf to account for triple backticks within the content.
+                codeEnd = response.lastIndexOf("```", eofIndex);
+                if (codeEnd == -1 || codeEnd <= langEnd) {
+                    throw new Exception("Missing closing code block for file: " + filePath);
                 }
-                // Extract code content
-                String codeContent = response.substring(langEnd + 1, codeEnd);
-
-                // Look for !EOF after code block
-                index = eofIndex + 4;
-                FileContent fileContent = new FileContent(filePath, codeContent, lang);
-                fileContents.add(fileContent);
+                index = eofIndex + "!EOF".length();
             } else {
-                // If !EOF is not found, find the next closing triple backticks
+                // No !EOF marker, so use the next triple-backticks
                 codeEnd = response.indexOf("```", langEnd);
                 if (codeEnd == -1) {
-                    throw new Exception("Missing code block end.");
+                    throw new Exception("Missing closing code block for file: " + filePath);
                 }
-                // Extract code content
-                String codeContent = response.substring(langEnd + 1, codeEnd);
-
-                // Continue parsing after the closing backticks
                 index = codeEnd + 3;
-
-                FileContent fileContent = new FileContent(filePath, codeContent, lang);
-                fileContents.add(fileContent);
             }
+
+            String codeContent = response.substring(langEnd + 1, codeEnd);
+            FileContent fileContent = new FileContent(filePath, codeContent, lang);
+            fileContents.add(fileContent);
         }
+
+        // At this point, leftoverBuffer contains any text not part of a file block.
+        // You can handle it as needed (for example, by attaching it to a result object or processing later).
+        // For now, we only return fileContents.
 
         if (fileContents.isEmpty()) {
             throw new Exception("No files found in response.");
         }
 
+        System.out.println("Left over (" + leftoverBuffer.length() + "):");
+        System.out.println(leftoverBuffer);
+
         return fileContents;
     }
 
     /**
-     * Simple class to hold file name and contents
+     * Simple class to hold file name, contents and file type.
      */
     public static class FileContent {
         private String fileName;
@@ -129,16 +106,14 @@ public class CustomParser {
             this.fileType = fileType;
         }
 
-        public String getFileType() {
-            return fileType;
-        }
-
         public String getFileName() {
             return fileName;
         }
-
         public String getNewContents() {
             return newContents;
+        }
+        public String getFileType() {
+            return fileType;
         }
     }
 }
