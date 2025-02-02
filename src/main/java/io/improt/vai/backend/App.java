@@ -2,7 +2,6 @@ package io.improt.vai.backend;
 
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.llm.providers.IModelProvider;
-import io.improt.vai.maps.WorkspaceMapper;
 import io.improt.vai.llm.*;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
@@ -33,7 +32,7 @@ public class App {
     private ActiveFileManager activeFileManager;
 
     private static final int VAI_INTEGRATION_PORT = 12345; // Port for Vai integration
-    private static final String VAI_INTEGRATION_SALT = "YourSuperSecretSalt"; // GPTODO: Replace with secure configuration
+    private static final String VAI_INTEGRATION_SALT = "YourSuperSecretSalt"; // TODO: Configurable.
 
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
@@ -55,14 +54,6 @@ public class App {
 
             activeFileManager = new ActiveFileManager(currentWorkspace);
             activeFileManager.addEnabledFilesChangeListener(updatedEnabledFiles -> mainWindow.getProjectPanel().refreshTree(currentWorkspace));
-
-            // Generate workspace map on project launch
-            try {
-                WorkspaceMapper.generateWorkspaceMap(currentWorkspace);
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(mainWindow, "Failed to generate workspace map: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
-            }
         }
 
         this.llmInteraction = new LLMInteraction(this);
@@ -177,14 +168,6 @@ public class App {
         this.mainWindow.getRecentActiveFilesPanel().refresh();
         this.mainWindow.getProjectPanel().refreshTree(this.currentWorkspace);
         mainWindow.updateTitle(); // Call updateTitle here!
-
-        // Generate workspace map on project launch
-        try {
-            WorkspaceMapper.generateWorkspaceMap(this.currentWorkspace);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(mainWindow, "Failed to generate workspace map: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
     }
 
     public ActiveFileManager getActiveFileManager() {
