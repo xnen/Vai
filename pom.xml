@@ -38,8 +38,20 @@
             <artifactId>flatlaf</artifactId>
             <version>3.5.4</version>
         </dependency>
-        
-<!--        &lt;!&ndash; JavaParser Dependencies &ndash;&gt;-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>RELEASE</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--        &lt;!&ndash; JavaParser Dependencies &ndash;&gt;-->
 <!--        <dependency>-->
 <!--            <groupId>com.github.javaparser</groupId>-->
 <!--            <artifactId>javaparser-symbol-solver-core</artifactId>-->
