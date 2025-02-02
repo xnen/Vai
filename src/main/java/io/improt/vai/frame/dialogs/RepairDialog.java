@@ -1,14 +1,14 @@
-package io.improt.vai.frame;
+package io.improt.vai.frame.dialogs;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class RepairFrame extends JDialog {
+public class RepairDialog extends JDialog {
     private final JTextArea originalCodeArea;
     private final JTextArea correctedCodeArea;
     private String correctedJson = null;
     
-    public RepairFrame(JFrame parent, String jsonString, String exceptionMessage) {
+    public RepairDialog(JFrame parent, String jsonString, String exceptionMessage) {
         super(parent, "formatting Repair", true);
         setLayout(new BorderLayout());
         

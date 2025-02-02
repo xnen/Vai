@@ -1,4 +1,4 @@
-package io.improt.vai.frame;
+package io.improt.vai.frame.dialogs;
 
 import io.improt.vai.backend.plugin.AbstractPlugin;
 import io.improt.vai.backend.plugin.PluginManager;

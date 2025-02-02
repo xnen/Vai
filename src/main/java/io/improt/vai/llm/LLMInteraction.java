@@ -4,7 +4,7 @@ import io.improt.vai.backend.App;
 import io.improt.vai.backend.plugin.PluginManager;
 import io.improt.vai.backend.plugin.AbstractPlugin;
 import io.improt.vai.frame.ClientFrame;
-import io.improt.vai.frame.RepairFrame;
+import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.util.*;
 
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import com.openai.models.ChatCompletionReasoningEffort;
+import org.jetbrains.annotations.NotNull;
 
 public class LLMInteraction {
     private int currentIncrementalBackupNumber = 0;
@@ -52,13 +53,13 @@ public class LLMInteraction {
 
         while (!valid) {
             try {
-                List<CustomParser.FileContent> parse = CustomParser.parse(currentCode);
+                List<BerzfadParser.FileContent> parse = BerzfadParser.parse(currentCode);
                 processParsedFiles(parse);
                 valid = true;
             } catch (Exception e) {
                 exceptionMessage = e.getMessage();
                 // Show JsonRepair dialog
-                RepairFrame repairDialog = new RepairFrame(mainWindow, currentCode, exceptionMessage);
+                RepairDialog repairDialog = new RepairDialog(mainWindow, currentCode, exceptionMessage);
                 repairDialog.setVisible(true);
 
                 String userCorrectedCode = repairDialog.getCorrectedCode();
@@ -97,7 +98,6 @@ public class LLMInteraction {
         String PROMPT_TEMPLATE = FileUtils.readFileToString(new File(Constants.PROMPT_TEMPLATE_FILE));
 
         // Temporary Hack for DeepSeek.
-        // TODO: Different prompts for different models?
         if (model.equals("DeepSeek")) {
             PROMPT_TEMPLATE = FileUtils.readFileToString(new File("data/deepseek.template"));
             System.out.println("Using DeepSeek template");
@@ -124,7 +124,28 @@ public class LLMInteraction {
 
         // Get the list of enabled files to be sent to Gemini. Currently, only text-based files are included in the prompt string.
         // For non-text files (images, audio), we'll pass them separately.
-        List<File> filesForContext = app.getActiveFileManager().getEnabledFiles(); // Get all enabled files. You can filter if needed.
+        List<File> filesForContext = this.getMedia();
+
+        String response = llmProvider.request(model, prompt, description, filesForContext, reasoningEffort); // Pass the reasoningEffort parameter.
+
+        System.out.println(response);
+
+        if (response == null) {
+            return;
+        }
+
+        // Trim leading and trailing whitespaces
+        response = response.trim();
+        this.handleCodeResponse(response);
+
+        // Refresh the directory tree
+        app.getClient().getProjectPanel().refreshTree(app.getCurrentWorkspace());
+        // GPTODO: We need to refresh the file viewer as well.
+    }
+
+    @NotNull
+    private List<File> getMedia() {
+        List<File> filesForContext = this.app.getActiveFileManager().getEnabledFiles(); // Get all enabled files. You can filter if needed.
         List<File> filteredFilesForContext = new ArrayList<>();
         String[] allowedExtensions = {"png", "jpg", "jpeg", "mp3", "wav", "mp4"};
 
@@ -138,25 +159,13 @@ public class LLMInteraction {
             }
         }
         filesForContext = filteredFilesForContext; // Use the filtered list
-
-        String response = llmProvider.request(model, prompt, description, filesForContext, reasoningEffort); // Pass the reasoningEffort parameter.
-        System.out.println(response);
-        if (response == null) return;
-
-        // Trim leading and trailing whitespaces
-        response = response.trim();
-        this.handleCodeResponse(response);
-
-        // Refresh the directory tree
-        app.getClient().getProjectPanel().refreshTree(app.getCurrentWorkspace());
+        return filesForContext;
     }
-    
+
     // Overloaded method for backward compatibility when no reasoning effort is provided.
     public void submitRequest(String model, String description) {
         submitRequest(model, description, null);
     }
-    
-    // ... (rest of the file remains unchanged)
     
     /**
      * Builds a block of enabled features (plugin identifiers) to insert into the prompt.
@@ -181,7 +190,7 @@ public class LLMInteraction {
      *
      * @param parsedFiles The list of parsed FileContent objects.
      */
-    private void processParsedFiles(List<CustomParser.FileContent> parsedFiles) {
+    private void processParsedFiles(List<BerzfadParser.FileContent> parsedFiles) {
         try {
             File vaiDir = FileUtils.getWorkspaceVaiDir(this.app.getCurrentWorkspace());
             File backupDirectory = new File(vaiDir, Constants.VAI_BACKUP_DIR + "/" + getNextIncrementalBackupNumber());
@@ -197,7 +206,7 @@ public class LLMInteraction {
 
             Path workspacePath = Paths.get(this.app.getCurrentWorkspace().getAbsolutePath());
 
-            for (CustomParser.FileContent fileContent : parsedFiles) {
+            for (BerzfadParser.FileContent fileContent : parsedFiles) {
                 String fileName = fileContent.getFileName();
                 String newContents = fileContent.getNewContents();
                 String fileType = fileContent.getFileType();

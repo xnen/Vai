@@ -8,6 +8,8 @@ import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
+import io.improt.vai.frame.dialogs.FeaturesDialog;
+import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.util.FileUtils;
 import org.jetbrains.annotations.NotNull;
@@ -655,7 +657,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
         // Giga hack to allow manual testing of a given response.
         hack.addActionListener(e -> {
-            RepairFrame repairDialog = new RepairFrame(this, "Hello world", "Exception");
+            RepairDialog repairDialog = new RepairDialog(this, "Hello world", "Exception");
             repairDialog.setVisible(true);
             backend.getLLM().handleCodeResponse(repairDialog.getCorrectedCode());
         });
