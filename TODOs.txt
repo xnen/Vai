@@ -1,24 +1,13 @@
 == Bugs ==
-- There seems to be some ignored responses from the LLM, we should write those into a window with a little notification.
-    - All non-parsed text should be appended to a buffer and shown in a window when the notification is clicked.
+REGRESSION: Active Files Panel no longer opens files in the file viewer.
 
-- The RUN_COMMAND feature doesn't work with many newline commands (multiple commands). It also doesn't run in the right context usually, at least on Linux.
-   - We should have a wrapper that sources bashrc maybe, on linux. I heard of zshrc too, unsure what that is.
-   - Windows ofc needs to be different, potentially.
-   - But yeah this should just be a pop-up shell window, rather than a custom dialog. That way we get live output as well.
 
 == Quality of Life ==
-- The "message dialog" from the model should be resizable, and it should not be blocking.
-    - It should also allow users to go forward and backward in message history through two buttons "<" and ">".
-
 - Add "open file location" in the right click menu of files in the project panel.
    - Also remove "Use as workspace" if it's not a directory.
 
 - The file viewer should limit the filesize to a certain number of characters, or maybe check if the formatter is the performance bottleneck.
 - Instead of the default OpenJDK icon, we should create/use a Vai icon, if possible.
-- The New Project system is a bit clunky, maybe we can make it more intuitive.
-   - This is because the open file dialog opens a parent folder, then asks for another folder name. It should just be the folder you select.
-   - The Java open file dialog is also just clunky and has no bookmarked directories (documents, desktop, etc).
 
 - The text area does not allow CTRL+Z to undo. In fact, many common text interactions are strange, like hitting End moves to
   the end of the current text line, rather than the end of the real line. Like there's no newlines, hitting End should go to the end.
@@ -26,20 +15,16 @@
 
 - Ctrl+Clicking on a file should append it to the prompt, with single tick marks around it.
 
-- Add a temporary file feature, allows instant random file name open in the file viewer for quick scratch llm context.
 - The prompt text area should be resizable, atm it's fixed at the bottom of the window.
 - Save the last model used.
 - Include the current open file in file viewer in the title.
+- Adding CTRL+Z for things like deleting things from active llm context would be nice.
+
 
 == New ==
 - We should have a history of all features that have been used, i.e. SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
     - Clicking on the entry should show the full context of the feature, i.e. the contents of SHOW_MESSAGE, RUN_COMMAND, LLM_PROMPT, etc.
     - This should be easily accessible from the "Recent" menu.
-
-- Add a llm feature system, rather than the SHOW_MESSAGE / RUN_COMMAND / LLM_PROMPT hacks, we'll append to the prompt as needed and remove bloat.
-   - This will also reduce the scope of the llm's available responses, i.e. if we only want a message dialog and no file changes.
-   - Something to append to the prompt too - maybe a "next prompt" feature.
-   - Just some checkboxes to enable/disable features (including the capacity to edit files)
 
 - "Milestone system" -- Constantly prompt the LLM to reach a milestone for the continuation prompting.
    - Separate UI for milestones, auto prompting should always prompt "Continue development for milestone X" and then the next prompt
