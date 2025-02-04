@@ -183,7 +183,7 @@ public class ActiveFilesPanel extends JPanel {
                     // fallback to absolute path on error
                 }
             }
-            tableModel.addRow(new Object[]{file.getName(), relativePath});
+            tableModel.addRow(new Object[]{file.getName(), file.getAbsolutePath()});
         }
     }
 

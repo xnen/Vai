@@ -69,6 +69,7 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
 
     private void populateTable() {
         tableModel.setRowCount(0); // Clear existing rows
+
         File workspace = backend.getCurrentWorkspace();
         for (String filePath : recentlyActiveFiles) {
             File file = new File(filePath);
@@ -81,7 +82,7 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
                         // fallback to absolute path if error occurs
                     }
                 }
-                tableModel.addRow(new Object[]{file.getName(), relativePath});
+                tableModel.addRow(new Object[]{file.getName(), file.getAbsolutePath()});
             }
         }
     }
@@ -89,6 +90,9 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
     private void toggleFileAtRow(int row) {
         String filePath = (String) tableModel.getValueAt(row, 1);
         File file = new File(filePath);
+
+        System.out.println(filePath);
+
         if (backend.getActiveFileManager().isFileActive(file)) {
             boolean removed = backend.getActiveFileManager().removeFile(file);
 
