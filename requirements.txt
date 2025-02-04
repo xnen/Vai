@@ -1,2 +1,3 @@
 google-genai
 google.api_core
+pynput

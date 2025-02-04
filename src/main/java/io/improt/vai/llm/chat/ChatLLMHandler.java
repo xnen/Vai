@@ -21,12 +21,6 @@ import java.util.List;
  * ChatLLMHandler manages the chat conversation history and interacts with the underlying LLM providers.
  * It assembles conversation history into a request that includes previous messages and delegates the call
  * to the appropriate provider based on the selected model.
- *
- * Supported models include:
- * - "o3-mini (Text Only)"
- * - "o1 (Text, Image)"
- * - "gpt-4o-audio-preview (Text, Voice)"
- * - "gpt-4o-mini-audio-preview (Text, Voice)"
  */
 public class ChatLLMHandler {
     private final List<ChatMessage> conversationHistory = new ArrayList<>();
@@ -64,7 +58,31 @@ public class ChatLLMHandler {
 
     public void runModelWithCurrentHistory() throws Exception {
         IModelProvider provider = App.getInstance().getLLMProvider(selectedModel);
+        if (provider == null) {
+            System.out.println("Provider was not found for '" + selectedModel + "'.");
+        }
         String response = provider.chatRequest(this.conversationHistory);
-        addMessage(new ChatMessage(ChatMessageUserType.ASSISTANT, new TextContent(response)));
+
+        System.out.println(response);
+
+        if (response.contains("<end_message>")) {
+            String[] msgs = response.split("<end_message>");
+            for (String message : msgs) {
+                String trimmedMessage = message.trim(); // Removes leading and trailing whitespace
+                addMessage(new ChatMessage(ChatMessageUserType.ASSISTANT, new TextContent(trimmedMessage)));
+            }
+        } else {
+            addMessage(new ChatMessage(ChatMessageUserType.ASSISTANT, new TextContent(response)));
+        }
+    }
+    
+    /**
+     * Removes the specified message from the conversation history.
+     * (Used when a chat bubble is double-clicked to be removed.)
+     *
+     * @param message The message to remove.
+     */
+    public void removeMessage(ChatMessage message) {
+        conversationHistory.remove(message);
     }
 }

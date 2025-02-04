@@ -70,7 +70,7 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
 
     @Override
     public String chatRequest(List<ChatMessage> messages) throws Exception {
-        ChatCompletionCreateParams build = this.buildChat(messages)
+        ChatCompletionCreateParams build = this.buildChat(messages, false)
                 .model(this.getModelName())
                 .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
                 .build();
@@ -79,8 +79,13 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
+    protected boolean supportsDeveloperRole() {
+        return true;
+    }
+
+    @Override
     public String getModelName() {
-        return ChatModel.O1.asString();
+        return "o1";
     }
 
     @Override

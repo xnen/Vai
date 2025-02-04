@@ -32,8 +32,13 @@ public class O1MiniProvider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
+    protected boolean supportsDeveloperRole() {
+        return false;
+    }
+
+    @Override
     public String getModelName() {
-        return ChatModel.O1_MINI.asString();
+        return "o1-mini";
     }
 
     @Override

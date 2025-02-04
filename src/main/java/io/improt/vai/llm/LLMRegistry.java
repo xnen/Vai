@@ -42,6 +42,8 @@ public class LLMRegistry {
         registerProvider("gemini", new GeminiProvider());
         registerProvider("o3-mini", new O3MiniProvider());
         registerProvider("4oProvider", new FourOProvider());
+        registerProvider("4o-audio", new FourOAudioProvider());
+        registerProvider("4o-mini-audio", new FourOAudioMiniProvider());
     }
 
     public void registerModels() {
@@ -52,8 +54,9 @@ public class LLMRegistry {
         registerModel("DeepSeek (NVIDIA)", "deepseek-nv");
         registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
         registerModel("o3-mini", "o3-mini");
-        registerModel("4o-latest", "4oProvider");
-        registerModel("4o-audio", "4oProvider");
+        registerModel("chatgpt-4o-latest", "4oProvider");
+        registerModel("gpt-4o-audio", "4o-audio");
+        registerModel("gpt-4o-audio-mini", "4o-mini-audio");
     }
     
     public Set<String> getRegisteredModelNames() {

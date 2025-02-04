@@ -40,6 +40,7 @@ public class App {
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
         instance = this;
+        startGlobalHotkeyListener();
     }
 
     public void init() {
@@ -63,6 +64,35 @@ public class App {
         llmInteraction.init();
 
         startSocketListener(); // Start listening for socket connections
+    }
+
+    private void startGlobalHotkeyListener() {
+        new Thread(() -> {
+            try {
+                String cwd = System.getProperty("user.dir");
+                ProcessBuilder pb = new ProcessBuilder("python3", cwd + File.separator + "python" + File.separator + "global_hotkey_listener.py");
+                pb.directory(new File(cwd));
+                pb.redirectErrorStream(true);
+                Process process = pb.start();
+                
+                // Log that the listener is running
+                System.out.println("[App] Running global hotkey listener");
+                
+                // Optionally read and output the process's input stream in background if needed.
+                new Thread(() -> {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            System.out.println("[GlobalHotkeyListener] " + line);
+                        }
+                    } catch (IOException e) {
+                        // Ignored
+                    }
+                }).start();
+            } catch (IOException e) {
+                System.err.println("[App] Failed to register hotkey... do you have pynput installed?");
+            }
+        }).start();
     }
 
     private void startSocketListener() {
@@ -90,39 +120,55 @@ public class App {
                 return; // Reject connection
             }
 
-            // 2. Read and verify secret salt
+            // 1. Read and verify secret salt
             String receivedSalt = in.readLine();
             if (!Objects.equals(receivedSalt, VAI_INTEGRATION_SALT)) {
                 System.err.println("Connection rejected: Invalid secret salt.");
                 return; // Reject connection
             }
 
-            // 3. Read file path
-            String filePath = in.readLine();
-            if (filePath != null && Files.exists(Paths.get(filePath))) {
-                System.out.println("Received file path: " + filePath);
-                File fileToOpen = new File(filePath);
-                SwingUtilities.invokeLater(() -> {
-                    mainWindow.setState(Frame.NORMAL); // Ensure window is not minimized
-                    String os = System.getProperty("os.name").toLowerCase();
-                    boolean isLinux = os.contains("linux");
-                    if (isLinux) {
-                        // Workaround: temporarily force the window always on top to gain focus
-                        mainWindow.setAlwaysOnTop(true);
-                    }
-                    mainWindow.toFront();
-                    mainWindow.requestFocus();
-                    if (isLinux) {
-                        // Remove the always-on-top flag after a short delay
-                        Timer timer = new Timer(200, e -> mainWindow.setAlwaysOnTop(false));
-                        timer.setRepeats(false);
-                        timer.start();
-                    }
-                    activeFileManager.addFile(fileToOpen);
-                    mainWindow.getFileViewerPanel().displayFile(fileToOpen);
-                });
-            } else {
-                System.err.println("Invalid file path received: " + filePath);
+            // 2. Read command or file path
+            String commandOrPath = in.readLine();
+            if (commandOrPath != null) {
+                if ("open-dialog".equals(commandOrPath)) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (mainWindow.isChatDialogClosed()) {
+                            mainWindow.openChatDialog(false);
+                        }
+                    });
+                    return;
+                } else if ("open-dialog-audio".equals(commandOrPath)) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (mainWindow.isChatDialogClosed()) {
+                            mainWindow.openChatDialog(true);
+                        }
+                    });
+                    return;
+                } else if (Files.exists(Paths.get(commandOrPath))) {
+                    System.out.println("Received file path: " + commandOrPath);
+                    File fileToOpen = new File(commandOrPath);
+                    SwingUtilities.invokeLater(() -> {
+                        mainWindow.setState(Frame.NORMAL); // Ensure window is not minimized
+                        String os = System.getProperty("os.name").toLowerCase();
+                        boolean isLinux = os.contains("linux");
+                        if (isLinux) {
+                            // Workaround: temporarily force the window always on top to gain focus
+                            mainWindow.setAlwaysOnTop(true);
+                        }
+                        mainWindow.toFront();
+                        mainWindow.requestFocus();
+                        if (isLinux) {
+                            // Remove the always-on-top flag after a short delay
+                            Timer timer = new Timer(200, e -> mainWindow.setAlwaysOnTop(false));
+                            timer.setRepeats(false);
+                            timer.start();
+                        }
+                        activeFileManager.addFile(fileToOpen);
+                        mainWindow.getFileViewerPanel().displayFile(fileToOpen);
+                    });
+                } else {
+                    System.err.println("Invalid command or file path received: " + commandOrPath);
+                }
             }
         } catch (IOException e) {
             System.err.println("Error handling connection: " + e.getMessage());

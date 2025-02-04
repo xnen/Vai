@@ -821,4 +821,19 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     public File getCurrentFile() {
         return this.currentFile;
     }
+    private HelpOverlayFrame helpOverlayFrame;
+
+    public void openChatDialog(boolean audioInput) {
+        helpOverlayFrame = new HelpOverlayFrame();
+
+        if (audioInput) {
+            helpOverlayFrame.startAudioRecording();
+        }
+
+        helpOverlayFrame.setVisible(true);
+    }
+
+    public boolean isChatDialogClosed() {
+        return helpOverlayFrame == null || !helpOverlayFrame.isVisible();
+    }
 }

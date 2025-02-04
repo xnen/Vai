@@ -34,12 +34,14 @@ public abstract class OpenAICommons implements IModelProvider {
 
     @Override
     public String chatRequest(List<ChatMessage> messages) throws Exception {
-        ChatCompletionCreateParams build = this.buildChat(messages)
+        ChatCompletionCreateParams build = this.buildChat(messages, !this.supportsDeveloperRole())
                 .model(this.getModelName())
                 .build();
 
         return this.submitToModel(build);
     }
+
+    protected abstract boolean supportsDeveloperRole();
 
     protected OpenAIClient getClient() {
         if (client == null) {
@@ -57,13 +59,17 @@ public abstract class OpenAICommons implements IModelProvider {
         return client;
     }
 
-    public ChatCompletionCreateParams.Builder buildChat(List<ChatMessage> conversationHistory) throws Exception {
+    public ChatCompletionCreateParams.Builder buildChat(List<ChatMessage> conversationHistory, boolean isSystemMessage) throws Exception {
         ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder();
 
         for (ChatMessage message : conversationHistory) {
             switch (message.getMessageType()) {
                 case SYSTEM:
-                    paramsBuilder.addMessage(buildSystemMessage(message));
+                    if (isSystemMessage) {
+                        paramsBuilder.addMessage(buildSystemMessage(message));
+                    } else {
+                        paramsBuilder.addMessage(buildDeveloperMessage(message));
+                    }
                     break;
                 case USER:
                     paramsBuilder.addMessage(buildUserMessage(message));
@@ -73,6 +79,8 @@ public abstract class OpenAICommons implements IModelProvider {
                     break;
             }
         }
+
+        System.out.println("[OpenAICommons] Built chat message from history w/ model '" + getModelName() + "'.");
 
         return paramsBuilder;
     }
@@ -94,22 +102,32 @@ public abstract class OpenAICommons implements IModelProvider {
         if (message.getContent() instanceof ImageContent) {
             ImageContent imgContent = (ImageContent) message.getContent();
             File file = imgContent.getImageFile();
+            System.out.println("Adding image '" + file.getAbsolutePath() + "'.");
             ChatCompletionContentPartImage imagePart = OpenAIUtil.createImagePart(file);
             if (imagePart != null) {
                 parts.add(ChatCompletionContentPart.ofImageUrl(imagePart));
             }
         } else if (message.getContent() instanceof TextContent) {
             TextContent txtContent = (TextContent) message.getContent();
+            System.out.println("Adding text '" + txtContent.getText() + "'.");
             ChatCompletionContentPartText text = ChatCompletionContentPartText.builder()
                     .text(txtContent.getText())
                     .build();
             parts.add(ChatCompletionContentPart.ofText(text));
         } else if (message.getContent() instanceof AudioContent) {
             AudioContent audioContent = (AudioContent) message.getContent();
+            System.out.println("Adding audio '" + audioContent.getAudioFile().getAbsolutePath() + "'.");
             String s = encodeMp3ToBase64(audioContent.getAudioFile().getAbsolutePath());
+            System.out.println(s);
 
-            ChatCompletionContentPartInputAudio audio = ChatCompletionContentPartInputAudio.builder()
-                    .inputAudio(ChatCompletionContentPartInputAudio.InputAudio.builder().data(s).build()).build();
+            ChatCompletionContentPartInputAudio audio = ChatCompletionContentPartInputAudio
+                    .builder()
+                    .inputAudio(ChatCompletionContentPartInputAudio.InputAudio
+                            .builder()
+                            .data(s)
+                            .format(ChatCompletionContentPartInputAudio.InputAudio.Format.MP3)
+                            .build()
+                    ).build();
 
             parts.add(ChatCompletionContentPart.ofInputAudio(audio));
         }
@@ -132,7 +150,17 @@ public abstract class OpenAICommons implements IModelProvider {
         return ChatCompletionSystemMessageParam.builder()
                 .content(content.getText())
                 .build();
+    }
 
+    private ChatCompletionDeveloperMessageParam buildDeveloperMessage(ChatMessage message) throws Exception {
+        if (!(message.getContent() instanceof TextContent)) {
+            throw new Exception("Tried building system message with non-text!?");
+        }
+
+        TextContent content = (TextContent) message.getContent();
+        return ChatCompletionDeveloperMessageParam.builder()
+                .content(content.getText())
+                .build();
     }
 
     protected String submitToModel(ChatCompletionCreateParams params) {

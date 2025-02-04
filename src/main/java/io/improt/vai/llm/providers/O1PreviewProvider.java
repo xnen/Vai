@@ -29,7 +29,7 @@ public class O1PreviewProvider extends OpenAICommons implements IModelProvider {
 
     @Override
     public String getModelName() {
-        return ChatModel.O1_PREVIEW.asString();
+        return "o1-preview";
     }
 
     @Override
@@ -49,6 +49,11 @@ public class O1PreviewProvider extends OpenAICommons implements IModelProvider {
 
     @Override
     public boolean supportsReasoningEffort() {
+        return false;
+    }
+
+    @Override
+    protected boolean supportsDeveloperRole() {
         return false;
     }
 }

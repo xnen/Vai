@@ -61,7 +61,7 @@ public class FourOProvider extends OpenAICommons implements IModelProvider {
 
     @Override
     public String getModelName() {
-        return ChatModel.CHATGPT_4O_LATEST.asString();
+        return "chatgpt-4o-latest";
     }
 
     @Override
@@ -82,5 +82,10 @@ public class FourOProvider extends OpenAICommons implements IModelProvider {
     @Override
     public boolean supportsVision() {
         return true; // O1 supports vision.
+    }
+
+    @Override
+    protected boolean supportsDeveloperRole() {
+        return false;
     }
 }

@@ -59,7 +59,7 @@ public class O3MiniProvider extends OpenAICommons implements IModelProvider {
 
     @Override
     public String chatRequest(List<ChatMessage> messages) throws Exception {
-        ChatCompletionCreateParams build = this.buildChat(messages)
+        ChatCompletionCreateParams build = this.buildChat(messages, false)
                 .model(this.getModelName())
                 .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
                 .build();
@@ -68,8 +68,13 @@ public class O3MiniProvider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
+    protected boolean supportsDeveloperRole() {
+        return true;
+    }
+
+    @Override
     public String getModelName() {
-        return ChatModel.O3_MINI.asString();
+        return "o3-mini";
     }
 
     // This provider supports a dynamic reasoning effort provided by the UI slider.
