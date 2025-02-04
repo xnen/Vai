@@ -5,6 +5,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.*;
 import com.openai.services.blocking.ChatService;
 import io.improt.vai.backend.App;
+import io.improt.vai.llm.chat.ChatMessage;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -30,7 +31,7 @@ public class DeepSeekProvider implements IModelProvider {
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
+    public String request(String prompt, String userRequest, List<File> files) {
         if (files != null && !files.isEmpty()) {
             System.err.println("[DeepSeekProvider] Warning: OpenAI does not support sending files. Ignoring " + files.size() + " files.");
         }
@@ -38,13 +39,21 @@ public class DeepSeekProvider implements IModelProvider {
             init();
         }
         long start = System.currentTimeMillis();
-        ChatModel modelEnum = ChatModel.O1_MINI;
+        return simpleCompletion(prompt, start, client.chat(), userRequest);
+    }
 
-        return simpleCompletion(prompt, start, modelEnum, client.chat(), userRequest);
+    @Override
+    public String chatRequest(List<ChatMessage> messages) throws Exception {
+        throw new Exception("Unsupported model for chat.");
+    }
+
+    @Override
+    public String getModelName() {
+        return "hf.co/unsloth/DeepSeek-R1-Distill-Qwen-32B-GGUF:DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf";
     }
 
     @Nullable
-    protected static String simpleCompletion(String prompt, long start, ChatModel modelEnum, ChatService chat, String userRequest) {
+    protected String simpleCompletion(String prompt, long start, ChatService chat, String userRequest) {
         prompt += "\n\n REQUEST: " + userRequest;
         System.out.println("Full Prompt:");
         System.out.println(prompt);
@@ -52,7 +61,7 @@ public class DeepSeekProvider implements IModelProvider {
                 .addMessage(ChatCompletionUserMessageParam.builder()
                         .content(prompt)
                         .build())
-                .model("hf.co/unsloth/DeepSeek-R1-Distill-Qwen-32B-GGUF:DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf")
+                .model(this.getModelName())
                 .build();
         ChatCompletion completion = chat.completions().create(params);
         ChatCompletion validate = completion.validate();

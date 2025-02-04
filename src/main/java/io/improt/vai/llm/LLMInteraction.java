@@ -78,10 +78,9 @@ public class LLMInteraction {
      * Submits a request to the LLM provider with the specified model, description, and (optionally) reasoning effort.
      *
      * @param model           The model to use for the request.
-     * @param description     The description of the request.
-     * @param reasoningEffort The reasoning effort selected via the UI slider, or null.
+     * @param userRequest     The description of the request.
      */
-    public void submitRequest(String model, String description, ChatCompletionReasoningEffort reasoningEffort) {
+    public void submitRequest(String model, String userRequest) {
         App app = App.getInstance();
         IModelProvider llmProvider = app.getLLMProvider(model); // Get provider based on model name
 
@@ -112,7 +111,7 @@ public class LLMInteraction {
         }
 
         String prompt = PROMPT_TEMPLATE
-                .replace("<REPLACEME_WITH_REQUEST>", description)
+                .replace("<REPLACEME_WITH_REQUEST>", userRequest)
                 .replace("<REPLACEME_WITH_STRUCTURE>", structure)
                 .replace("<REPLACEME_WITH_FILES>", app.getActiveFileManager().formatEnabledFiles())
                 .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"))
@@ -126,7 +125,7 @@ public class LLMInteraction {
         // For non-text files (images, audio), we'll pass them separately.
         List<File> filesForContext = this.getMedia();
 
-        String response = llmProvider.request(model, prompt, description, filesForContext, reasoningEffort); // Pass the reasoningEffort parameter.
+        String response = llmProvider.request(prompt, userRequest, filesForContext); // Pass the reasoningEffort parameter.
 
         System.out.println(response);
 
@@ -162,11 +161,6 @@ public class LLMInteraction {
         return filesForContext;
     }
 
-    // Overloaded method for backward compatibility when no reasoning effort is provided.
-    public void submitRequest(String model, String description) {
-        submitRequest(model, description, null);
-    }
-    
     /**
      * Builds a block of enabled features (plugin identifiers) to insert into the prompt.
      */

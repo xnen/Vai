@@ -5,6 +5,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.*;
 import com.openai.services.blocking.ChatService;
 import io.improt.vai.backend.App;
+import io.improt.vai.llm.chat.ChatMessage;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -35,7 +36,7 @@ public class NVIDIADeepSeekProvider implements IModelProvider {
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
+    public String request(String prompt, String userRequest, List<File> files) {
         if (files != null && !files.isEmpty()) {
             System.err.println("[NVIDIADeepSeekProvider] Warning: Nvidia does not support sending files. Ignoring " + files.size() + " files.");
         }
@@ -43,19 +44,27 @@ public class NVIDIADeepSeekProvider implements IModelProvider {
             init();
         }
         long start = System.currentTimeMillis();
-        ChatModel modelEnum = ChatModel.O1_MINI;
+        return simpleCompletion(prompt, start, client.chat(), userRequest);
+    }
 
-        return simpleCompletion(prompt, start, modelEnum, client.chat(), userRequest);
+    @Override
+    public String chatRequest(List<ChatMessage> messages) throws Exception {
+        throw new Exception("Unsupported model for chat.");
+    }
+
+    @Override
+    public String getModelName() {
+        return "deepseek-ai/deepseek-r1";
     }
 
     @Nullable
-    protected static String simpleCompletion(String prompt, long start, ChatModel modelEnum, ChatService chat, String userRequest) {
+    protected String simpleCompletion(String prompt, long start, ChatService chat, String userRequest) {
         prompt += "\n\n REQUEST: " + userRequest;
         ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
                 .addMessage(ChatCompletionUserMessageParam.builder()
                         .content(prompt)
                         .build())
-                .model("deepseek-ai/deepseek-r1")
+                .model(this.getModelName())
                 .temperature(0.6f)
                 .topP(0.7)
                 .maxCompletionTokens(4096L)

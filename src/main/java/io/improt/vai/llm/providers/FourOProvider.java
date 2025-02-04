@@ -1,31 +1,27 @@
 package io.improt.vai.llm.providers;
 
 import com.openai.models.*;
-import io.improt.vai.backend.App;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.util.OpenAIUtil;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
-public class O1Provider extends OpenAICommons implements IModelProvider {
+public class FourOProvider extends OpenAICommons implements IModelProvider {
 
-    public O1Provider() {
+    public FourOProvider() {
         super();
     }
 
     @Override
     public String request(String prompt, String userRequest, List<File> files) {
         long start = System.currentTimeMillis();
-        System.out.println("[O1] Beginning request of ");
+        System.out.println("[4o] Beginning request of ");
         System.out.println(prompt);
 
-        ChatCompletionDeveloperMessageParam developerMessage = ChatCompletionDeveloperMessageParam.builder()
+        ChatCompletionSystemMessageParam systemMessage = ChatCompletionSystemMessageParam.builder()
                 .content(prompt)
                 .build();
 
@@ -43,22 +39,17 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
                 }
             }
         }
+
         parts.add(ChatCompletionContentPart.ofText(text));
 
         ChatCompletionUserMessageParam userMessage = ChatCompletionUserMessageParam
                 .builder().contentOfArrayOfContentParts(parts).build();
 
         ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder()
-                .addMessage(developerMessage)
+                .addMessage(systemMessage)
                 .addMessage(userMessage)
-                .model(ChatModel.O1);
+                .model(ChatModel.CHATGPT_4O_LATEST);
 
-        ChatCompletionReasoningEffort reasoningEffort = App.getInstance().getConfiguredReasoningEffort();
-
-        if (supportsReasoningEffort() && reasoningEffort != null) {
-            System.out.println("USING EFFORT = " + reasoningEffort);
-            paramsBuilder.reasoningEffort(reasoningEffort);
-        }
 
         ChatCompletionCreateParams params = paramsBuilder.build();
 
@@ -69,23 +60,13 @@ public class O1Provider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
-    public String chatRequest(List<ChatMessage> messages) throws Exception {
-        ChatCompletionCreateParams build = this.buildChat(messages)
-                .model(this.getModelName())
-                .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
-                .build();
-
-        return this.submitToModel(build);
-    }
-
-    @Override
     public String getModelName() {
-        return ChatModel.O1.asString();
+        return ChatModel.CHATGPT_4O_LATEST.asString();
     }
 
     @Override
     public boolean supportsReasoningEffort() {
-        return true;
+        return false;
     }
 
     @Override

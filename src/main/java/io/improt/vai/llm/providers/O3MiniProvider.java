@@ -1,6 +1,9 @@
 package io.improt.vai.llm.providers;
 
 import com.openai.models.*;
+import io.improt.vai.backend.App;
+import io.improt.vai.llm.chat.ChatMessage;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +16,7 @@ public class O3MiniProvider extends OpenAICommons implements IModelProvider {
     }
 
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
+    public String request(String prompt, String userRequest, List<File> files) {
         if (files != null && !files.isEmpty()) {
             System.err.println("[O3MiniProvider] Warning: OpenAI does not support sending files. Ignoring " + files.size() + " files.");
         }
@@ -33,36 +36,40 @@ public class O3MiniProvider extends OpenAICommons implements IModelProvider {
                 .build();
 
         List<ChatCompletionContentPart> parts = new ArrayList<>();
-        parts.add(ChatCompletionContentPart.ofChatCompletionContentPartText(text));
+        ChatCompletionContentPart chatCompletionContentPart = ChatCompletionContentPart.ofText(ChatCompletionContentPartText.builder().text(userRequest).build());
+        parts.add(chatCompletionContentPart);
 
         ChatCompletionUserMessageParam userMessage = ChatCompletionUserMessageParam.builder()
                 .contentOfArrayOfContentParts(parts)
                 .build();
 
         // Use the provided reasoningEffort if not null; default to MEDIUM otherwise.
-        ChatCompletionReasoningEffort effortToUse = reasoningEffort != null ? reasoningEffort : ChatCompletionReasoningEffort.MEDIUM;
-
-        System.out.println("USING EFFORT = " + effortToUse);
-
         ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
                 .addMessage(developerMessage)
                 .addMessage(userMessage)
-                .model("o3-mini")
-                .reasoningEffort(effortToUse)
+                .model(ChatModel.O3_MINI)
+                .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
                 .build();
 
-        ChatCompletion completion = getClient().chat().completions().create(params);
-        ChatCompletion validate = completion.validate();
-        List<ChatCompletion.Choice> choices = validate.choices();
-
-        if (choices.isEmpty()) {
-            return null;
-        }
-
-        Optional<String> content = choices.get(0).message().content();
+        String s = this.submitToModel(params);
         long end = System.currentTimeMillis();
         System.out.println("Request took " + (end - start) + " milliseconds");
-        return content.orElse(null);
+        return s;
+    }
+
+    @Override
+    public String chatRequest(List<ChatMessage> messages) throws Exception {
+        ChatCompletionCreateParams build = this.buildChat(messages)
+                .model(this.getModelName())
+                .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
+                .build();
+
+        return this.submitToModel(build);
+    }
+
+    @Override
+    public String getModelName() {
+        return ChatModel.O3_MINI.asString();
     }
 
     // This provider supports a dynamic reasoning effort provided by the UI slider.

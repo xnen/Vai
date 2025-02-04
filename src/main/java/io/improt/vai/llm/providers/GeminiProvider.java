@@ -1,6 +1,6 @@
 package io.improt.vai.llm.providers;
 
-import com.openai.models.ChatCompletionReasoningEffort;
+import io.improt.vai.llm.chat.ChatMessage;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -30,10 +30,17 @@ public class GeminiProvider implements IModelProvider {
         } else {
             System.out.println("[GeminiProvider] Python script found at: " + pythonScriptPath);
         }
+
+        initialized = true;
     }
 
+    private boolean initialized;
+
     @Override
-    public String request(String model, String prompt, String userRequest, List<File> files, ChatCompletionReasoningEffort reasoningEffort) {
+    public String request(String prompt, String userRequest, List<File> files) {
+        if (!initialized) {
+            init();
+        }
         // Ensure necessary configuration is present
         if (apiKey == null || apiKey.trim().isEmpty()) {
             throw new RuntimeException("[GeminiProvider] Gemini API key is not configured. Cannot make request.");
@@ -54,6 +61,8 @@ public class GeminiProvider implements IModelProvider {
                 }
             }
 
+            prompt += "\n" + "REQUEST: " + userRequest;
+
             // Create temp file for prompt text.
             promptTempFile = File.createTempFile("prompt", ".txt");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(promptTempFile))) {
@@ -63,7 +72,7 @@ public class GeminiProvider implements IModelProvider {
             List<String> commandList = new ArrayList<>();
             commandList.add("python3");
             commandList.add(pythonScriptPath);
-            commandList.add(model);
+            commandList.add("yada");
             commandList.add(promptTempFile.getAbsolutePath());
             commandList.add(tempFile.getAbsolutePath());
 
@@ -106,6 +115,16 @@ public class GeminiProvider implements IModelProvider {
                 promptTempFile.delete();
             }
         }
+    }
+
+    @Override
+    public String chatRequest(List<ChatMessage> messages) throws Exception {
+        throw new Exception("Unsupported model for chat.");
+    }
+
+    @Override
+    public String getModelName() {
+        return "todo, idk.";
     }
 
     private String parseResponse(String responseBody) {

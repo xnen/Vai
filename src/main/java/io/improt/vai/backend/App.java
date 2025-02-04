@@ -1,5 +1,6 @@
 package io.improt.vai.backend;
 
+import com.openai.models.ChatCompletionReasoningEffort;
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.llm.providers.IModelProvider;
 import io.improt.vai.llm.*;
@@ -33,6 +34,8 @@ public class App {
 
     private static final int VAI_INTEGRATION_PORT = 12345; // Port for Vai integration
     private static final String VAI_INTEGRATION_SALT = "YourSuperSecretSalt"; // TODO: Configurable.
+
+    private ChatCompletionReasoningEffort reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
 
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
@@ -279,5 +282,13 @@ public class App {
             JOptionPane.showMessageDialog(mainWindow, "Failed to save image to file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
+    }
+
+    public ChatCompletionReasoningEffort getConfiguredReasoningEffort() {
+        return this.reasoningEffort;
+    }
+
+    public void setReasoningEffort(ChatCompletionReasoningEffort effort) {
+        this.reasoningEffort = effort;
     }
 }

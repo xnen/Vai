@@ -30,7 +30,6 @@ public class LLMRegistry {
     }
 
     public void initializeProviders() {
-        // Lazy initialization is used. Providers will initialize on first request.
         System.out.println("Providers will be lazily initialized on request.");
     }
 
@@ -42,6 +41,7 @@ public class LLMRegistry {
         registerProvider("deepseek-nv", new NVIDIADeepSeekProvider());
         registerProvider("gemini", new GeminiProvider());
         registerProvider("o3-mini", new O3MiniProvider());
+        registerProvider("4oProvider", new FourOProvider());
     }
 
     public void registerModels() {
@@ -52,9 +52,10 @@ public class LLMRegistry {
         registerModel("DeepSeek (NVIDIA)", "deepseek-nv");
         registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
         registerModel("o3-mini", "o3-mini");
+        registerModel("4o-latest", "4oProvider");
+        registerModel("4o-audio", "4oProvider");
     }
     
-    // NEW: Method to retrieve all registered model names.
     public Set<String> getRegisteredModelNames() {
         return modelProviderMap.keySet();
     }

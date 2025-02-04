@@ -455,7 +455,6 @@ public class FileViewerPanel extends JPanel {
                     isActive = true;
                 } else if (file.getAbsolutePath().equals(currentFile.getAbsolutePath())) {
                     isActive = true;
-                    System.out.println("Didnt match but is equal.");
                 }
             }
 

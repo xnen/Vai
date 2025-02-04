@@ -437,13 +437,13 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         File promptWav = this.waveFile;
         if (promptWav != null && promptWav.exists()) {
             backend.getActiveFileManager().addFile(promptWav);
-            String promptText = "Review the audio and follow instructions within it.";
+            String promptText = "Review the audio (`Prompt.wav`) and follow instructions within it.";
             String selectedModel = (String) modelCombo.getSelectedItem();
             if (selectedModel != null) {
                 // For audio submissions we do not use the reasoning slider; pass null.
-                Runnable retryAction = () -> backend.getLLM().submitRequest(selectedModel, promptText, null);
+                Runnable retryAction = () -> backend.getLLM().submitRequest(selectedModel, promptText);
                 try {
-                    backend.getLLM().submitRequest(selectedModel, promptText, null);
+                    backend.getLLM().submitRequest(selectedModel, promptText);
                 } catch (RuntimeException ex) {
                     showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
                 }
@@ -558,12 +558,14 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                         reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
                 }
             }
-            ChatCompletionReasoningEffort finalReasoningEffort = reasoningEffort;
+
+            App.getInstance().setReasoningEffort(reasoningEffort);
+
             Runnable retryAction = () -> {
-                App.getInstance().getLLM().submitRequest(model, prompt, finalReasoningEffort);
+                App.getInstance().getLLM().submitRequest(model, prompt);
             };
             try {
-                App.getInstance().getLLM().submitRequest(model, prompt, reasoningEffort);
+                App.getInstance().getLLM().submitRequest(model, prompt);
             } catch (RuntimeException ex) {
                 showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
             }
