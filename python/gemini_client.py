@@ -30,10 +30,7 @@ def main():
         print("DO NOT.")
         sys.exit(1)
 
-    client = genai.Client(api_key=api_key)
-
-    contents = []
-    contents.append(types.Part.from_text(prompt_text))
+    client = genai.Client(api_key=api_key, http_options={'api_version':'v1alpha'})
 
     file_paths = []
     if file_list_path:
@@ -47,6 +44,8 @@ def main():
             print(f"Error reading file list {file_list_path}: {e}", file=sys.stderr)
             sys.exit(1)
 
+
+    contents = []
 
     for file_path in file_paths:
         try:
@@ -64,10 +63,23 @@ def main():
         except Exception as e:
             print(f"Error reading file {file_path}: {e}", file=sys.stderr)
 
+    contents.append(types.Part.from_text(prompt_text))
+
     try:
         response = client.models.generate_content(
-            model=model_name,
+            model='gemini-2.0-flash-thinking-exp',
             contents=contents,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(include_thoughts=False),
+                temperature=0,
+                top_p=0.95,
+                top_k=20,
+                candidate_count=1,
+                seed=5,
+                stop_sequences=["STOP!"],
+                presence_penalty=0.0,
+                frequency_penalty=0.0,
+            )
         )
         print(response.text) # Print the text response to stdout
     except GoogleAPIError as api_error:
