@@ -53,7 +53,7 @@ public class ShowMessagePlugin extends AbstractPlugin {
                 "Your request is impossible, for the following reason: <reason>\n" +
                 "```\n" +
                 "!EOF\n" +
-                "Your message must be formatted in HTML, as it's displayed in a JEditorPane with text/html.";
+                "Your message must be a full HTML document (<html><head>etc...), as it's displayed in a JEditorPane with text/html.";
     }
 
     @Override
