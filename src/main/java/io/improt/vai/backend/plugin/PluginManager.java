@@ -44,7 +44,7 @@ public class PluginManager {
             if (!plugin.isActive()) {
                 continue;
             }
-            if (plugin.getIdentifier().equals(fileName.toUpperCase()) && plugin.getExtension().equals(type)) {
+            if (plugin.getIdentifier().equals(fileName.toUpperCase())) {
                 plugin.actionPerformed(response);
                 return true;
             }
