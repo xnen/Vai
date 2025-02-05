@@ -35,7 +35,7 @@ public class ConfigureFrame extends JFrame {
         }
 
         // Load DeepSeek Base URL from file, defaulting to current URL if not set
-        String defaultDeepSeekUrl = "http://192.168.1.195:11434/v1";
+        String defaultDeepSeekUrl = "http://127.0.0.1:11434/v1";
         try {
             File file = new File("deepseek_url.txt");
             if (file.exists()) {

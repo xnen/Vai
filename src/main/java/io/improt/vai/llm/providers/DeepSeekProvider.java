@@ -16,7 +16,7 @@ public class DeepSeekProvider extends OpenAIClientBase {
     }
 
     private static String loadDeepSeekBaseUrl() {
-        String defaultUrl = "http://192.168.1.195:11434/v1";
+        String defaultUrl = "http://127.0.0.1:11434/v1";
         File file = new File("deepseek_url.txt");
         if (file.exists()) {
             try (BufferedReader br = new BufferedReader(new FileReader(file))) {
