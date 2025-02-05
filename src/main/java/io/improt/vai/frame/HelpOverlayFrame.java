@@ -28,6 +28,9 @@ import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -336,8 +339,19 @@ public class HelpOverlayFrame extends JFrame {
         }
 
         if (userText.contains("!ddg")) {
-            userText = userText.replace("!ddg", "");
-            // TODO: xdg open or open browser windows to duckduckgo with the user text.
+            userText = userText.replace("!ddg", "").trim();
+            try {
+                String query = URLEncoder.encode(userText, StandardCharsets.UTF_8);
+                URI uri = new URI("https://duckduckgo.com/?q=" + query);
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                    Desktop.getDesktop().browse(uri);
+                } else {
+                    Runtime.getRuntime().exec(new String[]{"xdg-open", uri.toString()});
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            this.dispose();
             return;
         }
 
@@ -572,3 +586,4 @@ public class HelpOverlayFrame extends JFrame {
         return new Dimension(textFieldWidth, height);
     }
 }
+
