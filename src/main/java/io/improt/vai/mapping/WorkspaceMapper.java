@@ -165,7 +165,10 @@ public class WorkspaceMapper {
         }
         List<File> files = listFilesRecursively(directory);
         for (File file : files) {
-            addFile(file);
+            String fileName = file.getName().toLowerCase();
+            if (fileName.endsWith(".cs") || fileName.endsWith(".java")) {
+                addFile(file);
+            }
         }
     }
 
@@ -413,7 +416,10 @@ public class WorkspaceMapper {
         }
         List<File> files = listFilesRecursively(directory);
         for (File file : files) {
-            mapFile(file);
+            String fileName = file.getName().toLowerCase();
+            if (fileName.endsWith(".cs") || fileName.endsWith(".java")) {
+                mapFile(file);
+            }
         }
     }
     

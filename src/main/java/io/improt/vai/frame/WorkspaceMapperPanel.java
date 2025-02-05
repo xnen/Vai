@@ -165,7 +165,8 @@ public class WorkspaceMapperPanel extends JPanel {
                 // Sort children alphabetically
                 List<File> fileList = new ArrayList<>();
                 for (File child : children) {
-                    if (!child.getName().startsWith(".")) { // skip hidden files
+                    String fileName = child.getName().toLowerCase();
+                    if (child.isDirectory() || fileName.endsWith(".cs") || fileName.endsWith(".java")) {
                         fileList.add(child);
                     }
                 }

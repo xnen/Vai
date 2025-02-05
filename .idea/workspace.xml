@@ -10,33 +10,14 @@
     <option name="rewriteBookmarkType" value="true" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="Fix, friendly names.">
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/Cost.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/Tasks.java" afterDir="false" />
+    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="!ddg">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/prompt.template" beforeDir="false" afterPath="$PROJECT_DIR$/data/prompt.template" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/ActiveFileManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/ActiveFileManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/backend/App.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/ClientFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/ClientFrame.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/ConfigureFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/ConfigureFrame.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/HelpOverlayFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/HelpOverlayFrame.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/actions/TempProjectAction.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/actions/TempProjectAction.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/LLMInteraction.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/LLMInteraction.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/LLMRegistry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/LLMRegistry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/DeepSeekProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/DeepSeekProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/FourOAudioMiniProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/FourOAudioMiniProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/FourOAudioProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/FourOAudioProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/FourOProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/FourOProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/GeminiProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/GeminiProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/NVIDIADeepSeekProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/NVIDIADeepSeekProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O1MiniProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O1MiniProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O1PreviewProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O1PreviewProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O1Provider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O1Provider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O3MiniProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O3MiniProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/impl/IModelProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/impl/IModelProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/WorkspaceMapperPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/WorkspaceMapperPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/Tasks.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/Tasks.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/ChatLLMHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/ChatLLMHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/ChatWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/ChatWindow.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/content/TextContent.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/content/TextContent.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/mapping/WorkspaceMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/mapping/WorkspaceMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/Constants.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/MeldLauncher.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/MeldLauncher.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -252,23 +233,7 @@
       <workItem from="1738515016838" duration="16677000" />
       <workItem from="1738592677608" duration="36143000" />
       <workItem from="1738685561846" duration="22311000" />
-      <workItem from="1738761010133" duration="14533000" />
-    </task>
-    <task id="LOCAL-00062" summary="Organize TODOs, add some.">
-      <option name="closed" value="true" />
-      <created>1737571040290</created>
-      <option name="number" value="00062" />
-      <option name="presentableId" value="LOCAL-00062" />
-      <option name="project" value="LOCAL" />
-      <updated>1737571040290</updated>
-    </task>
-    <task id="LOCAL-00063" summary="Add socket level integration for things like Jetbrains plugins.">
-      <option name="closed" value="true" />
-      <created>1737581570207</created>
-      <option name="number" value="00063" />
-      <option name="presentableId" value="LOCAL-00063" />
-      <option name="project" value="LOCAL" />
-      <updated>1737581570208</updated>
+      <workItem from="1738761010133" duration="16667000" />
     </task>
     <task id="LOCAL-00064" summary="Add audio recording for audio based prompting.">
       <option name="closed" value="true" />
@@ -646,15 +611,29 @@
       <option name="project" value="LOCAL" />
       <updated>1738769694788</updated>
     </task>
-    <option name="localTasksCounter" value="111" />
+    <task id="LOCAL-00111" summary="Add auto context. Add !vai feature to overlay panel.">
+      <option name="closed" value="true" />
+      <created>1738776798596</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1738776798596</updated>
+    </task>
+    <task id="LOCAL-00112" summary="!ddg">
+      <option name="closed" value="true" />
+      <created>1738777042354</created>
+      <option name="number" value="00112" />
+      <option name="presentableId" value="LOCAL-00112" />
+      <option name="project" value="LOCAL" />
+      <updated>1738777042354</updated>
+    </task>
+    <option name="localTasksCounter" value="113" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Update b64 prompt to incorporate recent changes." />
-    <MESSAGE value="Add user request as a new message for older o1 models." />
     <MESSAGE value="Update todos" />
     <MESSAGE value="Oops, remove XML/JSON reference from the prompt. Relic." />
     <MESSAGE value="Untested, add plan writing plugin." />
@@ -678,7 +657,9 @@
     <MESSAGE value="chat system things. start impl of streaming" />
     <MESSAGE value="Simplify OpenAI architecture for everything that utilizes OpenAI clients." />
     <MESSAGE value="Fix, friendly names." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix, friendly names." />
+    <MESSAGE value="Add auto context. Add !vai feature to overlay panel." />
+    <MESSAGE value="!ddg" />
+    <option name="LAST_COMMIT_MESSAGE" value="!ddg" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

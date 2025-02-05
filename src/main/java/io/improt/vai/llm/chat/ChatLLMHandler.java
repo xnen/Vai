@@ -7,6 +7,7 @@ import io.improt.vai.llm.chat.content.TextContent;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.llm.providers.openai.utils.Messages;
+import io.improt.vai.mapping.WorkspaceMapper;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -60,7 +61,35 @@ public class ChatLLMHandler {
         if (provider == null) {
             System.out.println("Provider was not found for '" + selectedModel + "'.");
         }
-        String response = provider.chatRequest(this.conversationHistory);
+        if (this.conversationHistory.isEmpty()) {
+            System.out.println("Conversation history empty!");
+            return;
+        }
+
+        // Hack to include repository mappings if the user adds !askrepo to their message.
+        boolean includeRepoContext = false;
+        ChatMessage latestMessage = this.conversationHistory.get(this.conversationHistory.size() - 1);
+        if (latestMessage.getContent() instanceof TextContent) {
+            String msg = latestMessage.getContent().toString();
+            if (msg.contains("!askrepo")) {
+                ((TextContent) latestMessage.getContent()).setText(msg.replace("!askrepo", ""));
+                includeRepoContext = true;
+            }
+        }
+
+
+        List<ChatMessage> newHistory;
+        if (includeRepoContext) {
+            newHistory = new ArrayList<>();
+            WorkspaceMapper mapper = new WorkspaceMapper();
+            String mappings = mapper.getAllMappingsConcatenated();
+            newHistory.add(new ChatMessage(ChatMessageUserType.USER, new TextContent("The following is a map of the user's repository. Use it to answer questions:\n" + mappings)));
+            newHistory.addAll(conversationHistory);
+        } else {
+            newHistory = new ArrayList<>(conversationHistory);
+        }
+
+        String response = provider.chatRequest(newHistory);
 
         System.out.println(response);
 

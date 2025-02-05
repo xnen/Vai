@@ -8,9 +8,13 @@ import io.improt.vai.llm.chat.content.impl.IChatContent;
  * TextContent represents a chat message containing plain text.
  */
 public class TextContent implements IChatContent {
-    private final String text;
+    private String text;
 
     public TextContent(String text) {
+        this.text = text;
+    }
+
+    public void setText(String text) {
         this.text = text;
     }
 
