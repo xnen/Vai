@@ -217,10 +217,12 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         java.util.Collections.sort(modelNames);
         Collections.reverse(modelNames);
         modelCombo = new JComboBox<>(modelNames.toArray(new String[0]));
+
         if(modelNames.contains("o3-mini")){
             modelCombo.setSelectedItem("o3-mini");
             updateReasoningSliderVisibility();
         }
+
         modelCombo.addActionListener(e -> {
             updateRecordButtonState();
             updateReasoningSliderVisibility();

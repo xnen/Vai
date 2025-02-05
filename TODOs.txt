@@ -1,6 +1,5 @@
 == Bugs ==
-REGRESSION: Active Files Panel no longer opens files in the file viewer.
-
+Berzfad formatter seems to see plugin markers mid-line, should be @ start of trimmed line.
 
 == Quality of Life ==
 - Add "open file location" in the right click menu of files in the project panel.

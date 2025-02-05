@@ -4,18 +4,7 @@ import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 
 public class O1PreviewProvider extends OpenAIClientBase implements IModelProvider {
-
     public O1PreviewProvider() {
         super("o1-preview");
-    }
-
-    @Override
-    public boolean supportsDeveloperRole() {
-        return false;
-    }
-
-    @Override
-    public boolean supportsReasoningEffort() {
-        return false;
     }
 }

@@ -9,13 +9,4 @@ public class O1MiniProvider extends OpenAIClientBase implements IModelProvider {
         super("o1-mini");
     }
 
-    @Override
-    public boolean supportsDeveloperRole() {
-        return false;
-    }
-
-    @Override
-    public boolean supportsReasoningEffort() {
-        return false;
-    }
 }

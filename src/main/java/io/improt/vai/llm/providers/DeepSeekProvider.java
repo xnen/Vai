@@ -8,4 +8,9 @@ public class DeepSeekProvider extends OpenAIClientBase {
            "hf.co/unsloth/DeepSeek-R1-Distill-Qwen-32B-GGUF:DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf",
                "API");
     }
+
+    @Override
+    public String getFriendlyName() {
+        return "DeepSeek (ollama)";
+    }
 }

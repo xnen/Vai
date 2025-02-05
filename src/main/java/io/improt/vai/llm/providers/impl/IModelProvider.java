@@ -12,6 +12,10 @@ public interface IModelProvider {
     String chatRequest(List<ChatMessage> messages) throws Exception;
     String getModelName();
 
+    default String getFriendlyName() {
+        return getModelName();
+    }
+
     void init();
 
     boolean supportsAudio();

@@ -125,7 +125,7 @@ public class GeminiProvider implements IModelProvider {
 
     @Override
     public String getModelName() {
-        return "todo, idk.";
+        return "Gemini Flash Thinking";
     }
 
     private String parseResponse(String responseBody) {

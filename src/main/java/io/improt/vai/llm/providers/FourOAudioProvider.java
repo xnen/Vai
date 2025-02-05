@@ -10,6 +10,11 @@ public class FourOAudioProvider extends OpenAIClientBase implements IModelProvid
     }
 
     @Override
+    public String getFriendlyName() {
+        return "gpt-4o-audio";
+    }
+
+    @Override
     public boolean supportsAudio() {
         return true;
     }

@@ -8,4 +8,10 @@ public class NVIDIADeepSeekProvider extends OpenAIClientBase {
     public NVIDIADeepSeekProvider() {
         super("https://integrate.api.nvidia.com/v1", "deepseek-ai/deepseek-r1", App.GetNvidiaKey());
     }
+
+    @Override
+    public String getFriendlyName() {
+        return "DeepSeek (NVIDIA)";
+    }
+
 }
