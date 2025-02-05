@@ -83,15 +83,15 @@ public class ChatLLMHandler {
             newHistory = new ArrayList<>();
             WorkspaceMapper mapper = new WorkspaceMapper();
             String mappings = mapper.getAllMappingsConcatenated();
-            newHistory.add(new ChatMessage(ChatMessageUserType.USER, new TextContent("The following is a map of the user's repository. Use it to answer questions:\n" + mappings)));
+            newHistory.add(new ChatMessage(ChatMessageUserType.USER, new TextContent("Hi there! This is my repository:\n" + mappings)));
             newHistory.addAll(conversationHistory);
         } else {
             newHistory = new ArrayList<>(conversationHistory);
         }
 
         String response = provider.chatRequest(newHistory);
-
         System.out.println(response);
+        response = response.replaceAll("(?s)<think>.*?</think>", "");
 
         if (response.contains("<end_message>")) {
             String[] msgs = response.split("<end_message>");
