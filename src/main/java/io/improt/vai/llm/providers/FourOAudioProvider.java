@@ -1,5 +1,6 @@
 package io.improt.vai.llm.providers;
 
+import io.improt.vai.llm.Cost;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 
@@ -7,6 +8,11 @@ public class FourOAudioProvider extends OpenAIClientBase implements IModelProvid
 
     public FourOAudioProvider() {
         super("gpt-4o-audio-preview");
+    }
+
+    @Override
+    public Cost getCost() {
+        return Cost.MEDIUM;
     }
 
     @Override

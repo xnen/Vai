@@ -3,7 +3,6 @@ package io.improt.vai.frame;
 import io.improt.vai.backend.App;
 import io.improt.vai.frame.actions.NewProjectAction;
 import io.improt.vai.frame.actions.OpenPathAction;
-import io.improt.vai.frame.actions.TempProjectAction;
 import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
@@ -11,9 +10,11 @@ import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.frame.dialogs.FeaturesDialog;
 import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
+import io.improt.vai.llm.Tasks;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 import io.improt.vai.mapping.WorkspaceMapper;
+import io.improt.vai.testing.ISnippetAction;
 import io.improt.vai.util.AudioUtils;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.MessageHistoryManager;
@@ -39,8 +40,11 @@ import javax.swing.BorderFactory;
 import javax.swing.Timer;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
+import java.util.prefs.Preferences;
 
 public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectionListener {
+
+    private static final Preferences PREFERENCES = Preferences.userNodeForPackage(ClientFrame.class);
 
     private final RecentActiveFilesPanel recentActiveFilesPanel;
     private ByteArrayOutputStream byteArrayOutputStream;
@@ -57,11 +61,13 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private final JTextArea textArea;
     private long recordingStartTime;
     private final JMenu recentMenu;
+    private final JButton submitButton;
     private Thread recordingThread;
     private Timer recordingTimer;
     private File currentFile;
     private File waveFile;
     private App backend;
+    private JCheckBox autoContextCheckBox; // Added Auto-Context checkbox
 
     public ClientFrame() {
         super("Vai");
@@ -98,14 +104,11 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
         JMenuItem openPathItem = new JMenuItem("Open Path...");
-        JMenuItem tempProjectItem = new JMenuItem("Temp Project");
         JMenuItem refreshItem = new JMenuItem("Refresh");
         JMenuItem exitItem = new JMenuItem("Exit");
         JMenuItem configureItem = new JMenuItem("Configure...");
 
         newProjectItem.addActionListener(new NewProjectAction(this));
-        tempProjectItem.addActionListener(new TempProjectAction(this));
-
         openDirItem.addActionListener(e -> {
             backend.showOpenWorkspaceDialog(this);
             projectPanel.refreshTree(backend.getCurrentWorkspace());
@@ -119,7 +122,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         refreshItem.addActionListener(e -> projectPanel.refreshTree(backend.getCurrentWorkspace()));
 
         fileMenu.add(newProjectItem);
-        fileMenu.add(tempProjectItem);
         fileMenu.add(openDirItem);
         fileMenu.add(openPathItem);
         fileMenu.add(recentMenu);
@@ -212,9 +214,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         reasoningSlider.setVisible(false);
         bottomPanel.add(reasoningSlider);
 
-        java.util.Set<String> modelNamesSet = App.getInstance().getLLMRegistry().getRegisteredModelNames();
-        java.util.List<String> modelNames = new ArrayList<>(modelNamesSet);
-        java.util.Collections.sort(modelNames);
+        List<String> modelNames = App.getInstance().getLLMRegistry().getRegisteredModelNames();
         Collections.reverse(modelNames);
         modelCombo = new JComboBox<>(modelNames.toArray(new String[0]));
 
@@ -229,12 +229,17 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
         bottomPanel.add(modelCombo);
 
-        JButton clearButton = new JButton("Clear");
-        clearButton.addActionListener(e -> textArea.setText(""));
-        bottomPanel.add(clearButton);
+        // Removed the Clear button and added an "Auto-Context" checkbox with persistence
+        this.autoContextCheckBox = new JCheckBox("Auto-Context");
+        this.autoContextCheckBox.setSelected(PREFERENCES.getBoolean("auto_context_enabled", false));
+        this.autoContextCheckBox.addItemListener(e -> {
+            PREFERENCES.putBoolean("auto_context_enabled", autoContextCheckBox.isSelected());
+        });
+        bottomPanel.add(this.autoContextCheckBox);
 
         JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
+        this.submitButton = submitButton;
 
         inputPanel.add(bottomPanel, BorderLayout.SOUTH);
         rightPanel.add(inputPanel, BorderLayout.SOUTH);
@@ -535,39 +540,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private JButton createSubmitButton() {
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
-            String model = (String) modelCombo.getSelectedItem();
-            if (model == null) {
-                System.out.println("Must select a model");
-                return;
-            }
-            String prompt = textArea.getText();
-            IModelProvider provider = backend.getLLMProvider(model);
-            ChatCompletionReasoningEffort reasoningEffort = null;
-
-            if (provider instanceof OpenAIClientBase) {
-                if (((OpenAIClientBase) provider).supportsReasoningEffort()) {
-                    int sliderValue = reasoningSlider.getValue();
-                    switch(sliderValue) {
-                        case 0:
-                            reasoningEffort = ChatCompletionReasoningEffort.LOW;
-                            break;
-                        case 2:
-                            reasoningEffort = ChatCompletionReasoningEffort.HIGH;
-                            break;
-                        default:
-                            reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
-                    }
-                }
-                App.getInstance().setReasoningEffort(reasoningEffort);
-            }
-
-            Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
-
-            try {
-                App.getInstance().getLLM().submitRequest(model, prompt);
-            } catch (RuntimeException ex) {
-                showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
-            }
+            this.submit(null);
         });
         return submitButton;
     }
@@ -692,7 +665,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         recentActiveFilesMenu.add(clearRecentFilesItem);
         recentActiveFilesMenu.add(hack);
         recentActiveFilesMenu.add(hack2);
-
         recentActiveFilesMenu.add(messages);
     }
 
@@ -824,6 +796,15 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     public JComboBox<String> getModelList() {
         return modelCombo;
     }
+    
+    /**
+     * Returns the current state of the Auto-Context checkbox.
+     *
+     * @return true if Auto-Context is selected, false otherwise.
+     */
+    public boolean isAutoContext() {
+        return autoContextCheckBox.isSelected();
+    }
 
     // New method to refresh the FileViewerPanel
     public void refreshFileViewer() {
@@ -849,5 +830,58 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
     public boolean isChatDialogClosed() {
         return helpOverlayFrame == null || !helpOverlayFrame.isVisible();
+    }
+
+    public void submit(Runnable onComplete) {
+        this.submitButton.setEnabled(false);
+        new Thread(() -> {
+            String model = (String) modelCombo.getSelectedItem();
+            if (model == null) {
+                System.out.println("Must select a model");
+                return;
+            }
+            String prompt = textArea.getText();
+
+            if (this.isAutoContext()) {
+                Tasks tasks = new Tasks();
+                boolean b = tasks.queryRepositoryMap(prompt);
+                if (!b) {
+                    System.out.println("ERROR: Unable to query repository map, for some reason!");
+                    return;
+                }
+            }
+
+            IModelProvider provider = backend.getLLMProvider(model);
+            ChatCompletionReasoningEffort reasoningEffort = null;
+
+            if (provider instanceof OpenAIClientBase) {
+                if (((OpenAIClientBase) provider).supportsReasoningEffort()) {
+                    int sliderValue = reasoningSlider.getValue();
+                    switch(sliderValue) {
+                        case 0:
+                            reasoningEffort = ChatCompletionReasoningEffort.LOW;
+                            break;
+                        case 2:
+                            reasoningEffort = ChatCompletionReasoningEffort.HIGH;
+                            break;
+                        default:
+                            reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
+                    }
+                }
+                App.getInstance().setReasoningEffort(reasoningEffort);
+            }
+
+            Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
+
+            try {
+                App.getInstance().getLLM().submitRequest(model, prompt);
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+                this.submitButton.setEnabled(true);
+            } catch (RuntimeException ex) {
+                showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
+            }
+        }).start();
     }
 }

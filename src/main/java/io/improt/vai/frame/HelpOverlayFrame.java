@@ -1,5 +1,7 @@
 package io.improt.vai.frame;
 
+import io.improt.vai.backend.App;
+import io.improt.vai.llm.LLMRegistry;
 import io.improt.vai.llm.chat.ChatLLMHandler;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.chat.ChatWindow;
@@ -7,6 +9,7 @@ import io.improt.vai.llm.chat.content.ChatMessageUserType;
 import io.improt.vai.llm.chat.content.TextContent;
 import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.chat.content.AudioContent;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.util.AudioRecorder;
 import io.improt.vai.util.ImageUtils;
 import org.jetbrains.annotations.NotNull;
@@ -27,6 +30,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * HelpOverlayFrame is a separate window dedicated to help content.
@@ -107,16 +112,24 @@ public class HelpOverlayFrame extends JFrame {
         overlayPanel.add(vaiLabel);
         overlayPanel.add(promptLabel);
 
-        // New: Model selection dropdown at top-right.
-        ModelOption[] modelOptions = new ModelOption[] {
-                new ModelOption("o3-mini", false, false),
-                new ModelOption("chatgpt-4o-latest", false, true),
-                new ModelOption("gpt-4o-audio", true, false),
-                new ModelOption("gpt-4o-audio-mini", true, false),
-                new ModelOption("o1", false, true),
-        };
+        // Auto-populate model selection dropdown from the LLM registry.
+        LLMRegistry llmRegistry = App.getInstance().getLLMRegistry();
+        List<String> registeredModels = llmRegistry.getRegisteredModelNames();
+        List<ModelOption> modelOptionsList = new ArrayList<>();
+        ModelOption o3mini = null;
+        for (String modelName : registeredModels) {
+            IModelProvider provider = llmRegistry.getModel(modelName);
+            ModelOption o = new ModelOption(modelName, provider.supportsAudio(), provider.supportsVision());
+            modelOptionsList.add(o);
+            if (Objects.equals(modelName, "o3-mini")) {
+                o3mini = o;
+            }
+        }
+        ModelOption[] modelOptions = modelOptionsList.toArray(new ModelOption[0]);
         modelCombo = new JComboBox<>(modelOptions);
         modelCombo.setRenderer(new ModelOptionRenderer());
+        modelCombo.setSelectedItem(o3mini);
+
         // Set a modern dark style for the combo box.
         modelCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         modelCombo.setBackground(new Color(60, 60, 60));
@@ -308,6 +321,25 @@ public class HelpOverlayFrame extends JFrame {
         }
         JTextArea inputArea = (JTextArea) scrollPane.getViewport().getView();
         String userText = inputArea.getText().trim();
+
+        if (userText.contains("!vai")) {
+            userText = userText.replace("!vai", "");
+            ClientFrame client = App.getInstance().getClient();
+            client.setLLMPrompt(userText);
+            client.submit(HelpOverlayFrame.this::dispose);
+
+            this.promptLabel.setText("Thinking...");
+            inputArea.setEnabled(false);
+            inputArea.setEditable(false);
+            this.setAlwaysOnTop(false);
+            return;
+        }
+
+        if (userText.contains("!ddg")) {
+            userText = userText.replace("!ddg", "");
+            // TODO: xdg open or open browser windows to duckduckgo with the user text.
+            return;
+        }
 
         // Get selected model from modelCombo.
         ModelOption selectedModel = (ModelOption) modelCombo.getSelectedItem();
@@ -540,4 +572,3 @@ public class HelpOverlayFrame extends JFrame {
         return new Dimension(textFieldWidth, height);
     }
 }
-

@@ -5,6 +5,9 @@ import java.util.concurrent.TimeUnit;
 
 public class MeldLauncher {
     public static void launchMeld(Path fileA, Path fileB) throws Exception {
+        // Debug statement to indicate that meld is being launched
+        System.out.println("Launching meld!");
+
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "meld",
                 fileA.toAbsolutePath().toString(),

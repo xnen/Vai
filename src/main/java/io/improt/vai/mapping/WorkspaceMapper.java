@@ -42,6 +42,7 @@ public class WorkspaceMapper {
         this.currentWorkspace = App.getInstance().getCurrentWorkspace();
         this.mappings = new HashMap<>();
         loadMappings();
+        cullMappings();
     }
 
     /**
@@ -353,6 +354,32 @@ public class WorkspaceMapper {
             generateMapping(file);
         }
         // Note: persistMappings() will be invoked in the worker once the LLM completes processing.
+    }
+
+    private void cullMappings() {
+        // Figure out what files don't exist!
+        List<String> mappingsToRemove = new ArrayList<>();
+        for (ClassMapping mapping : mappings.values()) {
+            String path = mapping.getPath();
+            File file = new File(path);
+            if (!file.exists()) {
+                System.out.println("Mapping '" + path + "' does not exist anymore.");
+                mappingsToRemove.add(path);
+            }
+        }
+        int size = mappings.values().size();
+        System.out.println("b4: " + size);
+
+        for (String s : mappingsToRemove) {
+            ClassMapping mapping = mappings.remove(s);
+            if (mapping == null) {
+                System.out.println("Failed to remove!?");
+            } else {
+                System.out.println("Success: " + mapping.path);
+            }
+        }
+        System.out.println("af: " + mappings.values().size());
+        persistMappings();
     }
 
     /**

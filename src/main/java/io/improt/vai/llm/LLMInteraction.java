@@ -88,7 +88,7 @@ public class LLMInteraction {
             return;
         }
 
-        String structure = FileTreeBuilder.createTree(app.getCurrentWorkspace(), app.getEnabledFiles());
+        String structure = FileTreeBuilder.createTree(app.getCurrentWorkspace(), app.getDynamicAndActiveFiles());
 
         // Replace the top level directory with a dot
         structure = structure.replaceFirst(app.getCurrentWorkspace().getName() + "/", "./");

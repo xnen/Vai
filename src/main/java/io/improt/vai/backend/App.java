@@ -253,6 +253,13 @@ public class App {
         return Collections.emptyList();
     }
 
+    public List<File> getDynamicAndActiveFiles() {
+        if (activeFileManager != null) {
+            return activeFileManager.concatenateWithoutDuplicates();
+        }
+        return Collections.emptyList();
+    }
+
     public static App getInstance() {
         return instance;
     }

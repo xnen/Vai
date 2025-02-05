@@ -1,5 +1,6 @@
 package io.improt.vai.llm.providers;
 
+import io.improt.vai.llm.Cost;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 
@@ -126,6 +127,11 @@ public class GeminiProvider implements IModelProvider {
     @Override
     public String getModelName() {
         return "Gemini Flash Thinking";
+    }
+
+    @Override
+    public Cost getCost() {
+        return Cost.FREE;
     }
 
     private String parseResponse(String responseBody) {

@@ -15,6 +15,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ActiveFileManager {
 
     private final List<File> enabledFiles = new ArrayList<>();
+    private final List<File> dynamicFiles = new ArrayList<>();
+
     private final List<EnabledFilesChangeListener> listeners = new CopyOnWriteArrayList<>();
     private final File currentWorkspace;
 
@@ -147,6 +149,23 @@ public class ActiveFileManager {
     }
 
     /**
+     * Concatenates enabledFiles and dynamicFiles lists into a new list without duplicates.
+     * Duplicates are determined based on each File's absolute path.
+     *
+     * @return A new list containing files from both enabledFiles and dynamicFiles without duplicates.
+     */
+    List<File> concatenateWithoutDuplicates() {
+        Map<String, File> fileMap = new LinkedHashMap<>();
+        for (File file : enabledFiles) {
+            fileMap.put(file.getAbsolutePath(), file);
+        }
+        for (File file : dynamicFiles) {
+            fileMap.putIfAbsent(file.getAbsolutePath(), file);
+        }
+        return new ArrayList<>(fileMap.values());
+    }
+
+    /**
      * Formats the enabled files into a structured string representation.
      *
      * @return The formatted string of enabled files.
@@ -156,7 +175,9 @@ public class ActiveFileManager {
         Path workspacePath = Paths.get(this.currentWorkspace.getAbsolutePath());
         String[] binaryExtensions = {"png", "jpg", "jpeg", "mp3", "wav", "mp4"};
 
-        for (File file : enabledFiles) {
+        List<File> actives = this.concatenateWithoutDuplicates();
+
+        for (File file : actives) {
             String extension = "";
             boolean isBinary = false;
 
@@ -233,6 +254,24 @@ public class ActiveFileManager {
         RecentActiveFilesPanel panel = App.getInstance().getClient().getRecentActiveFilesPanel();
         if (panel != null) {
             panel.refresh();
+        }
+    }
+
+    /**
+     * For repository mapping -- any file paths that are dynamically introduced by the LLM.
+     * The active files are ground truths from the user. These are introduced by the LLM. There may be overlaps.
+     *
+     */
+    public void setupDynamicFiles(List<String> approvedFiles) {
+        this.dynamicFiles.clear();
+        for (String s : approvedFiles) {
+            File file = new File(s);
+            if (!file.exists() || file.isDirectory()) {
+                System.out.println("Skipping '" + s + "' as it didn't exist or was a directory.");
+                continue;
+            }
+
+            this.dynamicFiles.add(file);
         }
     }
 
