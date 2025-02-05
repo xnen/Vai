@@ -7,7 +7,6 @@ import io.improt.vai.llm.chat.ChatMessage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class O3MiniProvider extends OpenAICommons implements IModelProvider {
 
@@ -29,10 +28,6 @@ public class O3MiniProvider extends OpenAICommons implements IModelProvider {
 
         ChatCompletionDeveloperMessageParam developerMessage = ChatCompletionDeveloperMessageParam.builder()
                 .content(prompt)
-                .build();
-
-        ChatCompletionContentPartText text = ChatCompletionContentPartText.builder()
-                .text(userRequest)
                 .build();
 
         List<ChatCompletionContentPart> parts = new ArrayList<>();

@@ -12,6 +12,8 @@ import io.improt.vai.frame.dialogs.FeaturesDialog;
 import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
 import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.mapping.WorkspaceMapper;
+import io.improt.vai.util.AudioUtils;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.MessageHistoryManager;
 import org.jetbrains.annotations.NotNull;
@@ -39,27 +41,26 @@ import java.io.ByteArrayInputStream;
 
 public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectionListener {
 
-    private final JComboBox<String> modelCombo;
-    private final JTextArea textArea;
-    private FileViewerPanel fileViewerPanel = null;
-    private ProjectPanel projectPanel;
-    private App backend;
-    private final JMenu recentMenu;
-    private final JMenu recentActiveFilesMenu;
     private final RecentActiveFilesPanel recentActiveFilesPanel;
-    private File currentFile;
-    public static boolean pasting = false;
-    private JButton recordButton;
-    private boolean isRecording = false;
-    private TargetDataLine audioLine;
-    private File waveFile;
-    private JLabel recordingTimeLabel;
-    private Timer recordingTimer;
-    private long recordingStartTime;
     private ByteArrayOutputStream byteArrayOutputStream;
+    private FileViewerPanel fileViewerPanel = null;
+    private final JComboBox<String> modelCombo;
+    private final JMenu recentActiveFilesMenu;
+    public static boolean pasting = false;
+    private final JSlider reasoningSlider;
+    private final JLabel statusBarLabel;
+    private boolean isRecording = false;
+    private final JButton recordButton;
+    private ProjectPanel projectPanel;
+    private TargetDataLine audioLine;
+    private final JTextArea textArea;
+    private long recordingStartTime;
+    private final JMenu recentMenu;
     private Thread recordingThread;
-    private JLabel statusBarLabel;
-    private JSlider reasoningSlider;
+    private Timer recordingTimer;
+    private File currentFile;
+    private File waveFile;
+    private App backend;
 
     public ClientFrame() {
         super("Vai");
@@ -270,11 +271,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         String selectedModel = (String) modelCombo.getSelectedItem();
         if (selectedModel != null) {
             IModelProvider provider = backend.getLLMProvider(selectedModel);
-            if (provider != null && provider.supportsReasoningEffort()) {
-                reasoningSlider.setVisible(true);
-            } else {
-                reasoningSlider.setVisible(false);
-            }
+            reasoningSlider.setVisible(provider != null && provider.supportsReasoningEffort());
             this.revalidate();
             this.repaint();
         }
@@ -463,12 +460,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     }
 
     private AudioFormat getAudioFormat() {
-        float sampleRate = 44100;
-        int sampleSizeInBits = 16;
-        int channels = 1;
-        boolean signed = true;
-        boolean bigEndian = false;
-        return new AudioFormat(sampleRate, sampleSizeInBits, channels, signed, bigEndian);
+        return AudioUtils.getAudioFormat();
     }
 
     private void startTimer() {
@@ -548,9 +540,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                     case 0:
                         reasoningEffort = ChatCompletionReasoningEffort.LOW;
                         break;
-                    case 1:
-                        reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
-                        break;
                     case 2:
                         reasoningEffort = ChatCompletionReasoningEffort.HIGH;
                         break;
@@ -561,9 +550,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
             App.getInstance().setReasoningEffort(reasoningEffort);
 
-            Runnable retryAction = () -> {
-                App.getInstance().getLLM().submitRequest(model, prompt);
-            };
+            Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
+
             try {
                 App.getInstance().getLLM().submitRequest(model, prompt);
             } catch (RuntimeException ex) {
@@ -649,7 +637,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private void populateMenu() {
         // Add a separator and "Clear Recent Files" menu item
         JMenuItem clearRecentFilesItem = new JMenuItem("Clear Recent Files");
-        JMenuItem hack = new JMenuItem("Hack");
+        JMenuItem hack = new JMenuItem("Test Berzfad");
+        JMenuItem hack2 = new JMenuItem("Test LLM");
         JMenuItem messages = new JMenuItem("Messages");
 
         clearRecentFilesItem.addActionListener(e -> {
@@ -668,6 +657,19 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             backend.getLLM().handleCodeResponse(repairDialog.getCorrectedCode());
         });
 
+        hack2.addActionListener(e -> {
+            WorkspaceMapper workspaceMapper = new WorkspaceMapper();
+            String s = workspaceMapper.getAllMappingsConcatenated();
+            System.out.println(s);
+
+            JFrame frame = new JFrame("Workspace Mapper Panel Test");
+            WorkspaceMapperPanel panel = new WorkspaceMapperPanel();
+            frame.setContentPane(panel);
+            frame.setSize(800, 600);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
+
         messages.addActionListener(e -> {
             MessageHistoryManager historyManager = new MessageHistoryManager(App.getInstance().getCurrentWorkspace());
             SwingUtilities.invokeLater(() -> {
@@ -678,6 +680,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
         recentActiveFilesMenu.add(clearRecentFilesItem);
         recentActiveFilesMenu.add(hack);
+        recentActiveFilesMenu.add(hack2);
 
         recentActiveFilesMenu.add(messages);
     }

@@ -2,6 +2,7 @@ package io.improt.vai.llm.providers;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.http.StreamResponse;
 import com.openai.models.*;
 import com.openai.services.blocking.ChatService;
 import io.improt.vai.backend.App;
@@ -10,16 +11,15 @@ import io.improt.vai.llm.chat.content.AudioContent;
 import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.chat.content.TextContent;
 import io.improt.vai.llm.util.OpenAIUtil;
+import io.improt.vai.testing.ISnippetAction;
+import io.improt.vai.testing.SnippetHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public abstract class OpenAICommons implements IModelProvider {
 
@@ -41,6 +41,42 @@ public abstract class OpenAICommons implements IModelProvider {
         return this.submitToModel(build);
     }
 
+    public void stream(ChatCompletionCreateParams params, ISnippetAction streamReceived, int bufferSize) {
+        try (StreamResponse<ChatCompletionChunk> streaming = getClient()
+                .chat()
+                .completions()
+                .createStreaming(params)) {
+
+            Iterator<ChatCompletionChunk> iterator = streaming.stream().iterator();
+            SnippetHandler snippetHandler = new SnippetHandler(streamReceived);
+
+            var ref = new Object() {
+                String buffer = "";
+                int len = 0;
+            };
+
+            while (iterator.hasNext()) {
+                ChatCompletionChunk chunk = iterator.next();
+                chunk.choices().forEach(choice ->
+                        choice.delta().content().ifPresent(content -> {
+                            ref.buffer += content;
+                            int len = ref.buffer.length();
+                            if (len - ref.len > bufferSize) {
+                                String substr = ref.buffer.substring(ref.len);
+                                ref.len = len;
+                                snippetHandler.addSnippet(substr);
+                            }
+                        })
+                );
+            }
+
+            snippetHandler.addSnippet(ref.buffer.substring(ref.len));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     protected abstract boolean supportsDeveloperRole();
 
     protected OpenAIClient getClient() {
@@ -57,6 +93,24 @@ public abstract class OpenAICommons implements IModelProvider {
             System.out.println("[OpenAICommons] OpenAI client lazily initialized");
         }
         return client;
+    }
+
+    public ChatCompletionCreateParams createSimpleParams(String systemMessage, String userMessage, ChatCompletionReasoningEffort effort) {
+        ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder();
+        if (this.supportsDeveloperRole()) {
+            paramsBuilder.addMessage(ChatCompletionDeveloperMessageParam.builder()
+                    .content(systemMessage)
+                    .build());
+        } else {
+            paramsBuilder.addMessage(ChatCompletionSystemMessageParam.builder()
+                    .content(systemMessage)
+                    .build());
+        }
+
+        paramsBuilder.addMessage(ChatCompletionUserMessageParam.builder().content(userMessage).build());
+        paramsBuilder.reasoningEffort(effort);
+        paramsBuilder.model(this.getModelName());
+        return paramsBuilder.build();
     }
 
     public ChatCompletionCreateParams.Builder buildChat(List<ChatMessage> conversationHistory, boolean isSystemMessage) throws Exception {
@@ -163,7 +217,7 @@ public abstract class OpenAICommons implements IModelProvider {
                 .build();
     }
 
-    protected String submitToModel(ChatCompletionCreateParams params) {
+    public String submitToModel(ChatCompletionCreateParams params) {
         ChatCompletion completion = this.getClient().chat().completions().create(params);
         ChatCompletion validate = completion.validate();
         List<ChatCompletion.Choice> choices = validate.choices();

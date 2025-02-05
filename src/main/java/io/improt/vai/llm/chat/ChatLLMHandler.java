@@ -7,10 +7,16 @@ import io.improt.vai.llm.chat.content.ChatMessageUserType;
 import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.chat.content.TextContent;
 import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.llm.util.OpenAIUtil;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.lang.Thread;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -84,5 +90,49 @@ public class ChatLLMHandler {
      */
     public void removeMessage(ChatMessage message) {
         conversationHistory.remove(message);
+    }
+
+    public boolean streamAlive = true;
+    public void doKeyboardStreaming() {
+        O3MiniProvider provider = (O3MiniProvider) App.getInstance().getLLMProvider("o3-mini");
+        try {
+            ChatCompletionCreateParams.Builder builder = provider.buildChat(this.conversationHistory, false);
+            ChatCompletionCreateParams build = builder.model(provider.getModelName())
+                    .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
+                    .build();
+
+            Robot robot = new Robot();
+
+            provider.stream(build, (e) -> {
+                if (!streamAlive)
+                    return;
+                try {
+                    doPaste(robot, e);
+                    Thread.sleep(100L);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }, 50);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void doPaste(Robot robot, String string) throws InterruptedException {
+        StringSelection selection = new StringSelection(string);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, null);
+        Thread.sleep(50L);
+        robot.keyPress(KeyEvent.VK_CONTROL);
+        robot.keyPress(KeyEvent.VK_V);
+        Thread.sleep(10L);
+        robot.keyRelease(KeyEvent.VK_V);
+        robot.keyRelease(KeyEvent.VK_CONTROL);
+        System.out.println("Should've pasted " + string);
+    }
+
+    public void killStream() {
+        this.streamAlive = false;
     }
 }

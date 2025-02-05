@@ -10,10 +10,11 @@
 
 <!-- Video Introduction -->
 <div align="center" style="margin-top: 20px;">
-  <video width="640" height="360" controls>
-    <source src="assets/vai.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+  <!-- GitHub does not support embedded video playback via the <video> tag. 
+       Please click the link below to watch the video introduction. -->
+  <p>
+    <a href="assets/vai.mp4" target="_blank">Watch the Video Introduction (MP4)</a>
+  </p>
 </div>
 
 ## Intro

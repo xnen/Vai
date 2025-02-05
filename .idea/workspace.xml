@@ -6,18 +6,24 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="BookmarksViewState">
+    <option name="rewriteBookmarkType" value="true" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="Extract file data to its own managed workspace system within user home.">
+    <list default="true" id="ea493727-b64c-44bc-8aba-5d886a9e245a" name="Changes" comment="Finish initial ver of chat system">
+      <change afterPath="$PROJECT_DIR$/scratch/moves.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/mapping/WorkspaceMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/testing/ExampleClass.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/testing/ISnippetAction.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/testing/SnippetHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Client.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Configure.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/Configure.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/FileViewerFrame.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ActiveFilesPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ActiveFilesPanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/FileViewerPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/FileViewerPanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/HistoryPanel.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ProjectPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/component/ProjectPanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/openai/OpenAIProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/openai/OpenAIProvider.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileTreeBuilder.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/util/FileTreeBuilder.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/prompt.template" beforeDir="false" afterPath="$PROJECT_DIR$/data/prompt.template" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/ClientFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/ClientFrame.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/HelpOverlayFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/frame/HelpOverlayFrame.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/ChatLLMHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/chat/ChatLLMHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O3MiniProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/O3MiniProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/OpenAICommons.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/io/improt/vai/llm/providers/OpenAICommons.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,12 +33,17 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="module-info" />
         <option value="Class" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="JvmLoggingSettingsStorage">
+    <option name="loggerId" value="Apache Commons Logging" />
+    <option name="loggerName" value="zlog" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
@@ -46,40 +57,85 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.Main.executor": "Run",
-    "Application.OpenAIProvider.executor": "Run",
-    "Application.io.improt.vai.Main.executor": "Run",
-    "Application.superTest.Main.executor": "Run",
-    "Downloaded.Files.Path.Enabled": "false",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "master",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/david/Documents/Development/VaiProject/src/main/java/superTest",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Libraries",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "preferences.lookFeel",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.HelpOverlayFrame.executor&quot;: &quot;Run&quot;,
+    &quot;Application.JavaMapper.executor&quot;: &quot;Run&quot;,
+    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Application.OpenAIProvider.executor&quot;: &quot;Run&quot;,
+    &quot;Application.Scratch.executor&quot;: &quot;Run&quot;,
+    &quot;Application.io.improt.vai.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Application.superTest.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
+    &quot;Maven.VaiProject [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.VaiProject [org.apache.maven.plugins:maven-clean-plugin:3.2.0:clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.VaiProject [package].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.VaiProject [test].executor&quot;: &quot;Run&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;extract.method.default.visibility&quot;: &quot;private&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/david/Documents/Development/VaiPlugin/intellij-platform-plugin-template-main/build/libs/IntelliJ Platform Plugin Template-2.0.2-base.jar&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.59195405&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;TEXT&quot;
+    ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/data" />
       <recent name="$PROJECT_DIR$/src/main/java/superTest" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="io.improt.vai.llm.providers" />
+      <recent name="io.improt.vai.frame.actions" />
+      <recent name="io.improt.vai.backend.plugin.impl" />
     </key>
   </component>
   <component name="RunManager" selected="Application.io.improt.vai.Main">
+    <configuration name="HelpOverlayFrame" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="io.improt.vai.frame.HelpOverlayFrame" />
+      <module name="VaiProject" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="io.improt.vai.frame.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="JavaMapper" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="io.improt.vai.maps.JavaMapper" />
+      <module name="VaiProject" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="io.improt.vai.maps.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.example.Main" />
       <module name="VaiProject" />
@@ -93,12 +149,12 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="OpenAIProvider" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="io.improt.vai.openai.OpenAIProvider" />
+    <configuration name="Scratch" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="io.improt.vai.frame.component.Scratch" />
       <module name="VaiProject" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="io.improt.vai.openai.*" />
+          <option name="PATTERN" value="io.improt.vai.frame.component.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -107,6 +163,9 @@
       </method>
     </configuration>
     <configuration name="io.improt.vai.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="envFilePaths">
+        <option value="$PROJECT_DIR$/../.env" />
+      </option>
       <option name="MAIN_CLASS_NAME" value="io.improt.vai.Main" />
       <module name="VaiProject" />
       <extension name="coverage">
@@ -119,35 +178,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="superTest.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="superTest.Main" />
-      <module name="VaiProject" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="superTest.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
+    <list>
+      <item itemvalue="Application.HelpOverlayFrame" />
+      <item itemvalue="Application.io.improt.vai.Main" />
+      <item itemvalue="Application.JavaMapper" />
+      <item itemvalue="Application.Main" />
+      <item itemvalue="Application.Scratch" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Application.io.improt.vai.Main" />
+        <item itemvalue="Application.HelpOverlayFrame" />
+        <item itemvalue="Application.JavaMapper" />
+        <item itemvalue="Application.Scratch" />
         <item itemvalue="Application.Main" />
-        <item itemvalue="Application.superTest.Main" />
-        <item itemvalue="Application.OpenAIProvider" />
       </list>
     </recent_temporary>
-  </component>
-  <component name="SharedIndexes">
-    <attachedChunks>
-      <set>
-        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
-      </set>
-    </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -159,33 +205,465 @@
       <updated>1736306481911</updated>
       <workItem from="1736306482986" duration="10769000" />
       <workItem from="1736347734315" duration="6910000" />
-      <workItem from="1736397441783" duration="19408000" />
+      <workItem from="1736397441783" duration="41806000" />
+      <workItem from="1736623717378" duration="24157000" />
+      <workItem from="1736706361125" duration="8698000" />
+      <workItem from="1736791545803" duration="1313000" />
+      <workItem from="1736882815528" duration="12578000" />
+      <workItem from="1737049530055" duration="17817000" />
+      <workItem from="1737132046095" duration="1211000" />
+      <workItem from="1737228993939" duration="9089000" />
+      <workItem from="1737321145688" duration="1866000" />
+      <workItem from="1737388098691" duration="8732000" />
+      <workItem from="1737475447281" duration="25921000" />
+      <workItem from="1737523894522" duration="46000" />
+      <workItem from="1737523941373" duration="35000" />
+      <workItem from="1737523979844" duration="5693000" />
+      <workItem from="1737569493311" duration="13509000" />
+      <workItem from="1737605123282" duration="3436000" />
+      <workItem from="1737654899444" duration="13849000" />
+      <workItem from="1737735899006" duration="8655000" />
+      <workItem from="1737823752261" duration="5997000" />
+      <workItem from="1737838922990" duration="1550000" />
+      <workItem from="1737995839215" duration="7672000" />
+      <workItem from="1738081729996" duration="3438000" />
+      <workItem from="1738170862110" duration="4325000" />
+      <workItem from="1738245562854" duration="2121000" />
+      <workItem from="1738329730074" duration="10075000" />
+      <workItem from="1738434995421" duration="15923000" />
+      <workItem from="1738515016838" duration="16677000" />
+      <workItem from="1738592677608" duration="36143000" />
+      <workItem from="1738685561846" duration="22311000" />
+      <workItem from="1738761010133" duration="1094000" />
     </task>
-    <task id="LOCAL-00001" summary="Initial commit">
+    <task id="LOCAL-00059" summary="git newline eof">
       <option name="closed" value="true" />
-      <created>1736461533159</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
+      <created>1737533031727</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
       <option name="project" value="LOCAL" />
-      <updated>1736461533159</updated>
+      <updated>1737533031727</updated>
     </task>
-    <task id="LOCAL-00002" summary="Extract file data to its own managed workspace system within user home.">
+    <task id="LOCAL-00060" summary="Add clipboard image pasting. This breaks some behavior.">
       <option name="closed" value="true" />
-      <created>1736467333534</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
+      <created>1737533080261</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
       <option name="project" value="LOCAL" />
-      <updated>1736467333534</updated>
+      <updated>1737533080261</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00061" summary="Attempt to add mp4 mime, but this seems to throw an internal server error.">
+      <option name="closed" value="true" />
+      <created>1737533091722</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1737533091722</updated>
+    </task>
+    <task id="LOCAL-00062" summary="Organize TODOs, add some.">
+      <option name="closed" value="true" />
+      <created>1737571040290</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1737571040290</updated>
+    </task>
+    <task id="LOCAL-00063" summary="Add socket level integration for things like Jetbrains plugins.">
+      <option name="closed" value="true" />
+      <created>1737581570207</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1737581570208</updated>
+    </task>
+    <task id="LOCAL-00064" summary="Add audio recording for audio based prompting.">
+      <option name="closed" value="true" />
+      <created>1737581580972</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1737581580972</updated>
+    </task>
+    <task id="LOCAL-00065" summary="Update TODOs.txt">
+      <option name="closed" value="true" />
+      <created>1737581610269</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1737581610269</updated>
+    </task>
+    <task id="LOCAL-00066" summary="Fix LLM sometimes declining audio because it read &lt;uploaded&gt; and assumed it couldn't read it.">
+      <option name="closed" value="true" />
+      <created>1737588893413</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1737588893413</updated>
+    </task>
+    <task id="LOCAL-00067" summary="Temporarily push my prompt.template.">
+      <option name="closed" value="true" />
+      <created>1737588914151</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1737588914151</updated>
+    </task>
+    <task id="LOCAL-00068" summary="Add red highlight for unsupported filetypes per model.">
+      <option name="closed" value="true" />
+      <created>1737690505341</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690505341</updated>
+    </task>
+    <task id="LOCAL-00069" summary="Split openai providers into multiple. Add O1 support. Add capabilities per model for UI deactivations.">
+      <option name="closed" value="true" />
+      <created>1737690596131</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690596131</updated>
+    </task>
+    <task id="LOCAL-00070" summary="Update README.md">
+      <option name="closed" value="true" />
+      <created>1737690605769</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690605769</updated>
+    </task>
+    <task id="LOCAL-00071" summary="Add icon. Disable record button on unsupported models. Fix titles not updating on project change.">
+      <option name="closed" value="true" />
+      <created>1737690662160</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690662160</updated>
+    </task>
+    <task id="LOCAL-00072" summary="Add save dialog when leaving a file in FileViewer.">
+      <option name="closed" value="true" />
+      <created>1737690671888</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690671888</updated>
+    </task>
+    <task id="LOCAL-00073" summary="Fix Gemini wrapper python script erroring for too many files, too long prompt.">
+      <option name="closed" value="true" />
+      <created>1737690703159</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690703159</updated>
+    </task>
+    <task id="LOCAL-00074" summary="Update TODOs.txt">
+      <option name="closed" value="true" />
+      <created>1737690711942</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1737690711942</updated>
+    </task>
+    <task id="LOCAL-00075" summary="Add DeepSeek-like model support. TODO: Endpoint customization for v1 RESTs.">
+      <option name="closed" value="true" />
+      <created>1737825181692</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1737825181692</updated>
+    </task>
+    <task id="LOCAL-00076" summary="Update TODOs.">
+      <option name="closed" value="true" />
+      <created>1737825189252</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1737825189252</updated>
+    </task>
+    <task id="LOCAL-00077" summary="Fix window focusing on linux with a workaround.">
+      <option name="closed" value="true" />
+      <created>1738435520777</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1738435520777</updated>
+    </task>
+    <task id="LOCAL-00078" summary="Add o3 mini, nvidia deepseek">
+      <option name="closed" value="true" />
+      <created>1738435590572</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1738435590572</updated>
+    </task>
+    <task id="LOCAL-00079" summary="Update TODOs.txt">
+      <option name="closed" value="true" />
+      <created>1738435600811</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1738435600811</updated>
+    </task>
+    <task id="LOCAL-00080" summary="Update prompt template. still not in b64 yet.">
+      <option name="closed" value="true" />
+      <created>1738435609948</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1738435609948</updated>
+    </task>
+    <task id="LOCAL-00081" summary="update the deepseek template.">
+      <option name="closed" value="true" />
+      <created>1738435621448</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1738435621448</updated>
+    </task>
+    <task id="LOCAL-00082" summary="Add error handling and display for users.">
+      <option name="closed" value="true" />
+      <created>1738436270766</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1738436270766</updated>
+    </task>
+    <task id="LOCAL-00083" summary="Implement features integration. b64 prompt will be broken, as well as old o1 models.">
+      <option name="closed" value="true" />
+      <created>1738438162674</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1738438162674</updated>
+    </task>
+    <task id="LOCAL-00084" summary="Update b64 prompt to incorporate recent changes.">
+      <option name="closed" value="true" />
+      <created>1738438592308</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1738438592308</updated>
+    </task>
+    <task id="LOCAL-00085" summary="Add user request as a new message for older o1 models.">
+      <option name="closed" value="true" />
+      <created>1738438608832</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1738438608833</updated>
+    </task>
+    <task id="LOCAL-00086" summary="Update todos">
+      <option name="closed" value="true" />
+      <created>1738438617775</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1738438617775</updated>
+    </task>
+    <task id="LOCAL-00087" summary="Oops, remove XML/JSON reference from the prompt. Relic.">
+      <option name="closed" value="true" />
+      <created>1738438799607</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1738438799607</updated>
+    </task>
+    <task id="LOCAL-00088" summary="Untested, add plan writing plugin.">
+      <option name="closed" value="true" />
+      <created>1738439639341</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1738439639341</updated>
+    </task>
+    <task id="LOCAL-00089" summary="Consolidate the reasoning effort models. Add slider to clientframe. Automatically populate models in the dropdown.">
+      <option name="closed" value="true" />
+      <created>1738443272568</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
+      <option name="project" value="LOCAL" />
+      <updated>1738443272568</updated>
+    </task>
+    <task id="LOCAL-00090" summary="UI refresh">
+      <option name="closed" value="true" />
+      <created>1738448078958</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1738448078958</updated>
+    </task>
+    <task id="LOCAL-00091" summary="Update Readme.">
+      <option name="closed" value="true" />
+      <created>1738449298855</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1738449298855</updated>
+    </task>
+    <task id="LOCAL-00092" summary="Update Readme.">
+      <option name="closed" value="true" />
+      <created>1738449378975</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1738449378975</updated>
+    </task>
+    <task id="LOCAL-00093" summary="Update Readme. Add video.">
+      <option name="closed" value="true" />
+      <created>1738450865083</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1738450865084</updated>
+    </task>
+    <task id="LOCAL-00094" summary="Update CustomParser.java to be more robust.">
+      <option name="closed" value="true" />
+      <created>1738518630318</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1738518630318</updated>
+    </task>
+    <task id="LOCAL-00095" summary="Update CustomParser.java to be more robust.">
+      <option name="closed" value="true" />
+      <created>1738521154800</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1738521154800</updated>
+    </task>
+    <task id="LOCAL-00096" summary="Remove workspace mapper system.">
+      <option name="closed" value="true" />
+      <created>1738521185599</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1738521185599</updated>
+    </task>
+    <task id="LOCAL-00097" summary="Move dialogs to dialog package. Fix run command plugin. Add non-parsed dialog for unparsed data from llms.">
+      <option name="closed" value="true" />
+      <created>1738521244096</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1738521244096</updated>
+    </task>
+    <task id="LOCAL-00098" summary="Add test for berz parser.">
+      <option name="closed" value="true" />
+      <created>1738521254767</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1738521254767</updated>
+    </task>
+    <task id="LOCAL-00099" summary="Add resizable history message dialog that supports html.">
+      <option name="closed" value="true" />
+      <created>1738523529139</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1738523529139</updated>
+    </task>
+    <task id="LOCAL-00100" summary="Fix regression of selections not appearing in FileViewerPanel">
+      <option name="closed" value="true" />
+      <created>1738629377951</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629377951</updated>
+    </task>
+    <task id="LOCAL-00101" summary="Ensure the LLM properly formats HTML for messages.">
+      <option name="closed" value="true" />
+      <created>1738629391198</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629391198</updated>
+    </task>
+    <task id="LOCAL-00102" summary="Remove reasoning effort from the IModelProvider as not all models support it. Begin adding chat support to the providers. Add basic chat window, unimplemented.">
+      <option name="closed" value="true" />
+      <created>1738629511528</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629511529</updated>
+    </task>
+    <task id="LOCAL-00103" summary="Update gemini client for newer api reqs">
+      <option name="closed" value="true" />
+      <created>1738629539657</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629539657</updated>
+    </task>
+    <task id="LOCAL-00104" summary="Update OpenAI Java SDK for O3 support.">
+      <option name="closed" value="true" />
+      <created>1738629552516</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629552516</updated>
+    </task>
+    <task id="LOCAL-00105" summary="Remove requirement of markdown block type for plugins to run.">
+      <option name="closed" value="true" />
+      <created>1738629571816</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629571816</updated>
+    </task>
+    <task id="LOCAL-00106" summary="Update TODOs.txt">
+      <option name="closed" value="true" />
+      <created>1738629589164</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1738629589164</updated>
+    </task>
+    <task id="LOCAL-00107" summary="Finish initial ver of chat system">
+      <option name="closed" value="true" />
+      <created>1738642745520</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
+      <option name="project" value="LOCAL" />
+      <updated>1738642745520</updated>
+    </task>
+    <option name="localTasksCounter" value="108" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Initial commit" />
-    <MESSAGE value="Extract file data to its own managed workspace system within user home." />
-    <option name="LAST_COMMIT_MESSAGE" value="Extract file data to its own managed workspace system within user home." />
+    <MESSAGE value="update the deepseek template." />
+    <MESSAGE value="Add error handling and display for users." />
+    <MESSAGE value="Implement features integration. b64 prompt will be broken, as well as old o1 models." />
+    <MESSAGE value="Update b64 prompt to incorporate recent changes." />
+    <MESSAGE value="Add user request as a new message for older o1 models." />
+    <MESSAGE value="Update todos" />
+    <MESSAGE value="Oops, remove XML/JSON reference from the prompt. Relic." />
+    <MESSAGE value="Untested, add plan writing plugin." />
+    <MESSAGE value="Consolidate the reasoning effort models. Add slider to clientframe. Automatically populate models in the dropdown." />
+    <MESSAGE value="UI refresh" />
+    <MESSAGE value="Update Readme." />
+    <MESSAGE value="Update Readme. Add video." />
+    <MESSAGE value="Update CustomParser.java to be more robust." />
+    <MESSAGE value="Remove workspace mapper system." />
+    <MESSAGE value="Move dialogs to dialog package. Fix run command plugin. Add non-parsed dialog for unparsed data from llms." />
+    <MESSAGE value="Add test for berz parser." />
+    <MESSAGE value="Add resizable history message dialog that supports html." />
+    <MESSAGE value="Fix regression of selections not appearing in FileViewerPanel" />
+    <MESSAGE value="Ensure the LLM properly formats HTML for messages." />
+    <MESSAGE value="Remove reasoning effort from the IModelProvider as not all models support it. Begin adding chat support to the providers. Add basic chat window, unimplemented." />
+    <MESSAGE value="Update gemini client for newer api reqs" />
+    <MESSAGE value="Update OpenAI Java SDK for O3 support." />
+    <MESSAGE value="Remove requirement of markdown block type for plugins to run." />
+    <MESSAGE value="Update TODOs.txt" />
+    <MESSAGE value="Finish initial ver of chat system" />
+    <option name="LAST_COMMIT_MESSAGE" value="Finish initial ver of chat system" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>
