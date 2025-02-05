@@ -1,7 +1,7 @@
 package io.improt.vai.frame.component;
 
 import io.improt.vai.backend.App;
-import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;

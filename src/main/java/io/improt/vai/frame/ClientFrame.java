@@ -11,7 +11,8 @@ import io.improt.vai.frame.component.RecentActiveFilesPanel;
 import io.improt.vai.frame.dialogs.FeaturesDialog;
 import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
-import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.impl.IModelProvider;
+import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 import io.improt.vai.mapping.WorkspaceMapper;
 import io.improt.vai.util.AudioUtils;
 import io.improt.vai.util.FileUtils;
@@ -271,7 +272,13 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         String selectedModel = (String) modelCombo.getSelectedItem();
         if (selectedModel != null) {
             IModelProvider provider = backend.getLLMProvider(selectedModel);
-            reasoningSlider.setVisible(provider != null && provider.supportsReasoningEffort());
+
+            if (provider instanceof OpenAIClientBase) {
+                reasoningSlider.setVisible(((OpenAIClientBase) provider).supportsReasoningEffort());
+            } else {
+                reasoningSlider.setVisible(false);
+            }
+
             this.revalidate();
             this.repaint();
         }
@@ -534,21 +541,23 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             String prompt = textArea.getText();
             IModelProvider provider = backend.getLLMProvider(model);
             ChatCompletionReasoningEffort reasoningEffort = null;
-            if (provider != null && provider.supportsReasoningEffort()) {
-                int sliderValue = reasoningSlider.getValue();
-                switch(sliderValue) {
-                    case 0:
-                        reasoningEffort = ChatCompletionReasoningEffort.LOW;
-                        break;
-                    case 2:
-                        reasoningEffort = ChatCompletionReasoningEffort.HIGH;
-                        break;
-                    default:
-                        reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
-                }
-            }
 
-            App.getInstance().setReasoningEffort(reasoningEffort);
+            if (provider instanceof OpenAIClientBase) {
+                if (((OpenAIClientBase) provider).supportsReasoningEffort()) {
+                    int sliderValue = reasoningSlider.getValue();
+                    switch(sliderValue) {
+                        case 0:
+                            reasoningEffort = ChatCompletionReasoningEffort.LOW;
+                            break;
+                        case 2:
+                            reasoningEffort = ChatCompletionReasoningEffort.HIGH;
+                            break;
+                        default:
+                            reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
+                    }
+                }
+                App.getInstance().setReasoningEffort(reasoningEffort);
+            }
 
             Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
 

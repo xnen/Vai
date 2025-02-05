@@ -1,8 +1,8 @@
-package io.improt.vai.llm.providers;
+package io.improt.vai.llm.providers.impl;
 
 import java.io.File;
 import java.util.List;
-import com.openai.models.ChatCompletionReasoningEffort;
+
 import io.improt.vai.llm.chat.ChatMessage;
 
 public interface IModelProvider {
@@ -10,7 +10,6 @@ public interface IModelProvider {
     String request(String prompt, String userRequest, List<File> files);
 
     String chatRequest(List<ChatMessage> messages) throws Exception;
-
     String getModelName();
 
     void init();
@@ -18,7 +17,4 @@ public interface IModelProvider {
     boolean supportsAudio();
     boolean supportsVideo();
     boolean supportsVision();
-    
-    // New method to indicate whether this model supports a custom reasoning effort
-    boolean supportsReasoningEffort();
 }

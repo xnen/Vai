@@ -2,7 +2,7 @@ package io.improt.vai.backend;
 
 import com.openai.models.ChatCompletionReasoningEffort;
 import io.improt.vai.frame.ClientFrame;
-import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.*;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.Constants;
@@ -47,9 +47,7 @@ public class App {
         FileUtils.loadWorkspaceMappings();
 
         llmRegistry = new LLMRegistry();
-        llmRegistry.registerProviders();
         llmRegistry.registerModels();
-        llmRegistry.initializeProviders();
 
         currentWorkspace = FileUtils.loadLastWorkspace();
 
@@ -236,7 +234,7 @@ public class App {
         }
     }
 
-    public static String GetOpenAIKey() {
+    public static String getOpenAIKey() {
         return FileUtils.readFileToString(new File(Constants.OAI_API_KEY_PATH));
     }
 
@@ -260,7 +258,7 @@ public class App {
     }
 
     public IModelProvider getLLMProvider(String modelName) {
-        return this.llmRegistry.getProviderForModel(modelName);
+        return this.llmRegistry.getModel(modelName);
     }
     
     // NEW: Expose the LLMRegistry to allow dynamic model population.

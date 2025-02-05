@@ -82,7 +82,7 @@ public class ChatBubble extends JPanel {
             }
         } else {
             this.isImage = false;
-            initTextBubble(message.getContent().getBrief(), isUser);
+            initTextBubble(message.getContent().toString(), isUser);
         }
         addDoubleClickListener();
     }

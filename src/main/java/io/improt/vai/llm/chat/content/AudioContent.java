@@ -1,12 +1,18 @@
 package io.improt.vai.llm.chat.content;
 
+import com.openai.models.ChatCompletionContentPart;
+import com.openai.models.ChatCompletionContentPartInputAudio;
+import io.improt.vai.llm.chat.content.impl.IChatContent;
+import io.improt.vai.util.EncodingUtils;
+
 import java.io.File;
+import java.io.IOException;
 
 /**
  * AudioContent represents a chat message containing an audio file.
  * Expected to be in MP3 format as required.
  */
-public class AudioContent implements ChatMessageContent {
+public class AudioContent implements IChatContent {
     private final File audioFile;
 
     public AudioContent(File audioFile) {
@@ -17,13 +23,24 @@ public class AudioContent implements ChatMessageContent {
         return audioFile;
     }
 
-    @Override
-    public String getBrief() {
-        return "[Audio: " + audioFile.getName() + "]";
+    public String toString() {
+        return "[Audio File: " + audioFile.getAbsolutePath() + "]";
     }
 
     @Override
-    public String toString() {
-        return "[Audio File: " + audioFile.getAbsolutePath() + "]";
+    public ChatCompletionContentPart getPart() throws IOException {
+        String s = EncodingUtils.encodeMp3ToBase64(this.audioFile.getAbsolutePath());
+        System.out.println(s);
+
+        ChatCompletionContentPartInputAudio audio = ChatCompletionContentPartInputAudio
+                .builder()
+                .inputAudio(ChatCompletionContentPartInputAudio.InputAudio
+                        .builder()
+                        .data(s)
+                        .format(ChatCompletionContentPartInputAudio.InputAudio.Format.MP3)
+                        .build()
+                ).build();
+
+        return ChatCompletionContentPart.ofInputAudio(audio);
     }
 }

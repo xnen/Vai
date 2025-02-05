@@ -5,7 +5,7 @@ import io.improt.vai.backend.plugin.PluginManager;
 import io.improt.vai.backend.plugin.AbstractPlugin;
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.frame.dialogs.RepairDialog;
-import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.util.*;
 
 import javax.swing.*;
@@ -20,7 +20,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.openai.models.ChatCompletionReasoningEffort;
 import org.jetbrains.annotations.NotNull;
 
 public class LLMInteraction {

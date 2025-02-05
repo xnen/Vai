@@ -1,6 +1,6 @@
 package io.improt.vai.llm.chat;
 
-import io.improt.vai.llm.chat.content.ChatMessageContent;
+import io.improt.vai.llm.chat.content.impl.IChatContent;
 import io.improt.vai.llm.chat.content.ChatMessageUserType;
 
 import java.util.Date;
@@ -11,10 +11,10 @@ import java.util.Date;
  */
 public class ChatMessage {
     private final ChatMessageUserType messageType;
-    private final ChatMessageContent content;
+    private final IChatContent content;
     private final Date timestamp;
 
-    public ChatMessage(ChatMessageUserType messageType, ChatMessageContent content) {
+    public ChatMessage(ChatMessageUserType messageType, IChatContent content) {
         this.messageType = messageType;
         this.content = content;
         this.timestamp = new Date();
@@ -24,7 +24,7 @@ public class ChatMessage {
         return messageType;
     }
 
-    public ChatMessageContent getContent() {
+    public IChatContent getContent() {
         return content;
     }
 

@@ -2,25 +2,18 @@ package io.improt.vai.llm.chat;
 
 import com.openai.models.*;
 import io.improt.vai.backend.App;
-import io.improt.vai.llm.chat.content.AudioContent;
 import io.improt.vai.llm.chat.content.ChatMessageUserType;
-import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.chat.content.TextContent;
-import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.O3MiniProvider;
-import io.improt.vai.llm.util.OpenAIUtil;
+import io.improt.vai.llm.providers.openai.utils.Messages;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.IOException;
 import java.lang.Thread;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 /**
@@ -96,7 +89,7 @@ public class ChatLLMHandler {
     public void doKeyboardStreaming() {
         O3MiniProvider provider = (O3MiniProvider) App.getInstance().getLLMProvider("o3-mini");
         try {
-            ChatCompletionCreateParams.Builder builder = provider.buildChat(this.conversationHistory, false);
+            ChatCompletionCreateParams.Builder builder = Messages.buildChat(provider, this.conversationHistory);
             ChatCompletionCreateParams build = builder.model(provider.getModelName())
                     .reasoningEffort(App.getInstance().getConfiguredReasoningEffort())
                     .build();

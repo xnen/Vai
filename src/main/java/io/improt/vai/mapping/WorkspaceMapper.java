@@ -4,7 +4,6 @@ import com.openai.models.ChatCompletionCreateParams;
 import com.openai.models.ChatCompletionReasoningEffort;
 import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.util.FileUtils;
-import io.improt.vai.util.Constants;
 import io.improt.vai.backend.App;
 
 import java.io.File;
@@ -457,8 +456,8 @@ public class WorkspaceMapper {
             O3MiniProvider miniProvider = new O3MiniProvider();
             System.out.println("Hello from worker. working with " + prompt + " | " + fileContents);
             try {
-                ChatCompletionCreateParams simpleParams = miniProvider.createSimpleParams(prompt, fileContents, ChatCompletionReasoningEffort.LOW);
-                String llmResponse = miniProvider.submitToModel(simpleParams);
+                ChatCompletionCreateParams simpleParams = miniProvider.simpleSystemUserRequest(prompt, fileContents, ChatCompletionReasoningEffort.LOW);
+                String llmResponse = miniProvider.blockingCompletion(simpleParams);
 
                 // Update the mapping in a thread-safe manner and persist the change.
                 synchronized (WorkspaceMapper.this) {

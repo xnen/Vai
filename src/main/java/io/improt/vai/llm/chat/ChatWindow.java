@@ -4,7 +4,7 @@ import io.improt.vai.backend.App;
 import io.improt.vai.llm.chat.content.ChatMessageUserType;
 import io.improt.vai.llm.chat.content.TextContent;
 import io.improt.vai.llm.chat.content.ImageContent;
-import io.improt.vai.llm.providers.IModelProvider;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.util.UICommons;
 import javax.swing.*;
 import java.awt.*;
@@ -12,7 +12,6 @@ import java.awt.event.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.swing.border.LineBorder;
@@ -307,7 +306,7 @@ public class ChatWindow extends JFrame {
                     bubble = new ChatBubble("Image could not be loaded.", isUser);
                 }
             } else {
-                bubble = new ChatBubble(msg.getContent().getBrief(), isUser);
+                bubble = new ChatBubble(msg.getContent().toString(), isUser);
             }
             chatPanel.addChatBubble(bubble, isUser);
         }

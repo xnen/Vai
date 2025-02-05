@@ -1,65 +1,37 @@
 package io.improt.vai.llm;
 
 import io.improt.vai.llm.providers.*;
+import io.improt.vai.llm.providers.impl.IModelProvider;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class LLMRegistry {
-    private final Map<String, IModelProvider> providers = new HashMap<>();
-    private final Map<String, String> modelProviderMap = new HashMap<>();
+    private final Map<String, IModelProvider> models = new HashMap<>();
 
-    public void registerProvider(String providerName, IModelProvider provider) {
-        providers.put(providerName, provider);
+    public void register(IModelProvider provider) {
+        models.put(provider.getModelName(), provider);
     }
 
-    public void registerModel(String modelName, String providerName) {
-        if (!providers.containsKey(providerName)) {
-            throw new IllegalArgumentException("Provider '" + providerName + "' not registered.");
-        }
-        modelProviderMap.put(modelName, providerName);
-    }
-
-    public IModelProvider getProviderForModel(String modelName) {
-        String providerName = modelProviderMap.get(modelName);
-        if (providerName == null) {
-            return null;
-        }
-        return providers.get(providerName);
-    }
-
-    public void initializeProviders() {
-        System.out.println("Providers will be lazily initialized on request.");
-    }
-
-    public void registerProviders() {
-        registerProvider("openai-commons", new O1Provider());
-        registerProvider("openai-preview-commons", new O1PreviewProvider());
-        registerProvider("openai-mini-commons", new O1MiniProvider());
-        registerProvider("deepseek", new DeepSeekProvider());
-        registerProvider("deepseek-nv", new NVIDIADeepSeekProvider());
-        registerProvider("gemini", new GeminiProvider());
-        registerProvider("o3-mini", new O3MiniProvider());
-        registerProvider("4oProvider", new FourOProvider());
-        registerProvider("4o-audio", new FourOAudioProvider());
-        registerProvider("4o-mini-audio", new FourOAudioMiniProvider());
+    public IModelProvider getModel(String modelName) {
+        return models.get(modelName);
     }
 
     public void registerModels() {
-        registerModel("o1", "openai-commons");
-        registerModel("o1-preview", "openai-preview-commons");
-        registerModel("o1-mini", "openai-mini-commons");
-        registerModel("DeepSeek (Local)", "deepseek");
-        registerModel("DeepSeek (NVIDIA)", "deepseek-nv");
-        registerModel("gemini-2.0-flash-thinking-exp-01-21", "gemini");
-        registerModel("o3-mini", "o3-mini");
-        registerModel("chatgpt-4o-latest", "4oProvider");
-        registerModel("gpt-4o-audio", "4o-audio");
-        registerModel("gpt-4o-audio-mini", "4o-mini-audio");
+        register(new O1Provider());
+        register(new O1PreviewProvider());
+        register(new O1MiniProvider());
+        register(new DeepSeekProvider());
+        register(new NVIDIADeepSeekProvider());
+        register(new GeminiProvider());
+        register(new O3MiniProvider());
+        register(new FourOProvider());
+        register(new FourOAudioProvider());
+        register(new FourOAudioMiniProvider());
     }
-    
+
     public Set<String> getRegisteredModelNames() {
-        return modelProviderMap.keySet();
+        return models.keySet();
     }
 }
