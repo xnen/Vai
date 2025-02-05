@@ -30,7 +30,6 @@ public class AudioContent implements IChatContent {
     @Override
     public ChatCompletionContentPart getPart() throws IOException {
         String s = EncodingUtils.encodeMp3ToBase64(this.audioFile.getAbsolutePath());
-        System.out.println(s);
 
         ChatCompletionContentPartInputAudio audio = ChatCompletionContentPartInputAudio
                 .builder()

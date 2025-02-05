@@ -91,8 +91,6 @@ public class RecentActiveFilesPanel extends JPanel implements ActiveFileManager.
         String filePath = (String) tableModel.getValueAt(row, 1);
         File file = new File(filePath);
 
-        System.out.println(filePath);
-
         if (backend.getActiveFileManager().isFileActive(file)) {
             boolean removed = backend.getActiveFileManager().removeFile(file);
 

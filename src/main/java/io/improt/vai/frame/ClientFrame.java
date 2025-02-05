@@ -642,10 +642,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
 
         hack2.addActionListener(e -> {
-            WorkspaceMapper workspaceMapper = new WorkspaceMapper();
-            String s = workspaceMapper.getAllMappingsConcatenated();
-            System.out.println(s);
-
             JFrame frame = new JFrame("Workspace Mapper Panel Test");
             WorkspaceMapperPanel panel = new WorkspaceMapperPanel();
             frame.setContentPane(panel);
@@ -831,8 +827,12 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     public boolean isChatDialogClosed() {
         return helpOverlayFrame == null || !helpOverlayFrame.isVisible();
     }
-
+    public static boolean isModelRunning = false;
     public void submit(Runnable onComplete) {
+        if (isModelRunning) {
+            System.out.println("Ignoring submit -- model is currently running.");
+            return;
+        }
         this.submitButton.setEnabled(false);
         new Thread(() -> {
             String model = (String) modelCombo.getSelectedItem();
@@ -842,11 +842,12 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
             String prompt = textArea.getText();
 
-            if (this.isAutoContext()) {
+            if (this.isAutoContext() && !App.getInstance().getActiveFileManager().hasTempContext()) {
                 Tasks tasks = new Tasks();
                 boolean b = tasks.queryRepositoryMap(prompt);
                 if (!b) {
                     System.out.println("ERROR: Unable to query repository map, for some reason!");
+                    submitButton.setEnabled(true);
                     return;
                 }
             }

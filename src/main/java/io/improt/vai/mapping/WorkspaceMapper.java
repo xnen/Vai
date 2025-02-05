@@ -166,7 +166,7 @@ public class WorkspaceMapper {
         List<File> files = listFilesRecursively(directory);
         for (File file : files) {
             String fileName = file.getName().toLowerCase();
-            if (fileName.endsWith(".cs") || fileName.endsWith(".java")) {
+            if (fileName.endsWith(".cs") || fileName.endsWith(".java") || fileName.endsWith(".ts")) {
                 addFile(file);
             }
         }
@@ -282,13 +282,16 @@ public class WorkspaceMapper {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
                 String path = obj.getString("path");
-                String md5sum = obj.getString("md5sum");
-                String mapping = obj.optString("mapping", "");
-                String lastMappingMd5sum = obj.optString("lastMappingMd5sum", "");
-                ClassMapping cm = new ClassMapping(path, md5sum);
-                cm.setMapping(mapping);
-                cm.setLastMappingMd5sum(lastMappingMd5sum);
-                mappings.put(path, cm);
+                File file = new File(path);
+                if (file.exists()) {
+                    String md5 = computeMD5(file);
+                    String mapping = obj.optString("mapping", "");
+                    String lastMappingMd5sum = obj.optString("lastMappingMd5sum", "");
+                    ClassMapping cm = new ClassMapping(path, md5);
+                    cm.setMapping(mapping);
+                    cm.setLastMappingMd5sum(lastMappingMd5sum);
+                    mappings.put(path, cm);
+                }
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -370,18 +373,9 @@ public class WorkspaceMapper {
                 mappingsToRemove.add(path);
             }
         }
-        int size = mappings.values().size();
-        System.out.println("b4: " + size);
-
         for (String s : mappingsToRemove) {
-            ClassMapping mapping = mappings.remove(s);
-            if (mapping == null) {
-                System.out.println("Failed to remove!?");
-            } else {
-                System.out.println("Success: " + mapping.path);
-            }
+            mappings.remove(s);
         }
-        System.out.println("af: " + mappings.values().size());
         persistMappings();
     }
 
@@ -398,7 +392,7 @@ public class WorkspaceMapper {
             return "";
         }
         String currentMd5 = computeMD5(file);
-        System.out.println("Submitting worker...");
+        System.out.println("[WorkspaceMapper] Created a worker thread.");
         MappingWorker worker = new MappingWorker(file, cm, currentMd5);
         mappingExecutor.submit(worker);
         return "";
@@ -417,7 +411,7 @@ public class WorkspaceMapper {
         List<File> files = listFilesRecursively(directory);
         for (File file : files) {
             String fileName = file.getName().toLowerCase();
-            if (fileName.endsWith(".cs") || fileName.endsWith(".java")) {
+            if (fileName.endsWith(".cs") || fileName.endsWith(".java") || fileName.endsWith(".ts")) {
                 mapFile(file);
             }
         }
@@ -487,7 +481,6 @@ public class WorkspaceMapper {
                 "If no fields, don't include fields block. If no methods, don't include methods block. Modifiers are not relevant (i.e. final/readonly public private etc).";
             
             O3MiniProvider miniProvider = new O3MiniProvider();
-            System.out.println("Hello from worker. working with " + prompt + " | " + fileContents);
             try {
                 ChatCompletionCreateParams simpleParams = miniProvider.simpleSystemUserRequest(prompt, fileContents, ChatCompletionReasoningEffort.LOW);
                 String llmResponse = miniProvider.blockingCompletion(simpleParams);

@@ -58,9 +58,6 @@ public class ChatLLMHandler {
 
     public void runModelWithCurrentHistory() throws Exception {
         IModelProvider provider = App.getInstance().getLLMProvider(selectedModel);
-        if (provider == null) {
-            System.out.println("Provider was not found for '" + selectedModel + "'.");
-        }
         if (this.conversationHistory.isEmpty()) {
             System.out.println("Conversation history empty!");
             return;
@@ -90,7 +87,11 @@ public class ChatLLMHandler {
         }
 
         String response = provider.chatRequest(newHistory);
+
+        System.out.println("=== CHATLLM RESPONSE ===");
         System.out.println(response);
+        System.out.println("=== === === === === === ===");
+
         response = response.replaceAll("(?s)<think>.*?</think>", "");
 
         if (response.contains("<end_message>")) {
@@ -151,7 +152,6 @@ public class ChatLLMHandler {
         Thread.sleep(10L);
         robot.keyRelease(KeyEvent.VK_V);
         robot.keyRelease(KeyEvent.VK_CONTROL);
-        System.out.println("Should've pasted " + string);
     }
 
     public void killStream() {

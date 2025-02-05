@@ -1,9 +1,6 @@
 package io.improt.vai.backend.plugin;
 
-import io.improt.vai.backend.plugin.impl.LLMPromptPlugin;
-import io.improt.vai.backend.plugin.impl.RequestPlanPlugin;
-import io.improt.vai.backend.plugin.impl.RunCommandPlugin;
-import io.improt.vai.backend.plugin.impl.ShowMessagePlugin;
+import io.improt.vai.backend.plugin.impl.*;
 
 import java.util.List;
 
@@ -16,7 +13,8 @@ public class PluginManager {
                 new ShowMessagePlugin(),
                 new RunCommandPlugin(),
                 new LLMPromptPlugin(),
-                new RequestPlanPlugin()
+                new RequestPlanPlugin(),
+                new AutoLLMScanPlugin()
         );
         
         // Load previously saved plugin states and update each plugin

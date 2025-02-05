@@ -55,16 +55,13 @@ public class ContextApprovalDialog extends JDialog {
         });
 
         // Approve button: collect remaining entries and close the dialog
-        approveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                approved = true;
-                approvedList = new ArrayList<>();
-                for (int i = 0; i < listModel.getSize(); i++) {
-                    approvedList.add(listModel.get(i));
-                }
-                dispose();
+        approveButton.addActionListener(e -> {
+            approved = true;
+            approvedList = new ArrayList<>();
+            for (int i = 0; i < listModel.getSize(); i++) {
+                approvedList.add(listModel.get(i));
             }
+            dispose();
         });
 
         // Decline button: cancel the dialog and set approvedList to null

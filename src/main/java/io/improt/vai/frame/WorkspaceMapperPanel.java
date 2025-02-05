@@ -30,6 +30,7 @@ public class WorkspaceMapperPanel extends JPanel {
 
         // Initialize WorkspaceMapper
         workspaceMapper = new WorkspaceMapper();
+
         File workspaceDir = App.getInstance().getCurrentWorkspace();
         if (workspaceDir == null || !workspaceDir.exists()) {
             add(new JLabel("No workspace is currently open."), BorderLayout.CENTER);
@@ -146,8 +147,6 @@ public class WorkspaceMapperPanel extends JPanel {
         // Live update the mapping table every second using a Swing Timer
         Timer timer = new Timer(1000, evt -> refreshMappingTable());
         timer.start();
-
-        System.out.println("YO");
     }
 
     // Refresh the mapping table model with current mappings
@@ -166,7 +165,7 @@ public class WorkspaceMapperPanel extends JPanel {
                 List<File> fileList = new ArrayList<>();
                 for (File child : children) {
                     String fileName = child.getName().toLowerCase();
-                    if (child.isDirectory() || fileName.endsWith(".cs") || fileName.endsWith(".java")) {
+                    if (child.isDirectory() || fileName.endsWith(".cs") || fileName.endsWith(".java") || fileName.endsWith(".ts")) {
                         fileList.add(child);
                     }
                 }

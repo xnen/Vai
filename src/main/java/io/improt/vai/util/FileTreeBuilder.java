@@ -68,7 +68,6 @@ public class FileTreeBuilder {
         if (!filePath.startsWith(contextPath)) {
             System.out.println("File " + filePath + " is not under the context directory " + contextPath);
             return null;
-//            throw new IllegalArgumentException("File " + filePath + " is not under the context directory " + contextPath);
         }
 
         // Compute the relative path

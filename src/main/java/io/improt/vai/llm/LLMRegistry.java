@@ -41,8 +41,9 @@ public class LLMRegistry {
             return p2.getCost().compareTo(p1.getCost());
         });
 
+        System.out.println("Models registered:");
         for (IModelProvider modelProvider : modelList) {
-            System.out.println(modelProvider.getFriendlyName());
+            System.out.println("- " + modelProvider.getFriendlyName());
         }
     }
 

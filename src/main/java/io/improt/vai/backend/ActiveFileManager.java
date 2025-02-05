@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class ActiveFileManager {
 
-    private final List<File> enabledFiles = new ArrayList<>();
+    private List<File> enabledFiles = new ArrayList<>();
     private final List<File> dynamicFiles = new ArrayList<>();
 
     private final List<EnabledFilesChangeListener> listeners = new CopyOnWriteArrayList<>();
@@ -165,6 +165,13 @@ public class ActiveFileManager {
         return new ArrayList<>(fileMap.values());
     }
 
+    private List<File> stashedContext = null;
+    public void forceTemporaryContext(File file) {
+        this.stashedContext = new ArrayList<>(this.enabledFiles);
+        this.enabledFiles.clear();
+        this.enabledFiles.add(file);
+    }
+
     /**
      * Formats the enabled files into a structured string representation.
      *
@@ -176,6 +183,12 @@ public class ActiveFileManager {
         String[] binaryExtensions = {"png", "jpg", "jpeg", "mp3", "wav", "mp4"};
 
         List<File> actives = this.concatenateWithoutDuplicates();
+
+        // Return back, if we had a previous (temp context)
+        if (this.stashedContext != null) {
+            this.enabledFiles = stashedContext;
+            stashedContext = null;
+        }
 
         for (File file : actives) {
             String extension = "";
@@ -264,8 +277,9 @@ public class ActiveFileManager {
      */
     public void setupDynamicFiles(List<String> approvedFiles) {
         this.dynamicFiles.clear();
+
         for (String s : approvedFiles) {
-            File file = new File(s);
+            File file = new File(App.getInstance().getCurrentWorkspace(), s);
             if (!file.exists() || file.isDirectory()) {
                 System.out.println("Skipping '" + s + "' as it didn't exist or was a directory.");
                 continue;
@@ -273,6 +287,10 @@ public class ActiveFileManager {
 
             this.dynamicFiles.add(file);
         }
+    }
+
+    public boolean hasTempContext() {
+        return this.stashedContext != null;
     }
 
     /**

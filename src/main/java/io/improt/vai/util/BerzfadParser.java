@@ -92,9 +92,6 @@ public class BerzfadParser {
      * @return the index of the valid !EOF marker, or -1 if not found.
      */
     private static int findValidEof(String response, int fromIndex) {
-
-        System.out.println(response + " | " + fromIndex);
-
         int searchIndex = fromIndex;
         while (true) {
             int eofIndex = response.indexOf("!EOF", searchIndex);

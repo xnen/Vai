@@ -31,17 +31,15 @@ public class Tasks {
         if (!filePaths.isEmpty()) {
             List<String> approvedFiles = ContextApprovalDialog.showDialog(null, filePaths);
             if (approvedFiles == null) {
-                System.out.println("User declined the provided context.");
+                System.out.println("[Tasks::queryRepositoryMap] Dialog returned null. Assuming no files to add.");
                 return false;
             } else {
-                System.out.println("Approved files: " + approvedFiles);
-                // Use the approvedFiles List<String> for further processing.
+                System.out.println("[Tasks::queryRepositoryMap] Dynamically adding " + approvedFiles.size() + " files to context.");
                 App.getInstance().getActiveFileManager().setupDynamicFiles(approvedFiles);
                 return true;
             }
         } else {
-            System.out.println("No file paths found in the response.");
-            return false;
+            return true;
         }
     }
 

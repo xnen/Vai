@@ -118,6 +118,7 @@ public class LLMInteraction {
 
         System.out.println("=== LLM PROMPT ===");
         System.out.println(prompt);
+        System.out.println(userRequest);
         System.out.println("====================");
 
         // Get the list of enabled files to be sent to Gemini. Currently, only text-based files are included in the prompt string.
@@ -125,8 +126,10 @@ public class LLMInteraction {
         List<File> filesForContext = this.getMedia();
 
         String response = llmProvider.request(prompt, userRequest, filesForContext); // Pass the reasoningEffort parameter.
-
+        System.out.println("=== LLM RESPONSE ===");
         System.out.println(response);
+        System.out.println("====================");
+
 
         if (response == null) {
             return;

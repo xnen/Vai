@@ -151,12 +151,12 @@ public abstract class OpenAIClientBase implements IModelProvider {
     }
 
     public String blockingCompletion(ChatCompletionCreateParams params) {
-        System.out.println("Beginning completion...");
+        System.out.println("[OpenAIClientBase] Beginning completion...");
         long start = System.currentTimeMillis();
         try {
             ChatCompletion completion = this.getOrCreateClient().chat().completions().create(params);
             long end = System.currentTimeMillis();
-            System.out.println("Took " + (end - start) + " ms.");
+            System.out.println("[OpenAIClientBase] Took " + (end - start) + " ms.");
 
             ChatCompletion validate = completion.validate();
             List<ChatCompletion.Choice> choices = validate.choices();
