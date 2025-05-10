@@ -1,10 +1,9 @@
 package io.improt.vai.mapping;
 
-import com.openai.models.ChatCompletionCreateParams;
-import com.openai.models.ChatCompletionReasoningEffort;
+import com.openai.models.ReasoningEffort;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.util.FileUtils;
-import io.improt.vai.backend.App;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,13 +32,13 @@ public class WorkspaceMapper {
     private final File currentWorkspace;
     private final Map<String, ClassMapping> mappings;
     // Single-thread executor to allow only one worker thread at a time.
-    private final ExecutorService mappingExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService mappingExecutor = Executors.newFixedThreadPool(10);
 
     /**
      * Constructs a WorkspaceMapper utilizing the current workspace from the App instance.
      */
-    public WorkspaceMapper() {
-        this.currentWorkspace = App.getInstance().getCurrentWorkspace();
+    public WorkspaceMapper(File workspace) {
+        this.currentWorkspace = workspace;
         this.mappings = new HashMap<>();
         loadMappings();
         cullMappings();
@@ -154,6 +153,21 @@ public class WorkspaceMapper {
         persistMappings();
     }
 
+    public static boolean hasValidExtension(String fileName) {
+        if (fileName.endsWith(".cs")
+                || fileName.endsWith(".java")
+                || fileName.endsWith(".ts")
+                || fileName.endsWith(".md")
+                || fileName.endsWith(".js")
+                || fileName.endsWith(".css")
+                || fileName.endsWith(".html")
+                || fileName.endsWith(".py")
+        ) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Adds all files within the specified directory (recursively) to the mapping dictionary.
      *
@@ -163,10 +177,11 @@ public class WorkspaceMapper {
         if (directory == null || !directory.exists() || !directory.isDirectory()) {
             return;
         }
+
         List<File> files = listFilesRecursively(directory);
         for (File file : files) {
             String fileName = file.getName().toLowerCase();
-            if (fileName.endsWith(".cs") || fileName.endsWith(".java") || fileName.endsWith(".ts")) {
+            if (hasValidExtension(fileName)) {
                 addFile(file);
             }
         }
@@ -268,7 +283,7 @@ public class WorkspaceMapper {
      * Loads the mapping dictionary from the JSON file in the workspace's VAI directory.
      */
     private void loadMappings() {
-        File vaiDir = FileUtils.getWorkspaceVaiDir(currentWorkspace);
+        File vaiDir = FileUtils.getWorkspaceVaiDir(this.currentWorkspace);
         File mappingFile = new File(vaiDir, MAPPINGS_FILENAME);
         if (!mappingFile.exists()) {
             return;
@@ -291,6 +306,8 @@ public class WorkspaceMapper {
                     cm.setMapping(mapping);
                     cm.setLastMappingMd5sum(lastMappingMd5sum);
                     mappings.put(path, cm);
+                } else {
+                    System.out.println("File path '" + path + "' didn't exist. Not adding!");
                 }
             }
         } catch (JSONException e) {
@@ -306,7 +323,7 @@ public class WorkspaceMapper {
      */
     public String getAllMappingsConcatenated() {
         StringBuilder sb = new StringBuilder();
-        File workspace = App.getInstance().getCurrentWorkspace();
+        File workspace = this.currentWorkspace;
         if (workspace != null) {
             Path workspacePath = Paths.get(workspace.getAbsolutePath());
             for (ClassMapping cm : mappings.values()) {
@@ -411,7 +428,7 @@ public class WorkspaceMapper {
         List<File> files = listFilesRecursively(directory);
         for (File file : files) {
             String fileName = file.getName().toLowerCase();
-            if (fileName.endsWith(".cs") || fileName.endsWith(".java") || fileName.endsWith(".ts")) {
+            if (hasValidExtension(fileName)) {
                 mapFile(file);
             }
         }
@@ -464,8 +481,8 @@ public class WorkspaceMapper {
             }
             
             String prompt =
-                "Goal: Reduce class length for overview.\n" +
-                "Take classes and reduce them to as primitive of an outline as possible, for the purpose of quick overview by developers looking to identify which classes may be relevant to reference for a certain task.\n" +
+                "Goal: Reduce file length for overview.\n" +
+                "Take files and reduce their content to as primitive of an outline as possible, for the purpose of quick overview by developers looking to identify which files may be relevant to reference for a certain task.\n" +
                 "\n" +
                 "Format:\n" +
                 "<namespace/package>\n" +
@@ -478,11 +495,12 @@ public class WorkspaceMapper {
                 "        methodOne(): string; <description of methodOne>\n" +
                 "        methodTwo(obj: Object); <description of methodTwo>\n" +
                 "\n" +
-                "If no fields, don't include fields block. If no methods, don't include methods block. Modifiers are not relevant (i.e. final/readonly public private etc).";
+                "If no fields, don't include fields block. If no methods, don't include methods block.\n" +
+                "Write an extremely brief overview of the file as well, afterward. This overview should be able to tell the devs i.e. where the URL is to edit the mongodb client, etc. Details like this are important. DO NOT INFER OR GUESS WHAT SOMETHING DOES OR IS. SIMPLY WRITE A BRIEF ABSTRACT OUTLINE OF WHAT YOU BELIEVE THE PURPOSE OF THE CLASS IS.";
             
             O3MiniProvider miniProvider = new O3MiniProvider();
             try {
-                ChatCompletionCreateParams simpleParams = miniProvider.simpleSystemUserRequest(prompt, fileContents, ChatCompletionReasoningEffort.LOW);
+                ChatCompletionCreateParams simpleParams = miniProvider.simpleSystemUserRequest(prompt, fileContents, ReasoningEffort.LOW);
                 String llmResponse = miniProvider.blockingCompletion(simpleParams);
 
                 // Update the mapping in a thread-safe manner and persist the change.

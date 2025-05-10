@@ -276,17 +276,16 @@ public class ActiveFileManager {
      *
      */
     public void setupDynamicFiles(List<String> approvedFiles) {
-        this.dynamicFiles.clear();
-
         for (String s : approvedFiles) {
             File file = new File(App.getInstance().getCurrentWorkspace(), s);
             if (!file.exists() || file.isDirectory()) {
-                System.out.println("Skipping '" + s + "' as it didn't exist or was a directory.");
+                System.out.println("Skipping '" + s + "' as it didnt exist or was directory.");
                 continue;
             }
 
-            this.dynamicFiles.add(file);
+            this.enabledFiles.add(file);
         }
+        this.enabledFiles = this.concatenateWithoutDuplicates();
     }
 
     public boolean hasTempContext() {

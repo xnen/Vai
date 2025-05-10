@@ -1,6 +1,6 @@
 package io.improt.vai.backend;
 
-import com.openai.models.ChatCompletionReasoningEffort;
+import com.openai.models.ReasoningEffort;
 import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.*;
@@ -35,7 +35,7 @@ public class App {
     private static final int VAI_INTEGRATION_PORT = 12345; // Port for Vai integration
     private static final String VAI_INTEGRATION_SALT = "YourSuperSecretSalt"; // TODO: Configurable.
 
-    private ChatCompletionReasoningEffort reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
+    private ReasoningEffort reasoningEffort = ReasoningEffort.MEDIUM;
 
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
@@ -335,11 +335,22 @@ public class App {
         }
     }
 
-    public ChatCompletionReasoningEffort getConfiguredReasoningEffort() {
+    public ReasoningEffort getConfiguredReasoningEffort() {
         return this.reasoningEffort;
     }
 
-    public void setReasoningEffort(ChatCompletionReasoningEffort effort) {
+    public void setReasoningEffort(ReasoningEffort effort) {
         this.reasoningEffort = effort;
+    }
+
+    private String additionalData = "None available.";
+    public void setAdditionalData(String text) {
+        this.additionalData = text;
+    }
+
+    public String popAdditionalData() {
+        String s = additionalData;
+        additionalData = "None available.";
+        return s;
     }
 }

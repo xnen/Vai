@@ -209,6 +209,7 @@ public class FileViewerPanel extends JPanel {
             updateButtonStates();
             setModified(false); // Reset modified flag after loading new file
         } catch (Exception e) {
+            e.printStackTrace();
             textArea.setText("Error loading file: " + e.getMessage());
             disableButtons();
         }
@@ -233,7 +234,11 @@ public class FileViewerPanel extends JPanel {
             String content = new String(Files.readAllBytes(file.toPath()));
             textArea.setText(content);
             textArea.setCaretPosition(0);
-            setSyntaxEditingStyle(file);
+            try {
+                setSyntaxEditingStyle(file);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             cardLayout.show(contentPanel, "TEXT");
         } catch (IOException e) {
             textArea.setText("Error loading file as text: " + e.getMessage());

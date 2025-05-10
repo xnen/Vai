@@ -1,6 +1,7 @@
 package io.improt.vai.llm.providers.openai.utils;
 
 import com.openai.models.*;
+import com.openai.models.chat.completions.*;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;

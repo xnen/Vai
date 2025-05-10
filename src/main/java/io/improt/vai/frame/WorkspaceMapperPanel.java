@@ -29,7 +29,7 @@ public class WorkspaceMapperPanel extends JPanel {
         tableModel = new MappingTableModel();
 
         // Initialize WorkspaceMapper
-        workspaceMapper = new WorkspaceMapper();
+        workspaceMapper = new WorkspaceMapper(App.getInstance().getCurrentWorkspace());
 
         File workspaceDir = App.getInstance().getCurrentWorkspace();
         if (workspaceDir == null || !workspaceDir.exists()) {
@@ -165,7 +165,7 @@ public class WorkspaceMapperPanel extends JPanel {
                 List<File> fileList = new ArrayList<>();
                 for (File child : children) {
                     String fileName = child.getName().toLowerCase();
-                    if (child.isDirectory() || fileName.endsWith(".cs") || fileName.endsWith(".java") || fileName.endsWith(".ts")) {
+                    if (child.isDirectory() || WorkspaceMapper.hasValidExtension(fileName)) {
                         fileList.add(child);
                     }
                 }

@@ -19,16 +19,21 @@ public class LLMRegistry {
     private final List<IModelProvider> modelList = new ArrayList<>();
 
     public void registerModels() {
+        register(new FourOProvider());
+        register(new GPT4oSearchProvider());
+        register(new GPT41Provider());
         register(new O3MiniProvider());
+        register(new O3Provider());
+        register(new O4MiniProvider());
         register(new O1Provider());
-        register(new GeminiProvider());
         register(new O1MiniProvider());
         register(new DeepSeekProvider());
         register(new O1PreviewProvider());
-        register(new FourOProvider());
         register(new FourOAudioProvider());
         register(new FourOAudioMiniProvider());
         register(new NVIDIADeepSeekProvider());
+        register(new ClaudeProvider());
+        register(new GeminiProvider());
 
         modelList.addAll(this.models.values());
 

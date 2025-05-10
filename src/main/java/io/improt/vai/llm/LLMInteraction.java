@@ -114,7 +114,8 @@ public class LLMInteraction {
                 .replace("<REPLACEME_WITH_STRUCTURE>", structure)
                 .replace("<REPLACEME_WITH_FILES>", app.getActiveFileManager().formatEnabledFiles())
                 .replace("<REPLACEME_WITH_OS>", System.getProperty("os.name"))
-                .replace("<REPLACEME_WITH_FEATURES>", buildFeaturesBlock());
+                .replace("<REPLACEME_WITH_FEATURES>", buildFeaturesBlock())
+                .replace("<REPLACEME_WITH_ADDL_INFO>", app.popAdditionalData());
 
         System.out.println("=== LLM PROMPT ===");
         System.out.println(prompt);

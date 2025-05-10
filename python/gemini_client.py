@@ -67,7 +67,8 @@ def main():
 
     try:
         response = client.models.generate_content(
-            model='gemini-2.0-flash-thinking-exp',
+            #model='gemini-2.0-flash-thinking-exp',
+            model='gemini-2.5-pro-exp-03-25',
             contents=contents,
             config=types.GenerateContentConfig(
                 thinking_config=types.ThinkingConfig(include_thoughts=False),

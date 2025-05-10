@@ -1,6 +1,7 @@
 package io.improt.vai.llm.chat;
 
 import com.openai.models.*;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.improt.vai.backend.App;
 import io.improt.vai.llm.chat.content.ChatMessageUserType;
 import io.improt.vai.llm.chat.content.TextContent;
@@ -78,7 +79,7 @@ public class ChatLLMHandler {
         List<ChatMessage> newHistory;
         if (includeRepoContext) {
             newHistory = new ArrayList<>();
-            WorkspaceMapper mapper = new WorkspaceMapper();
+            WorkspaceMapper mapper = new WorkspaceMapper(App.getInstance().getCurrentWorkspace());
             String mappings = mapper.getAllMappingsConcatenated();
             newHistory.add(new ChatMessage(ChatMessageUserType.USER, new TextContent("Hi there! This is my repository:\n" + mappings)));
             newHistory.addAll(conversationHistory);

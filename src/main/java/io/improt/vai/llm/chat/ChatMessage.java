@@ -10,8 +10,8 @@ import java.util.Date;
  * It encapsulates the sender type, the content, and a timestamp.
  */
 public class ChatMessage {
-    private final ChatMessageUserType messageType;
-    private final IChatContent content;
+    private ChatMessageUserType messageType;
+    private IChatContent content;
     private final Date timestamp;
 
     public ChatMessage(ChatMessageUserType messageType, IChatContent content) {
@@ -30,5 +30,10 @@ public class ChatMessage {
 
     public Date getTimestamp() {
         return timestamp;
+    }
+
+    public void replaceContents(ChatMessage msg) {
+        this.messageType = msg.messageType;
+        this.content = msg.content;
     }
 }

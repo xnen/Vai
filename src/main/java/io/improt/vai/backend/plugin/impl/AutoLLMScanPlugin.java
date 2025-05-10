@@ -1,14 +1,15 @@
 package io.improt.vai.backend.plugin.impl;
 
-import com.openai.models.ChatCompletionReasoningEffort;
 import io.improt.vai.backend.App;
 import io.improt.vai.backend.plugin.AbstractPlugin;
 import io.improt.vai.frame.ClientFrame;
+import io.improt.vai.mapping.WorkspaceMapper;
 
 import javax.swing.SwingUtilities;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,7 +26,7 @@ public class AutoLLMScanPlugin extends AbstractPlugin {
     // Volatile flag to signal whether the plugin is active.
     private volatile boolean active;
     private Thread scannerThread;
-    private final long delayMillis = 3500; // Delay in milliseconds between scans.
+    private final long delayMillis = 1000; // Delay in milliseconds between scans.
     private static final Pattern VAI_PATTERN = Pattern.compile("//\\s*VAI:\\s*(.*)");
 
     public AutoLLMScanPlugin() {
@@ -80,56 +81,12 @@ public class AutoLLMScanPlugin extends AbstractPlugin {
                     }
                     continue;
                 }
-                // Retrieve the current workspace from the App instance.
-                File workspace = App.getInstance().getCurrentWorkspace();
-                if (workspace != null && workspace.isDirectory()) {
-                    try {
-                        // Recursively iterate through all files in the workspace.
-                        Files.walk(workspace.toPath())
-                                .filter(Files::isRegularFile)
-                                .forEach(path -> {
-                                    String filePath = path.toString().toLowerCase();
-                                    // Process only .cs, .java, or .ts files.
-                                    if (filePath.endsWith(".cs") || filePath.endsWith(".java") || filePath.endsWith(".ts")) {
-                                        try {
-                                            List<String> lines = Files.readAllLines(path);
-                                            boolean modified = false;
-                                            for (int i = 0; i < lines.size(); i++) {
-                                                String line = lines.get(i);
-                                                Matcher matcher = VAI_PATTERN.matcher(line);
-                                                if (matcher.find()) {
-                                                    String prompt = matcher.group(1).trim();
-                                                    System.out.println("Prompting '" + prompt + "'.");
 
-                                                    // Auto add to context.
-                                                    String updatedLine = line.replaceFirst("VAI:", "TODOVAI:");
-                                                    lines.set(i, updatedLine);
-                                                    modified = true;
-                                                    // On the EDT, set the client frame prompt and submit automatically.
-                                                    String finalPrompt = prompt;
-                                                    SwingUtilities.invokeLater(() -> {
-                                                        ClientFrame client = App.getInstance().getClient();
-                                                        if (client != null) {
-                                                            client.setLLMPrompt("Replace the `//TODOVAI: " + finalPrompt + "` with the code relevant to it's request.");
-                                                            paused = true;
-                                                            App.getInstance().getActiveFileManager().forceTemporaryContext(path.toFile());
-                                                            client.submit(() -> paused = false);
-                                                        }
-                                                    });
-                                                }
-                                            }
-                                            if (modified) {
-                                                Files.write(path, lines);
-                                            }
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                });
-                    } catch (IOException ioe) {
-                        ioe.printStackTrace();
-                    }
+                List<File> enabledFiles = App.getInstance().getActiveFileManager().getEnabledFiles();
+                for (File f : enabledFiles) {
+                    this.testFile(f.toPath());
                 }
+
                 try {
                     Thread.sleep(delayMillis);
                 } catch (InterruptedException e) {
@@ -140,6 +97,44 @@ public class AutoLLMScanPlugin extends AbstractPlugin {
         scannerThread.setDaemon(true);
         scannerThread.start();
         System.out.println("[AutoLLMScanPlugin] Started scanning thread.");
+    }
+
+    private void testFile(Path path) {
+        String filePath = path.toString().toLowerCase();
+        if (WorkspaceMapper.hasValidExtension(filePath)) {
+            try {
+                List<String> lines = Files.readAllLines(path);
+                boolean modified = false;
+                for (int i = 0; i < lines.size(); i++) {
+                    String line = lines.get(i);
+                    Matcher matcher = VAI_PATTERN.matcher(line);
+                    if (matcher.find()) {
+                        String prompt = matcher.group(1).trim();
+                        System.out.println("Prompting '" + prompt + "'.");
+
+                        // Auto add to context.
+                        String updatedLine = line.replaceFirst("VAI:", "TODO:");
+                        lines.set(i, updatedLine);
+                        modified = true;
+                        // On the EDT, set the client frame prompt and submit automatically.
+                        SwingUtilities.invokeLater(() -> {
+                            ClientFrame client = App.getInstance().getClient();
+                            if (client != null) {
+                                client.setLLMPrompt("Address the `//TODO: " + prompt + "` within the class.");
+                                paused = true;
+                                App.getInstance().getActiveFileManager().forceTemporaryContext(path.toFile());
+                                client.submit(() -> paused = false);
+                            }
+                        });
+                    }
+                }
+                if (modified) {
+                    Files.write(path, lines);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void stopScanning() {

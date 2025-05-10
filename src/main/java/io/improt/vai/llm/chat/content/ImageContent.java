@@ -1,7 +1,7 @@
 package io.improt.vai.llm.chat.content;
 
-import com.openai.models.ChatCompletionContentPart;
-import com.openai.models.ChatCompletionContentPartImage;
+import com.openai.models.chat.completions.ChatCompletionContentPart;
+import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import io.improt.vai.llm.chat.content.impl.IChatContent;
 
 import java.io.File;

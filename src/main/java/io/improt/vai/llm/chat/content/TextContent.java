@@ -1,7 +1,7 @@
 package io.improt.vai.llm.chat.content;
 
-import com.openai.models.ChatCompletionContentPart;
-import com.openai.models.ChatCompletionContentPartText;
+import com.openai.models.chat.completions.ChatCompletionContentPart;
+import com.openai.models.chat.completions.ChatCompletionContentPartText;
 import io.improt.vai.llm.chat.content.impl.IChatContent;
 
 /**

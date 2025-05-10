@@ -124,7 +124,8 @@ public class HelpOverlayFrame extends JFrame {
             IModelProvider provider = llmRegistry.getModel(modelName);
             ModelOption o = new ModelOption(modelName, provider.supportsAudio(), provider.supportsVision());
             modelOptionsList.add(o);
-            if (Objects.equals(modelName, "o3-mini")) {
+            String currentModel = "gpt-4o-mini-search-preview"; // chatgpt-4o-latest
+            if (Objects.equals(modelName, currentModel)) {
                 o3mini = o;
             }
         }

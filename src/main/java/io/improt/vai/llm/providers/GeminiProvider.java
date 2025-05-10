@@ -131,7 +131,7 @@ public class GeminiProvider implements IModelProvider {
 
     @Override
     public Cost getCost() {
-        return Cost.FREE;
+        return Cost.HIGH;
     }
 
     private String parseResponse(String responseBody) {

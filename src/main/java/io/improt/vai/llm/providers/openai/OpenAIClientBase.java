@@ -4,6 +4,7 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.http.StreamResponse;
 import com.openai.models.*;
+import com.openai.models.chat.completions.*;
 import io.improt.vai.backend.App;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.providers.impl.IModelProvider;
@@ -88,6 +89,16 @@ public abstract class OpenAIClientBase implements IModelProvider {
             builder.reasoningEffort(App.getInstance().getConfiguredReasoningEffort());
         }
 
+        boolean debug = false;
+        if (debug) {
+            System.out.println("================ CHAT REQUEST START ================");
+            for (ChatMessage msg : messages) {
+                System.out.println("[" + msg.getMessageType() + "]");
+                System.out.println(msg.getContent().toString());
+                System.out.println();
+            }
+        }
+
         return this.blockingCompletion(builder.build());
     }
 
@@ -131,7 +142,7 @@ public abstract class OpenAIClientBase implements IModelProvider {
         return this.simpleSystemUserRequest(systemMessage, userMessage, null);
     }
 
-    public ChatCompletionCreateParams simpleSystemUserRequest(String systemMessage, String userMessage, ChatCompletionReasoningEffort effort) {
+    public ChatCompletionCreateParams simpleSystemUserRequest(String systemMessage, String userMessage, ReasoningEffort effort) {
         ChatCompletionCreateParams.Builder paramsBuilder = ChatCompletionCreateParams.builder();
 
         if (this.supportsDeveloperRole()) {

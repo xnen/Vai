@@ -1,5 +1,6 @@
 package io.improt.vai.frame;
 
+import com.openai.models.ReasoningEffort;
 import io.improt.vai.backend.App;
 import io.improt.vai.frame.actions.NewProjectAction;
 import io.improt.vai.frame.actions.OpenPathAction;
@@ -13,13 +14,10 @@ import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
 import io.improt.vai.llm.Tasks;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
-import io.improt.vai.mapping.WorkspaceMapper;
-import io.improt.vai.testing.ISnippetAction;
 import io.improt.vai.util.AudioUtils;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.MessageHistoryManager;
 import org.jetbrains.annotations.NotNull;
-import com.openai.models.ChatCompletionReasoningEffort;
 
 import javax.sound.sampled.*;
 import javax.swing.*;
@@ -456,7 +454,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 try {
                     backend.getLLM().submitRequest(selectedModel, promptText);
                 } catch (RuntimeException ex) {
-                    showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
+                    showLLMErrorPopup("1 LLM Error: " + ex.getMessage(), retryAction);
                 }
             } else {
                 System.out.println("No model selected, cannot submit prompt.");
@@ -850,23 +848,28 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                     submitButton.setEnabled(true);
                     return;
                 }
+
+                // yeah.
+                this.submitButton.setEnabled(true);
+                this.autoContextCheckBox.setSelected(false);
+                return;
             }
 
             IModelProvider provider = backend.getLLMProvider(model);
-            ChatCompletionReasoningEffort reasoningEffort = null;
+            ReasoningEffort reasoningEffort = null;
 
             if (provider instanceof OpenAIClientBase) {
                 if (((OpenAIClientBase) provider).supportsReasoningEffort()) {
                     int sliderValue = reasoningSlider.getValue();
                     switch(sliderValue) {
                         case 0:
-                            reasoningEffort = ChatCompletionReasoningEffort.LOW;
+                            reasoningEffort = ReasoningEffort.LOW;
                             break;
                         case 2:
-                            reasoningEffort = ChatCompletionReasoningEffort.HIGH;
+                            reasoningEffort = ReasoningEffort.HIGH;
                             break;
                         default:
-                            reasoningEffort = ChatCompletionReasoningEffort.MEDIUM;
+                            reasoningEffort = ReasoningEffort.MEDIUM;
                     }
                 }
                 App.getInstance().setReasoningEffort(reasoningEffort);
@@ -881,8 +884,13 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 }
                 this.submitButton.setEnabled(true);
             } catch (RuntimeException ex) {
-                showLLMErrorPopup("LLM Error: " + ex.getMessage(), retryAction);
+                ex.printStackTrace();
+                showLLMErrorPopup("2 LLM Error: " + ex.getMessage(), retryAction);
             }
         }).start();
+    }
+
+    public void appendLLMPrompt(String s) {
+        textArea.setText(textArea.getText() + s);
     }
 }
