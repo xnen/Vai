@@ -216,8 +216,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         Collections.reverse(modelNames);
         modelCombo = new JComboBox<>(modelNames.toArray(new String[0]));
 
-        if(modelNames.contains("o3-mini")){
-            modelCombo.setSelectedItem("o3-mini");
+        if(modelNames.contains("Gemini Pro")){
+            modelCombo.setSelectedItem("Gemini Pro");
             updateReasoningSliderVisibility();
         }
 

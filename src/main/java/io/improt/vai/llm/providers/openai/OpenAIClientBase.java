@@ -11,6 +11,8 @@ import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.utils.Messages;
 import io.improt.vai.testing.ISnippetAction;
 import io.improt.vai.testing.SnippetHandler;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
@@ -20,6 +22,10 @@ public abstract class OpenAIClientBase implements IModelProvider {
     private final String modelName;
     private final String baseUrl;
     private final String apiKey;
+
+    private static final Set<String> AUDIO_EXTENSIONS = Set.of("mp3", "wav", "ogg", "flac", "m4a", "aac", "opus");
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of("png", "jpg", "jpeg", "gif", "webp");
+
 
     public OpenAIClientBase(String baseUrl, String modelName, String apiKey) {
         this.baseUrl = baseUrl;
@@ -38,22 +44,44 @@ public abstract class OpenAIClientBase implements IModelProvider {
 
     @Override
     public String request(String systemMessage, String userRequest, List<File> files) {
-        if (!this.supportsVision()) {
-            return this.blockingCompletion(this.systemUserConfig(systemMessage, userRequest));
-        }
-
         List<ChatCompletionContentPart> parts = new ArrayList<>();
+
+        // Always add the text part first
+        parts.add(Messages.textPart(userRequest));
+
+        boolean visionSupported = this.supportsVision();
+        boolean audioSupported = this.supportsAudio();
 
         if (files != null && !files.isEmpty()) {
             for (File file : files) {
-                ChatCompletionContentPart img = Messages.imagePart(file);
-                if (img == null) continue;
-                parts.add(img);
+                String extension = getFileExtension(file);
+                if (extension == null) continue; // Skip files without extensions
+
+                ChatCompletionContentPart filePart = null;
+
+                if (visionSupported && IMAGE_EXTENSIONS.contains(extension)) {
+                    System.out.println("[OpenAIClientBase] Adding image part: " + file.getName());
+                    filePart = Messages.imagePart(file);
+                } else if (audioSupported && AUDIO_EXTENSIONS.contains(extension)) {
+                    System.out.println("[OpenAIClientBase] Adding audio part: " + file.getName());
+                    // Assuming Messages.audioPart exists and functions similarly to imagePart
+                    filePart = Messages.audioPart(file);
+                } else {
+                     System.out.println("[OpenAIClientBase] Skipping unsupported file type or feature: " + file.getName());
+                }
+
+                if (filePart != null) {
+                    parts.add(filePart);
+                } else {
+                    System.err.println("[OpenAIClientBase] Failed to create content part for file: " + file.getName());
+                }
             }
         }
 
-        parts.add(Messages.textPart(userRequest));
-
+        // If only text was added (or no files/supported files were provided),
+        // and the model doesn't support multi-modal input in this way,
+        // potentially fall back to simple text request?
+        // For now, we build the potentially multi-modal request regardless.
         ChatCompletionUserMessageParam usrParam = ChatCompletionUserMessageParam
                 .builder().contentOfArrayOfContentParts(parts).build();
 
@@ -62,7 +90,10 @@ public abstract class OpenAIClientBase implements IModelProvider {
         if (this.supportsDeveloperRole()) {
             paramsBuilder.addMessage(Messages.developer(systemMessage));
         } else {
-            paramsBuilder.addMessage(Messages.system(systemMessage));
+            // Add system message only if it's not empty or null
+            if (systemMessage != null && !systemMessage.trim().isEmpty()) {
+                 paramsBuilder.addMessage(Messages.system(systemMessage));
+            }
         }
 
         paramsBuilder.addMessage(usrParam).model(this.getModelName());
@@ -73,6 +104,17 @@ public abstract class OpenAIClientBase implements IModelProvider {
 
         return this.blockingCompletion(paramsBuilder.build());
     }
+
+    @Nullable
+    private String getFileExtension(@NotNull File file) {
+        String name = file.getName();
+        int lastIndexOf = name.lastIndexOf(".");
+        if (lastIndexOf == -1) {
+            return null; // No extension found
+        }
+        return name.substring(lastIndexOf + 1).toLowerCase();
+    }
+
 
     @Override
     public String getModelName() {
@@ -97,6 +139,8 @@ public abstract class OpenAIClientBase implements IModelProvider {
                 System.out.println(msg.getContent().toString());
                 System.out.println();
             }
+            System.out.println("Params: " + builder.build().toString()); // Log params
+            System.out.println("================ CHAT REQUEST END ================");
         }
 
         return this.blockingCompletion(builder.build());
@@ -122,7 +166,8 @@ public abstract class OpenAIClientBase implements IModelProvider {
                         choice.delta().content().ifPresent(content -> {
                             ref.buffer += content;
                             int len = ref.buffer.length();
-                            if (len - ref.len > bufferSize) {
+                            // Check buffer size and also handle potential empty content strings
+                            if (!content.isEmpty() && len - ref.len >= bufferSize) {
                                 String substr = ref.buffer.substring(ref.len);
                                 ref.len = len;
                                 snippetHandler.addSnippet(substr);
@@ -130,11 +175,18 @@ public abstract class OpenAIClientBase implements IModelProvider {
                         })
                 );
             }
+            // Send any remaining buffered content after the loop finishes
+            if (ref.buffer.length() > ref.len) {
+               snippetHandler.addSnippet(ref.buffer.substring(ref.len));
+            }
 
-            snippetHandler.addSnippet(ref.buffer.substring(ref.len));
 
         } catch (Exception e) {
+             // Log the error more informatively
+            System.err.println("[OpenAIClientBase] Error during streaming request: " + e.getMessage());
             e.printStackTrace();
+            // Optionally rethrow or handle more gracefully
+             throw new RuntimeException("Streaming failed", e);
         }
     }
 
@@ -162,22 +214,41 @@ public abstract class OpenAIClientBase implements IModelProvider {
     }
 
     public String blockingCompletion(ChatCompletionCreateParams params) {
-        System.out.println("[OpenAIClientBase] Beginning completion...");
+        System.out.println("[OpenAIClientBase] Beginning completion for model: " + params.model());
+        // System.out.println("[OpenAIClientBase] Request Params: " + params.toString()); // Be cautious logging potentially sensitive data
         long start = System.currentTimeMillis();
         try {
             ChatCompletion completion = this.getOrCreateClient().chat().completions().create(params);
             long end = System.currentTimeMillis();
-            System.out.println("[OpenAIClientBase] Took " + (end - start) + " ms.");
+            System.out.println("[OpenAIClientBase] Completion took " + (end - start) + " ms.");
 
-            ChatCompletion validate = completion.validate();
-            List<ChatCompletion.Choice> choices = validate.choices();
-            if (choices.isEmpty()) {
+            List<ChatCompletion.Choice> choices = completion.choices();
+            if (choices == null || choices.isEmpty()) {
+                System.err.println("[OpenAIClientBase] No choices returned from API.");
+                // Log usage data if available
+                 completion.usage().ifPresent(usage -> System.out.println("[OpenAIClientBase] Usage: " + usage));
                 return null;
             }
+            // Log finish reason
+            String finishReason = choices.get(0).finishReason().asString();
+            System.out.println("[OpenAIClientBase] Finish Reason: " + finishReason);
+
             Optional<String> content = choices.get(0).message().content();
-            return content.orElse(null);
+            // Log usage data if available
+            completion.usage().ifPresent(usage -> System.out.println("[OpenAIClientBase] Usage: " + usage));
+
+            if (content.isEmpty()) {
+                 System.err.println("[OpenAIClientBase] Choice message content is empty.");
+                 return null;
+            }
+
+            return content.get();
         } catch (Exception e) {
-            throw new RuntimeException("[OpenAIClientBase] Unable to complete request: " + e.getMessage());
+            // Log the parameters that caused the error (be careful with sensitive data)
+            System.err.println("[OpenAIClientBase] Error during blocking completion for model " + params.model());
+             // System.err.println("[OpenAIClientBase] Failing Params: " + params.toString()); // Be cautious logging potentially sensitive data
+            e.printStackTrace();
+            throw new RuntimeException("[OpenAIClientBase] Unable to complete request: " + e.getMessage(), e);
         }
     }
 
@@ -189,43 +260,65 @@ public abstract class OpenAIClientBase implements IModelProvider {
         return false;
     }
 
-    // Defaults to false.
+    // Defaults to false. Override in specific model implementations.
     @Override
     public boolean supportsAudio() {
         return false;
     }
 
+    // Defaults to false. Override in specific model implementations.
     @Override
     public boolean supportsVideo() {
+        // Video support not implemented in this pass.
         return false;
     }
 
+    // Defaults to false. Override in specific model implementations.
     @Override
     public boolean supportsVision() {
         return false;
     }
 
     public OpenAIClient getOrCreateClient() throws Exception {
-        OpenAIClient client = OpenAIClientBase.clients.get(this.baseUrl);
+        // Use baseUrl as key, fallback to "DEFAULT" if null (for official SDK endpoint)
+        String clientKey = this.baseUrl != null ? this.baseUrl : "DEFAULT_OPENAI";
+        OpenAIClient client = OpenAIClientBase.clients.get(clientKey);
         if (client == null) {
-            client = this.createClient();
-            OpenAIClientBase.clients.put(this.baseUrl, client);
+            synchronized (clients) { // Synchronize client creation
+                 // Double-check locking pattern
+                 client = OpenAIClientBase.clients.get(clientKey);
+                 if (client == null) {
+                    System.out.println("[OpenAIClientBase] Creating new OpenAIClient for key: " + clientKey);
+                    client = this.createClient();
+                    OpenAIClientBase.clients.put(clientKey, client);
+                 }
+            }
         }
-
         return client;
     }
 
     private OpenAIClient createClient() throws Exception {
-        if (this.apiKey == null) {
-            throw new Exception("API key was not found, cannot create OpenAI Client.");
+        if (this.apiKey == null || this.apiKey.trim().isEmpty()) {
+            throw new Exception("API key was not found or is empty, cannot create OpenAI Client.");
         }
 
         OpenAIOkHttpClient.Builder builder = OpenAIOkHttpClient.builder().apiKey(apiKey.trim());
         if (this.baseUrl != null) {
+            System.out.println("[OpenAIClientBase] Configuring client with Base URL: " + this.baseUrl);
             builder.baseUrl(this.baseUrl);
+        } else {
+             System.out.println("[OpenAIClientBase] Configuring client for default OpenAI API URL.");
         }
+        // Potentially add timeouts, interceptors etc. here if needed
+        // builder.connectTimeout(Duration.ofSeconds(20));
+        // builder.readTimeout(Duration.ofSeconds(120));
+
         return builder.build();
     }
 
-    protected static Map<String, OpenAIClient> clients = new HashMap<>();
+    // Use ConcurrentHashMap for thread safety if clients can be accessed concurrently
+    // private static Map<String, OpenAIClient> clients = new ConcurrentHashMap<>();
+    // Using HashMap for now, assuming client creation/access is controlled or infrequent enough
+    // Added synchronization in getOrCreateClient for safety.
+    protected static final Map<String, OpenAIClient> clients = new HashMap<>();
 }

@@ -3,6 +3,7 @@ package io.improt.vai.llm.providers.openai.utils;
 import com.openai.models.*;
 import com.openai.models.chat.completions.*;
 import io.improt.vai.llm.chat.ChatMessage;
+import io.improt.vai.llm.chat.content.AudioContent;
 import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 
@@ -39,6 +40,15 @@ public class Messages {
     public static ChatCompletionContentPart imagePart(File image) {
         ImageContent imageContent = new ImageContent(image);
         return imageContent.getPart();
+    }
+
+    public static ChatCompletionContentPart audioPart(File audio) {
+        AudioContent audioContent = new AudioContent(audio);
+        try {
+            return audioContent.getPart();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

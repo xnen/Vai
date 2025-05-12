@@ -264,6 +264,14 @@ public class App {
         return instance;
     }
 
+    public static String getGeminiKey() {
+        String s = System.getenv("GOOGLE_API_KEY");
+        if (s == null || s.length() < 1) {
+            System.out.println("[App] GOOGLE_API_KEY was not a defined environment variable. Google-based models may not work!");
+        }
+        return s;
+    }
+
     public IModelProvider getLLMProvider(String modelName) {
         return this.llmRegistry.getModel(modelName);
     }

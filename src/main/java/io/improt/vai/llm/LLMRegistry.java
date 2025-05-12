@@ -19,6 +19,7 @@ public class LLMRegistry {
     private final List<IModelProvider> modelList = new ArrayList<>();
 
     public void registerModels() {
+//        register(new GeminiProvider());
         register(new FourOProvider());
         register(new GPT4oSearchProvider());
         register(new GPT41Provider());
@@ -33,7 +34,7 @@ public class LLMRegistry {
         register(new FourOAudioMiniProvider());
         register(new NVIDIADeepSeekProvider());
         register(new ClaudeProvider());
-        register(new GeminiProvider());
+        register(new GeminiProProvider());
 
         modelList.addAll(this.models.values());
 
