@@ -102,7 +102,7 @@ public class LLMInteraction {
         }
 
         if (PROMPT_TEMPLATE == null) {
-            String defaultPromptBase64 = Constants.DEFAULT_PROMPT_TEMPLATE_B64;
+            String defaultPromptBase64 = "todo";//Constants.DEFAULT_PROMPT_TEMPLATE_B64;
             byte[] decodedBytes = Base64.getDecoder().decode(defaultPromptBase64);
             String defaultPrompt = new String(decodedBytes, StandardCharsets.UTF_8);
             FileUtils.writeStringToFile(new File(Constants.PROMPT_TEMPLATE_FILE), defaultPrompt);
@@ -202,8 +202,15 @@ public class LLMInteraction {
             }
 
             Path workspacePath = Paths.get(this.app.getCurrentWorkspace().getAbsolutePath());
+            System.out.println("Parsed '" + parsedFiles.size() + "' files...");
 
             for (BerzfadParser.FileContent fileContent : parsedFiles) {
+                if (fileContent.getFileName().trim().isEmpty()) {
+                    System.out.println(fileContent.toString());
+                    System.out.println("[SEVERE] File parsed had no filename!?");
+                    continue;
+                }
+
                 String fileName = fileContent.getFileName();
                 String newContents = fileContent.getNewContents();
                 String fileType = fileContent.getFileType();

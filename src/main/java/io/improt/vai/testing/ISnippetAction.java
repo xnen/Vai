@@ -1,5 +1,4 @@
 package io.improt.vai.testing;
 
-public interface ISnippetAction {
-    void doAction(String snippet);
-}
+// Moved to io.improt.vai.util.stream
+

@@ -6,6 +6,8 @@ import io.improt.vai.llm.chat.content.TextContent;
 import io.improt.vai.llm.chat.content.ImageContent;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.util.UICommons;
+import io.improt.vai.util.stream.ISnippetAction;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -14,112 +16,126 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
-import javax.swing.border.LineBorder;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.io.File;
 import java.util.concurrent.Executors;
 
 /**
- * The main chat window frame.
+ * The main chat window frame. Supports streaming responses. Modernized UI.
  */
 public class ChatWindow extends JFrame {
+    // --- Constants ---
+    private static final Color BG_DARK = new Color(43, 43, 43); // Darker background
+    private static final Color BG_MEDIUM = new Color(55, 55, 55); // Slightly lighter for elements
+    private static final Color BG_INPUT = new Color(60, 60, 60); // Input field background
+    private static final Color TEXT_PRIMARY = new Color(220, 220, 220); // Primary text
+    private static final Color TEXT_SECONDARY = new Color(160, 160, 160); // Secondary text (header)
+    private static final Color BORDER_COLOR = new Color(75, 75, 75); // Subtle borders
+    private static final Color SCROLLBAR_COLOR = new Color(85, 85, 85);
+    private static final Color SCROLLBAR_THUMB_COLOR = new Color(120, 120, 120);
+    private static final Font PRIMARY_FONT = new Font("Inter Regular", Font.PLAIN, 14); // Modern font
+    private static final Font BOLD_FONT = new Font("Inter Regular", Font.BOLD, 12); // Bold variant
+
     private final ChatLLMHandler llmHandler;
     private ChatPanel chatPanel;
     private JScrollPane scrollPane;
     private JTextArea inputArea;
-    // Flag to track if the model is currently running.
     private volatile boolean isModelRunning = false;
-    // Remember initial click for dragging the window.
     private Point initialClick;
-    // New field for the typing bubble indicator.
-    private TypingBubble typingBubble;
+    private JPanel headerPanel;
 
     public ChatWindow(ChatLLMHandler handler) {
         super("Chat Window");
         this.llmHandler = handler;
+        try {
+            // Attempt to load the Inter font if available
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/Inter-Regular.ttf"))); // Adjust path if needed
+            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/Inter-Bold.ttf"))); // Adjust path if needed
+        } catch (Exception e) {
+            System.err.println("Inter font not found, using default sans-serif.");
+            // Font constants will use the fallback if "Inter" isn't registered
+        }
+
         initComponents();
-        // Start transparent, fade in for effect.
-        setOpacity(0f);
-        fadeIn();
-        
-        // Set input area to be the default focused field.
-        SwingUtilities.invokeLater(() -> inputArea.requestFocusInWindow());
-        
-        // Always on top (Feature #3)
         setAlwaysOnTop(true);
-        
-        this.callModel();
+        this.setUndecorated(true);
+        UICommons.applyRoundedCorners(this, 20, 20); // Slightly more rounded
+
+        SwingUtilities.invokeLater(() -> inputArea.requestFocusInWindow());
     }
 
     private void initComponents() {
-        // Basic frame properties
-        setSize(660, 700);
+        setSize(680, 720); // Slightly larger
         setLocationRelativeTo(null);
-        setUndecorated(true);
 
-        // Main panel with a slightly transparent, rounded rectangle background.
-        RoundedPanel mainPanel = new RoundedPanel(30, new Color(50, 50, 50, 230));
-        mainPanel.setLayout(new BorderLayout());
+        // Main panel using the dark background
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BG_DARK);
         setContentPane(mainPanel);
 
-        // Add drag functionality to move the window by clicking and dragging the main panel.
-        mainPanel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                initialClick = e.getPoint();
-            }
-        });
-        mainPanel.addMouseMotionListener(new MouseMotionAdapter() {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                int thisX = getLocation().x;
-                int thisY = getLocation().y;
+        // --- Draggable Header ---
+        headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 8)); // Added padding
+        headerPanel.setBackground(BG_MEDIUM); // Use medium background
+        headerPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR)); // Subtle bottom border
+        JLabel titleLabel = new JLabel(llmHandler.getSelectedModel());
+        titleLabel.setForeground(TEXT_SECONDARY); // Use secondary text color
+        titleLabel.setFont(BOLD_FONT); // Use bold font
+        headerPanel.add(titleLabel);
+        addWindowDragListeners(headerPanel); // Add drag listeners
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
 
-                int xMoved = e.getX() - initialClick.x;
-                int yMoved = e.getY() - initialClick.y;
-
-                setLocation(thisX + xMoved, thisY + yMoved);
-            }
-        });
-
-        // The chat area, inside a scroll pane
-        chatPanel = new ChatPanel();
-        // Set the overlay to display the current selected model in small bold text.
-        chatPanel.setModelName(llmHandler.getSelectedModel());
+        // --- Chat Area ---
+        chatPanel = new ChatPanel(); // ChatPanel background is set internally
         scrollPane = new JScrollPane(chatPanel);
-        scrollPane.setOpaque(true);
-        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(BG_DARK); // Match main background
         scrollPane.setBorder(null);
-        // Increase scroll speed to make it about 3x faster than default
-        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(18); // Slightly adjusted scroll speed
+        // Customize Scrollbar UI
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER); // Hide horizontal bar
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Input panel at the bottom
-        JPanel inputPanel = new JPanel(new BorderLayout());
+        // --- Input Panel ---
+        JPanel inputPanel = new JPanel(new BorderLayout(5, 5)); // Add small gap
         inputPanel.setOpaque(true);
-        inputPanel.setBackground(new Color(70, 70, 70));
-        inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        inputPanel.setBackground(BG_MEDIUM); // Match header background
+        // Add padding and a top border
+        inputPanel.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15) // Generous padding
+        ));
         mainPanel.add(inputPanel, BorderLayout.SOUTH);
 
-        // A multi-line text area for input
-        inputArea = new JTextArea(3, 30);
+        // --- Input Text Area ---
+        inputArea = new JTextArea(3, 30); // Start with 3 rows
         inputArea.setLineWrap(true);
         inputArea.setWrapStyleWord(true);
-        inputArea.setBackground(new Color(60, 60, 60));
-        inputArea.setForeground(Color.WHITE);
-        inputArea.setCaretColor(Color.WHITE);
-        inputArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        inputArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        inputArea.setBackground(BG_INPUT); // Specific input background
+        inputArea.setForeground(TEXT_PRIMARY); // Primary text color
+        inputArea.setCaretColor(TEXT_PRIMARY); // White caret
+        inputArea.setFont(PRIMARY_FONT); // Use primary font
+        // Padding inside the text area and rounded border
+        inputArea.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1, true), // Rounded line border
+                BorderFactory.createEmptyBorder(8, 10, 8, 10) // Internal padding
+        ));
+        // Make border rounded (Requires custom painting or look-and-feel)
+        // For simplicity, using standard rounded line border above.
 
         JScrollPane inputScrollPane = new JScrollPane(inputArea);
         inputScrollPane.setBorder(null);
+        inputScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        inputScrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI()); // Style scrollbar here too
         inputScrollPane.setOpaque(false);
         inputScrollPane.getViewport().setOpaque(false);
         inputPanel.add(inputScrollPane, BorderLayout.CENTER);
 
-        // Removed send and record buttons per requirements;
-        // user now sends message on Ctrl+Enter.
-
-        // Key binding for sending the message via Ctrl+Enter
+        // --- Key Bindings ---
+        // CTRL+ENTER to send
         inputArea.getInputMap(JComponent.WHEN_FOCUSED)
                 .put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), "sendMessage");
         inputArea.getActionMap().put("sendMessage", new AbstractAction() {
@@ -128,152 +144,230 @@ public class ChatWindow extends JFrame {
                 sendMessage();
             }
         });
-        
-        // Key binding for paste action in ChatWindow's text field (Feature #2)
+
+        // CTRL+V to paste (handle images if model supports vision)
         inputArea.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke("ctrl V"), "pasteAction");
         inputArea.getActionMap().put("pasteAction", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String modelName = llmHandler.getSelectedModel();
-                IModelProvider llmProvider = App.getInstance().getLLMProvider(modelName);
-                if (llmProvider == null || !llmProvider.supportsVision()) {
-                    return;
-                }
-
-                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                Transferable contents = clipboard.getContents(null);
-                try {
-                    if (contents != null && contents.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                        Image image = (Image) contents.getTransferData(DataFlavor.imageFlavor);
-                        int width = image.getWidth(null);
-                        int height = image.getHeight(null);
-                        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                        Graphics2D g2d = bufferedImage.createGraphics();
-                        g2d.drawImage(image, 0, 0, null);
-                        g2d.dispose();
-                        File tempFile = File.createTempFile("chatWindowPastedImage", ".png");
-                        ImageIO.write(bufferedImage, "png", tempFile);
-                        
-                        // Create a new ChatMessage for the pasted image (as a user message) and add it to history.
-                        ChatMessage imageMessage = new ChatMessage(ChatMessageUserType.USER, new ImageContent(tempFile));
-                        llmHandler.addMessage(imageMessage);
-                        ChatBubble imageBubble = new ChatBubble(imageMessage, true);
-                        chatPanel.addChatBubble(imageBubble, true);
-                        scrollToBottom();
-                    } else if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                        inputArea.paste();
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                handlePaste();
             }
         });
 
-        // Add ESC key listener to dispose the chat window
+        // ESC to close
         getRootPane().registerKeyboardAction(e -> dispose(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
 
-        // Keep corners rounded whenever window is resized.
-        addComponentListener(new ComponentAdapter() {
+        // Add listener to dynamically adjust input area height
+        inputArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
-            public void componentResized(ComponentEvent e) {
-                UICommons.applyRoundedCorners(ChatWindow.this, 30, 30);
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { adjustInputAreaHeight(); }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { adjustInputAreaHeight(); }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { adjustInputAreaHeight(); }
+        });
+        adjustInputAreaHeight(); // Initial adjustment
+    }
+
+    /** Adjusts the input JTextArea's preferred height based on content, up to a max. */
+    private void adjustInputAreaHeight() {
+        SwingUtilities.invokeLater(() -> {
+            int maxRows = 8; // Max height equivalent to 8 rows
+            int minRows = 2; // Min height equivalent to 2 rows
+            int fontHeight = inputArea.getFontMetrics(inputArea.getFont()).getHeight();
+            int desiredRows = Math.max(minRows, Math.min(maxRows, inputArea.getLineCount()));
+            int bordersAndPadding = inputArea.getInsets().top + inputArea.getInsets().bottom + 10; // Estimate padding
+
+            // Calculate preferred height based on desired rows
+            int preferredHeight = (desiredRows * fontHeight) + bordersAndPadding;
+
+            // Update scroll pane preferred size
+            Dimension currentSize = inputArea.getPreferredSize();
+            if (currentSize.height != preferredHeight) {
+                 JScrollPane inputScrollPane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, inputArea);
+                 if (inputScrollPane != null) {
+                    inputScrollPane.setPreferredSize(new Dimension(currentSize.width, preferredHeight));
+                    inputScrollPane.revalidate();
+                    // Revalidate the parent container holding the scroll pane
+                    Container parent = inputScrollPane.getParent();
+                     if (parent != null) {
+                         parent.revalidate();
+                     }
+                 }
             }
         });
     }
 
-    /**
-     * Sends user text to the chat panel and triggers the LLM response in a background thread.
-     */
-    private void sendMessage() {
+    /** Handles the paste action, checking for images if the model supports vision. */
+    private void handlePaste() {
+        String modelName = llmHandler.getSelectedModel();
+        IModelProvider llmProvider = App.getInstance().getLLMProvider(modelName);
+
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Transferable contents = clipboard.getContents(null);
+        try {
+            // Handle image paste only if provider supports vision
+            if (llmProvider != null && llmProvider.supportsVision() &&
+                contents != null && contents.isDataFlavorSupported(DataFlavor.imageFlavor))
+            {
+                Image image = (Image) contents.getTransferData(DataFlavor.imageFlavor);
+                BufferedImage bufferedImage = toBufferedImage(image);
+                File tempFile = File.createTempFile("chatWindowPastedImage", ".png");
+                ImageIO.write(bufferedImage, "png", tempFile);
+
+                // Add image message to history and UI
+                ChatMessage imageMessage = new ChatMessage(ChatMessageUserType.USER, new ImageContent(tempFile));
+                llmHandler.addMessage(imageMessage);
+                ChatBubble imageBubble = new ChatBubble(imageMessage, true); // true for user
+                chatPanel.addChatBubble(imageBubble, true);
+                scrollToBottom();
+            } else if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                // Standard text paste
+                inputArea.paste();
+            }
+        } catch (Exception ex) {
+            System.err.println("Paste error: " + ex.getMessage());
+            ex.printStackTrace();
+            // Fallback to standard text paste if image handling fails unexpectedly
+            inputArea.paste();
+        }
+    }
+
+     /** Converts an Image to a BufferedImage. */
+    private BufferedImage toBufferedImage(Image img) {
+        if (img instanceof BufferedImage) {
+            return (BufferedImage) img;
+        }
+        BufferedImage bimage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bGr = bimage.createGraphics();
+        bGr.drawImage(img, 0, 0, null);
+        bGr.dispose();
+        return bimage;
+    }
+
+    /** Adds mouse listeners for dragging the window using a specific component. */
+    private void addWindowDragListeners(Component dragComponent) {
+        MouseAdapter dragAdapter = new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                initialClick = e.getPoint();
+                SwingUtilities.convertPointToScreen(initialClick, dragComponent);
+                initialClick.x -= getLocation().x;
+                initialClick.y -= getLocation().y;
+            }
+        };
+        MouseMotionAdapter motionAdapter = new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                Point currentScreenPoint = e.getLocationOnScreen();
+                setLocation(currentScreenPoint.x - initialClick.x, currentScreenPoint.y - initialClick.y);
+            }
+        };
+        dragComponent.addMouseListener(dragAdapter);
+        dragComponent.addMouseMotionListener(motionAdapter);
+    }
+
+    /** Sends the message from the input area. */
+    public void sendMessage() {
         if (isModelRunning) {
             triggerErrorAnimation();
             return;
         }
-        
         String text = inputArea.getText().trim();
-        if (text.isEmpty()) {
-            return;
+        inputArea.setText(""); // Clear input immediately
+        adjustInputAreaHeight(); // Adjust height after clearing
+
+        if (!text.isEmpty()) {
+            ChatMessage userMessage = new ChatMessage(ChatMessageUserType.USER, new TextContent(text));
+            llmHandler.addMessage(userMessage);
+            ChatBubble userBubble = new ChatBubble(userMessage, true);
+            chatPanel.addChatBubble(userBubble, true);
+            scrollToBottom();
         }
-        inputArea.setText("");
-        
-        // Create ChatMessage for the user text and add it to the conversation history.
-        ChatMessage userMessage = new ChatMessage(ChatMessageUserType.USER, new TextContent(text));
-        llmHandler.addMessage(userMessage);
-        ChatBubble userBubble = new ChatBubble(userMessage, true);
-        chatPanel.addChatBubble(userBubble, true);
-        scrollToBottom();
-        
-        // Call model in background
-        this.callModel();
+        // Always call the model, even if text is empty (might have pasted images)
+        this.callModelStreaming();
     }
 
-    /**
-     * Triggers an error-like animation by flashing a red border on the input text area.
-     */
+    /** Flashes the input area border to indicate an error (e.g., sending while busy). */
     private void triggerErrorAnimation() {
-        Color originalBorderColor = ((LineBorder)inputArea.getBorder()).getLineColor();
-        inputArea.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-        Timer timer = new Timer(500, e -> {
-            inputArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        });
+        Color errorColor = new Color(180, 50, 50);
+        Border originalBorder = inputArea.getBorder();
+        Border errorBorder = new CompoundBorder(
+                BorderFactory.createLineBorder(errorColor, 2, true), // Thicker error border
+                ((CompoundBorder)originalBorder).getInsideBorder() // Keep padding
+        );
+
+        inputArea.setBorder(errorBorder);
+        Timer timer = new Timer(500, e -> inputArea.setBorder(originalBorder));
         timer.setRepeats(false);
         timer.start();
     }
 
-    /**
-     * Initiates the model request.
-     * Displays a typing bubble (animated dots) while the request is running,
-     * then removes it before adding the actual assistant response.
-     */
-    private void callModel() {
+    /** Initiates the streaming model request and updates the UI. */
+    private void callModelStreaming() {
         isModelRunning = true;
         SwingUtilities.invokeLater(() -> inputArea.setEnabled(false));
-        
-        // Show the typing bubble before starting the background model call.
+
+        // Create placeholder message and bubble for the assistant
+        final ChatMessage assistantMessage = new ChatMessage(ChatMessageUserType.ASSISTANT, new TextContent(""));
+        // Add the placeholder message to history immediately
+        // llmHandler.addMessage(assistantMessage); // Add message to history only *after* stream completes
+
+        // Create the visual bubble first
+        final ChatBubble assistantBubble = new ChatBubble(assistantMessage, false);
         SwingUtilities.invokeLater(() -> {
-            typingBubble = new TypingBubble();
-            chatPanel.addBubble(typingBubble, false);
+            chatPanel.addChatBubble(assistantBubble, false);
             scrollToBottom();
         });
-        
+
+        final StringBuilder fullResponseBuilder = new StringBuilder();
+
+        // Action for each received snippet
+        ISnippetAction snippetAction = snippet -> {
+            fullResponseBuilder.append(snippet);
+            SwingUtilities.invokeLater(() -> {
+                assistantBubble.appendText(snippet); // Update bubble content live
+                revalidateScrollPane();
+                scrollToBottom();
+            });
+        };
+
+        // Action on stream completion
+        Runnable onCompleteAction = () -> SwingUtilities.invokeLater(() -> {
+            // Update the *actual* ChatMessage content now that we have the full response
+            ((TextContent) assistantMessage.getContent()).setText(fullResponseBuilder.toString());
+            // Now add the completed message to the handler's history
+            llmHandler.addMessage(assistantMessage);
+
+            // Re-enable input and clean up
+            inputArea.setEnabled(true);
+            inputArea.requestFocusInWindow();
+            isModelRunning = false;
+            revalidateScrollPane();
+            scrollToBottom();
+        });
+
+        // Start streaming in background
         Executors.newSingleThreadExecutor().submit(() -> {
             try {
-                int previous = llmHandler.getConversationHistory().size();
-                llmHandler.runModelWithCurrentHistory();
-                int newSize = llmHandler.getConversationHistory().size();
-                SwingUtilities.invokeLater(() -> {
-                    if (typingBubble != null) {
-                        typingBubble.stopAnimation();
-                        chatPanel.remove(typingBubble);
-                        chatPanel.recalcLayout();
-                        typingBubble = null;
-                    }
-                });
-
-                for (int i = previous; i < newSize; i++) {
-                    ChatMessage newMessage = llmHandler.getConversationHistory().get(i);
-                    ChatBubble assistantBubble = new ChatBubble(newMessage, false);
-                    chatPanel.addChatBubble(assistantBubble, false);
-                    scrollToBottom();
-                }
-
-
+                llmHandler.streamModelResponse(snippetAction, onCompleteAction);
             } catch (Exception ex) {
                 ex.printStackTrace();
-            } finally {
                 SwingUtilities.invokeLater(() -> {
-                    // Ensure the typing bubble is removed in case of an error.
-                    if (typingBubble != null) {
-                        typingBubble.stopAnimation();
-                        chatPanel.remove(typingBubble);
-                        chatPanel.recalcLayout();
-                        typingBubble = null;
-                    }
+                    String errorText = "Error during streaming: " + ex.getMessage();
+                    // Update the bubble with the error
+                    assistantBubble.appendText("\n\n**Error:**\n```\n" + errorText + "\n```");
+                    // Update the message content in history as well
+                    ((TextContent) assistantMessage.getContent()).setText(fullResponseBuilder.toString() + "\n\n**Error:**\n```\n" + errorText + "\n```");
+                    llmHandler.addMessage(assistantMessage); // Add error message to history
+
                     inputArea.setEnabled(true);
                     inputArea.requestFocusInWindow();
+                    isModelRunning = false;
+                    revalidateScrollPane();
+                    scrollToBottom();
                 });
-                isModelRunning = false;
             }
         });
     }
@@ -282,112 +376,90 @@ public class ChatWindow extends JFrame {
         SwingUtilities.invokeLater(() -> {
             JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
             verticalBar.setValue(verticalBar.getMaximum());
+            // Small delay and re-scroll can sometimes help ensure it reaches the absolute bottom
+            Timer timer = new Timer(50, e -> verticalBar.setValue(verticalBar.getMaximum()));
+            timer.setRepeats(false);
+            timer.start();
         });
     }
 
-    /**
-     * Populate the chat panel with any existing conversation history from the LLM handler.
-     */
+    public void revalidateScrollPane() {
+         SwingUtilities.invokeLater(() -> {
+             if (scrollPane != null) {
+                 scrollPane.revalidate();
+                 scrollPane.repaint();
+             }
+             // Sometimes revalidating the chatPanel itself helps BoxLayout
+             if (chatPanel != null) {
+                 chatPanel.revalidate();
+                 chatPanel.repaint();
+             }
+         });
+    }
+
     public void populateInitialChatHistory() {
+        chatPanel.clearBubbles(); // Clear existing bubbles first
         for (ChatMessage msg : llmHandler.getConversationHistory()) {
             if (msg.getMessageType() == ChatMessageUserType.SYSTEM) continue;
-
             boolean isUser = msg.getMessageType() == ChatMessageUserType.USER;
-            ChatBubble bubble;
-            if (msg.getContent() instanceof ImageContent) {
-                File imageFile = ((ImageContent) msg.getContent()).getImageFile();
-                try {
-                    BufferedImage img = ImageIO.read(imageFile);
-                    BufferedImage preview = cropAndResizeImage(img);
-                    ImageIcon icon = new ImageIcon(preview);
-                    bubble = new ChatBubble(icon, isUser);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    bubble = new ChatBubble("Image could not be loaded.", isUser);
-                }
-            } else {
-                bubble = new ChatBubble(msg.getContent().toString(), isUser);
-            }
+            ChatBubble bubble = new ChatBubble(msg, isUser);
             chatPanel.addChatBubble(bubble, isUser);
         }
+        revalidateScrollPane();
         scrollToBottom();
     }
 
-    /**
-     * Fades the window in over ~0.3 seconds.
-     */
-    private void fadeIn() {
-        Timer timer = new Timer(5, null);
-        timer.addActionListener(new ActionListener() {
-            float opacity = 0f;
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                opacity += 0.03f;
-                if (opacity >= 1.0f) {
-                    setOpacity(1.0f);
-                    timer.stop();
-                } else {
-                    setOpacity(opacity);
-                }
-            }
-        });
-        timer.start();
-    }
-
-    /**
-     * A simple helper to crop an image to a square and then resize to 100x100 for display.
-     */
-    private BufferedImage cropAndResizeImage(BufferedImage source) {
-        int width = source.getWidth();
-        int height = source.getHeight();
-        int minDim = Math.min(width, height);
-        int x = (width - minDim) / 2;
-        int y = (height - minDim) / 2;
-        BufferedImage cropped = source.getSubimage(x, y, minDim, minDim);
-        BufferedImage resized = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = resized.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.drawImage(cropped, 0, 0, 100, 100, null);
-        g2.dispose();
-        return resized;
-    }
-
-    /**
-     * A simple rounded panel for the main window background.
-     */
-    private static class RoundedPanel extends JPanel {
-        private final int radius;
-        private final Color backgroundColor;
-
-        public RoundedPanel(int radius, Color bgColor) {
-            super();
-            this.radius = radius;
-            this.backgroundColor = bgColor;
-            setOpaque(false);
-        }
+    /** Custom UI for modern scrollbars. */
+    private static class ModernScrollBarUI extends BasicScrollBarUI {
+        private final Dimension d = new Dimension();
 
         @Override
-        protected void paintComponent(Graphics g) {
+        protected JButton createDecreaseButton(int orientation) {
+            return new JButton() { // Invisible button
+                @Override public Dimension getPreferredSize() { return d; }
+            };
+        }
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return new JButton() { // Invisible button
+                 @Override public Dimension getPreferredSize() { return d; }
+            };
+        }
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            g.setColor(SCROLLBAR_COLOR); // Track color
+            g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        }
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
+            if (thumbBounds.isEmpty() || !scrollbar.isEnabled()) {
+                return;
+            }
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(backgroundColor);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
+            g2.setColor(SCROLLBAR_THUMB_COLOR); // Thumb color
+            // Draw rounded thumb
+            g2.fillRoundRect(thumbBounds.x + 2, thumbBounds.y + 2, thumbBounds.width - 4, thumbBounds.height - 4, 5, 5);
             g2.dispose();
-            super.paintComponent(g);
+        }
+        @Override
+        protected void configureScrollBarColors() {
+            this.thumbColor = SCROLLBAR_THUMB_COLOR;
+            this.trackColor = SCROLLBAR_COLOR;
         }
     }
-    
-    /**
-     * Removes the given chat bubble from the UI and also from the conversation history.
-     * (Feature #1: Double-click removal)
-     */
+
+    /** Removes a bubble and its associated message from history. */
     public void removeChatBubble(ChatBubble bubble) {
-        chatPanel.remove(bubble);
+        chatPanel.removeBubble(bubble); // Use dedicated remove method in ChatPanel
         if (bubble.getAssociatedMessage() != null) {
             llmHandler.removeMessage(bubble.getAssociatedMessage());
         }
-        chatPanel.recalcLayout();
-        scrollToBottom();
+        revalidateScrollPane();
+        // No need to scroll to bottom after removal usually
     }
-    
+
+    public JTextArea getInputArea() {
+        return inputArea;
+    }
 }

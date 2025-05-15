@@ -9,13 +9,16 @@ import io.improt.vai.backend.App;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.utils.Messages;
-import io.improt.vai.testing.ISnippetAction;
-import io.improt.vai.testing.SnippetHandler;
+import io.improt.vai.util.stream.ISnippetAction;
+import io.improt.vai.util.stream.SnippetHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public abstract class OpenAIClientBase implements IModelProvider {
 
@@ -25,6 +28,9 @@ public abstract class OpenAIClientBase implements IModelProvider {
 
     private static final Set<String> AUDIO_EXTENSIONS = Set.of("mp3", "wav", "ogg", "flac", "m4a", "aac", "opus");
     private static final Set<String> IMAGE_EXTENSIONS = Set.of("png", "jpg", "jpeg", "gif", "webp");
+
+    // Executor for handling streaming responses without blocking the main thread
+    private static final ExecutorService streamingExecutor = Executors.newCachedThreadPool();
 
 
     public OpenAIClientBase(String baseUrl, String modelName, String apiKey) {
@@ -146,14 +152,83 @@ public abstract class OpenAIClientBase implements IModelProvider {
         return this.blockingCompletion(builder.build());
     }
 
+    @Override
+    public void streamChatRequest(List<ChatMessage> messages, ISnippetAction streamAction, Runnable onComplete) throws Exception {
+        ChatCompletionCreateParams.Builder builder = Messages.buildChat(this, messages);
+
+        if (this.supportsReasoningEffort()) {
+            builder.reasoningEffort(App.getInstance().getConfiguredReasoningEffort());
+        }
+
+        ChatCompletionCreateParams params = builder.model(this.getModelName()).build();
+
+        // Execute streaming in a separate thread
+        streamingExecutor.submit(() -> {
+            SnippetHandler snippetHandler = null;
+            try {
+                // Create SnippetHandler here, passing the provided actions
+                snippetHandler = new SnippetHandler(streamAction, onComplete);
+
+                StreamResponse<ChatCompletionChunk> streaming = getOrCreateClient()
+                        .chat()
+                        .completions()
+                        .createStreaming(params);
+
+                Iterator<ChatCompletionChunk> iterator = streaming.stream().iterator();
+
+                while (iterator.hasNext()) {
+                    ChatCompletionChunk chunk = iterator.next();
+                    SnippetHandler finalSnippetHandler = snippetHandler;
+                    chunk.choices().forEach(choice ->
+                            choice.delta().content().ifPresent(content -> {
+                                if (content != null && !content.isEmpty()) {
+                                     // Pass snippet to handler, it will process in its worker thread
+                                     finalSnippetHandler.addSnippet(content);
+                                }
+                            })
+                    );
+                    // Check for finish reason to signal completion early if possible
+                    if (!chunk.choices().isEmpty() && chunk.choices().get(0).finishReason().isPresent()) {
+                         break; // Exit loop if finish reason is received
+                    }
+                }
+                 // Signal completion after processing all chunks
+                 snippetHandler.signalComplete();
+
+            } catch (Exception e) {
+                System.err.println("[OpenAIClientBase] Error during streaming execution: " + e.getMessage());
+                e.printStackTrace();
+                 // Ensure completion is signaled even on error, and potentially shutdown handler
+                 if (snippetHandler != null) {
+                     snippetHandler.signalComplete(); // Signal completion on error
+                     // Consider if shutdown is needed or if signalComplete is enough
+                     // snippetHandler.shutdown();
+                 } else if (onComplete != null) {
+                     // If snippetHandler wasn't created, still try to call onComplete
+                     onComplete.run();
+                 }
+                // Rethrow or handle error appropriately
+                // throw new RuntimeException("Streaming failed", e); // Avoid throwing from executor task directly
+            }
+        });
+    }
+
+
+    @Deprecated
     public void stream(ChatCompletionCreateParams params, ISnippetAction streamReceived, int bufferSize) {
+        // This method seems to have buffering logic that might conflict with SnippetHandler.
+        // Prefer using streamChatRequest which delegates to SnippetHandler for processing.
+        // Keeping it for reference but marking as deprecated.
+        System.err.println("[OpenAIClientBase] WARN: stream() method is deprecated, use streamChatRequest() instead.");
         try (StreamResponse<ChatCompletionChunk> streaming = getOrCreateClient()
                 .chat()
                 .completions()
                 .createStreaming(params)) {
 
             Iterator<ChatCompletionChunk> iterator = streaming.stream().iterator();
-            SnippetHandler snippetHandler = new SnippetHandler(streamReceived);
+            // Using the old testing package SnippetHandler here for compatibility if absolutely needed,
+            // but ideally this method should be removed or updated.
+            SnippetHandler snippetHandler = new SnippetHandler(streamReceived, null);
 
             var ref = new Object() {
                 String buffer = "";
@@ -179,14 +254,14 @@ public abstract class OpenAIClientBase implements IModelProvider {
             if (ref.buffer.length() > ref.len) {
                snippetHandler.addSnippet(ref.buffer.substring(ref.len));
             }
-
+            snippetHandler.shutdown(); // Ensure handler is shutdown
 
         } catch (Exception e) {
              // Log the error more informatively
-            System.err.println("[OpenAIClientBase] Error during streaming request: " + e.getMessage());
+            System.err.println("[OpenAIClientBase] Error during legacy streaming request: " + e.getMessage());
             e.printStackTrace();
             // Optionally rethrow or handle more gracefully
-             throw new RuntimeException("Streaming failed", e);
+             throw new RuntimeException("Legacy streaming failed", e);
         }
     }
 
@@ -321,4 +396,21 @@ public abstract class OpenAIClientBase implements IModelProvider {
     // Using HashMap for now, assuming client creation/access is controlled or infrequent enough
     // Added synchronization in getOrCreateClient for safety.
     protected static final Map<String, OpenAIClient> clients = new HashMap<>();
+
+    // Shutdown hook to clean up the executor service
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("[OpenAIClientBase] Shutting down streaming executor service...");
+            streamingExecutor.shutdown();
+            try {
+                if (!streamingExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    streamingExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                streamingExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+             System.out.println("[OpenAIClientBase] Streaming executor service shut down.");
+        }));
+    }
 }

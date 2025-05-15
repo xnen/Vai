@@ -481,8 +481,8 @@ public class WorkspaceMapper {
             }
             
             String prompt =
-                "Goal: Reduce file length for overview.\n" +
-                "Take files and reduce their content to as primitive of an outline as possible, for the purpose of quick overview by developers looking to identify which files may be relevant to reference for a certain task.\n" +
+                "Goal: Reduce file contents for overview.\n" +
+                "Take files and reduce their content to a somewhat primitive state, for the purpose of overview by developers looking to quickly find what classes, methods, fields, etc are relevant to complete tasks.\n" +
                 "\n" +
                 "Format:\n" +
                 "<namespace/package>\n" +
@@ -496,7 +496,8 @@ public class WorkspaceMapper {
                 "        methodTwo(obj: Object); <description of methodTwo>\n" +
                 "\n" +
                 "If no fields, don't include fields block. If no methods, don't include methods block.\n" +
-                "Write an extremely brief overview of the file as well, afterward. This overview should be able to tell the devs i.e. where the URL is to edit the mongodb client, etc. Details like this are important. DO NOT INFER OR GUESS WHAT SOMETHING DOES OR IS. SIMPLY WRITE A BRIEF ABSTRACT OUTLINE OF WHAT YOU BELIEVE THE PURPOSE OF THE CLASS IS.";
+                "Write an overview of the file as well, afterward. This overview should be able to tell the devs i.e. where the URL is to edit the mongodb client, etc. Details like this are important. DO NOT INFER OR GUESS WHAT SOMETHING DOES OR IS. SIMPLY WRITE A BRIEF ABSTRACT OUTLINE OF WHAT YOU BELIEVE THE PURPOSE OF THE CLASS IS.\n\n" +
+                "Developers should have a clear understanding of all fields, methods, and the general purpose aspect by viewing the result you produce.";
             
             O3MiniProvider miniProvider = new O3MiniProvider();
             try {

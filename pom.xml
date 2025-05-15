@@ -18,7 +18,6 @@
             <artifactId>openai-java</artifactId>
             <version>1.6.1</version>
         </dependency>
-
         <dependency>
             <groupId>com.fifesoft</groupId>
             <artifactId>rsyntaxtextarea</artifactId>
@@ -56,6 +55,12 @@
             <version>RELEASE</version>
             <scope>test</scope>
         </dependency>
+        <!-- Added flexmark-java for Markdown rendering -->
+        <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-all</artifactId>
+            <version>0.64.8</version> <!-- Use the latest version -->
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -91,3 +96,4 @@
         </plugins>
     </build>
 </project>
+

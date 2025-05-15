@@ -3,6 +3,7 @@ package io.improt.vai.llm.providers;
 import io.improt.vai.llm.Cost;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.providers.impl.IModelProvider;
+import io.improt.vai.util.stream.ISnippetAction;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -125,13 +126,19 @@ public class GeminiProvider implements IModelProvider {
     }
 
     @Override
+    public void streamChatRequest(List<ChatMessage> messages, ISnippetAction streamAction, Runnable onComplete) throws Exception {
+        throw new Exception("Unsupported model for chat.");
+
+    }
+
+    @Override
     public String getModelName() {
-        return "Gemini Flash Thinking";
+        return "Gemini Pro";
     }
 
     @Override
     public Cost getCost() {
-        return Cost.HIGH;
+        return Cost.FREE;
     }
 
     private String parseResponse(String responseBody) {

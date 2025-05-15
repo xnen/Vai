@@ -7,6 +7,7 @@ import com.anthropic.models.*;
 import io.improt.vai.llm.Cost;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.providers.impl.IModelProvider;
+import io.improt.vai.util.stream.ISnippetAction;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -67,6 +68,11 @@ public class ClaudeProvider implements IModelProvider {
 
     @Override
     public String chatRequest(List<ChatMessage> messages) throws Exception {
+        throw new Exception("Unsupported");
+    }
+
+    @Override
+    public void streamChatRequest(List<ChatMessage> messages, ISnippetAction streamAction, Runnable onComplete) throws Exception {
         throw new Exception("Unsupported");
     }
 

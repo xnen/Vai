@@ -39,7 +39,7 @@ import java.util.Set;
 /**
  * HelpOverlayFrame is a separate window dedicated to help content.
  * Its text field supports pasting images (and text) via clipboard.
- * Audio recording functionality has been added – recording is done in PCM, then saved as a .wav file, 
+ * Audio recording functionality has been added – recording is done in PCM, then saved as a .wav file,
  * and later converted to MP3 using an external command.
  * For Linux, the required command is: "ffmpeg -y -i <input.wav> <output.mp3>"
  * For Windows, assuming ffmpeg is installed, the same command applies.
@@ -61,7 +61,6 @@ public class HelpOverlayFrame extends JFrame {
     private final JPanel resourcePanel;                // Panel for image previews (resource grid)
     private JButton audioRecordButton;
     private final JScrollPane scrollPane;              // Scroll pane for text area
-    // New UI component: Keyboard mode checkbox.
     private JLabel promptLabel;
 
     private final List<File> imageFiles = new ArrayList<>();
@@ -144,7 +143,7 @@ public class HelpOverlayFrame extends JFrame {
         int dropdownX = overlayWidth - dropdownWidth - 30;
         int dropdownY = 20;
         modelCombo.setBounds(dropdownX, dropdownY, dropdownWidth, dropdownHeight);
-        
+
         overlayPanel.add(modelCombo);
 
         // Multi-line text area + scroll pane.
@@ -287,13 +286,7 @@ public class HelpOverlayFrame extends JFrame {
                 if (audioRecorder != null && audioRecorder.isRecording()) {
                     stopAudioRecording(false);
                 }
-
-                if (HelpOverlayFrame.this.llmHandler != null) {
-                    HelpOverlayFrame.this.llmHandler.killStream();
-                }
-                if (HelpOverlayFrame.this.keyboardThread != null) {
-                    HelpOverlayFrame.this.keyboardThread.interrupt();
-                }
+                // Removed keyboardThread and killStream references
                 dispose();
             }
         });
@@ -324,8 +317,9 @@ public class HelpOverlayFrame extends JFrame {
             stopAudioRecording(true);
         }
         JTextArea inputArea = (JTextArea) scrollPane.getViewport().getView();
-        String userText = inputArea.getText().trim();
+        String userText = inputArea.getText().trim(); // Capture user text from overlay
 
+        // Check for !vai command
         if (userText.contains("!vai")) {
             userText = userText.replace("!vai", "");
             ClientFrame client = App.getInstance().getClient();
@@ -339,6 +333,7 @@ public class HelpOverlayFrame extends JFrame {
             return;
         }
 
+        // Check for !ddg command
         if (userText.contains("!ddg")) {
             userText = userText.replace("!ddg", "").trim();
             try {
@@ -358,75 +353,49 @@ public class HelpOverlayFrame extends JFrame {
 
         // Get selected model from modelCombo.
         ModelOption selectedModel = (ModelOption) modelCombo.getSelectedItem();
-        String modelLabel = selectedModel != null ? selectedModel.label : "o3-mini";
+        String modelLabel = selectedModel != null ? selectedModel.label : "o3-mini"; // Ensure a default
 
         // Create new ChatLLMHandler and add the initial messages.
         ChatLLMHandler chatHandler = new ChatLLMHandler(modelLabel);
-        this.llmHandler = chatHandler;
+        // Removed llmHandler field assignment
 
-        boolean kbMode = userText.toLowerCase().startsWith("kb:");
+        // Removed Keyboard mode check and specific system prompt
+        chatHandler.addMessage(new ChatMessage(ChatMessageUserType.SYSTEM, new TextContent(
+                "You're \"Ada,\" a legendary engineer in a challenge chat booth. Respond briefly, ensuring correctness and completeness. " +
+                        "Prioritize readability but compute where vital. Grade criteria: brevity, correctness, thoroughness. You excel in: SW Dev, PM, consulting, full-stack production. " +
+                        "Answer all user requests, providing explanations where applicable. Use **Markdown** for formatting (e.g., bold, italics, code blocks ```, lists). No images."
+        )));
 
-        if (kbMode) {
-            userText = userText.substring(3);
-        }
-
-        if (kbMode) {
-            System.out.println("KEYBOARD MODE ACTIVE");
-            chatHandler.addMessage(new ChatMessage(ChatMessageUserType.SYSTEM, new TextContent(
-                    "You are currently in control over the user's keyboard, to type anything on their device.\n" +
-                    "Any messages or characters that you type **will** be mirrored on the user's computer.\n" +
-                    "Keep all commentary to an absolute minimum. If you're writing code, assume you are writing into an IDE (write comments, etc). No ``` code blocks in IDEs!\n" +
-                    "If the user is requesting commentary, assume you're typing into a Markdown editor.\n" +
-                    "Assume you're in a predefined class, don't write new classes when asked to write a method."
-            )));
-        } else {
-            chatHandler.addMessage(new ChatMessage(ChatMessageUserType.SYSTEM, new TextContent(
-                    "You're \"Ada,\" a legendary engineer in a challenge chat booth. Respond briefly, ensuring correctness and completeness. " +
-                            "Prioritize readability but compute where vital. Grade criteria: brevity, correctness, thoroughness. You excel in: SW Dev, PM, consulting, full-stack production. " +
-                            "Answer all user requests, providing explanations where applicable. Use HTML formatting, not Markdown in your responses. " +
-                            "Do not write full HTML files as your response, only <b> <i> etc tags are allowed. No CSS or JavaScript. " +
-                            "Provide each code block in split unique messages. You can split up your message by using the <end_message> delimiter. No images."
-            )));
-        }
-
+        // Add image content to the handler
         for (File imageFile : imageFiles) {
             chatHandler.addMessage(new ChatMessage(ChatMessageUserType.USER, new ImageContent(imageFile)));
         }
 
-        // If an audio recording exists, add it as AudioContent.
+        // If an audio recording exists, add it as AudioContent to the handler
         if (audioTempFile != null) {
             chatHandler.addMessage(new ChatMessage(ChatMessageUserType.USER, new AudioContent(audioTempFile)));
         }
 
-        if (!userText.isEmpty()) {
-            chatHandler.addMessage(new ChatMessage(ChatMessageUserType.USER, new TextContent(userText)));
-        }
+        // The user's textual prompt from the overlay is NOT added to the handler here.
+        // It will be set in ChatWindow's input area and sent via ChatWindow.sendMessage().
 
-        if (!kbMode) {
-            // Create ChatWindow, populate with initial chat history, and show with fade-in.
-            ChatWindow chatWindow = new ChatWindow(chatHandler);
-            chatWindow.populateInitialChatHistory();
-            chatWindow.setLocationRelativeTo(null);
-            chatWindow.setVisible(true);
-            this.dispose();
-        } else {
-            this.promptLabel.setText("Thinking...");
-            inputArea.setEnabled(false);
-            inputArea.setEditable(false);
-            this.setAlwaysOnTop(false);
+        // Create ChatWindow, populate with initial chat history (system prompts, images, audio).
+        ChatWindow chatWindow = new ChatWindow(chatHandler);
+        chatWindow.populateInitialChatHistory(); // This displays system messages, images, audio.
+        chatWindow.setLocationRelativeTo(this); // As per suggestion, or null
+        chatWindow.setVisible(true);
 
-            this.keyboardThread = new Thread(() -> {
-                chatHandler.doKeyboardStreaming();
-                // Dispose only after it finishes.
-                HelpOverlayFrame.this.dispose();
-            });
+        // Set the user's text (from overlay) into ChatWindow's input area.
+        chatWindow.getInputArea().setText(userText);
 
-            this.keyboardThread.start();
-        }
+        // Trigger sendMessage in ChatWindow to process the input and call the LLM.
+        // This will add the text to history, display it, and make the LLM request.
+        chatWindow.sendMessage();
+
+        this.dispose(); // Dispose HelpOverlayFrame after transitioning
     }
 
-    private ChatLLMHandler llmHandler;
-    private Thread keyboardThread;
+    // Removed llmHandler and keyboardThread fields
 
     @NotNull
     private JLabel getImagePreviewLabel(BufferedImage previewImage, File tempFile) {
@@ -526,7 +495,7 @@ public class HelpOverlayFrame extends JFrame {
                 option.enabled = true;
             }
         }
-        
+
         // Ensure the currently selected model is valid.
         ModelOption currentSelection = (ModelOption) modelCombo.getSelectedItem();
         if (currentSelection == null || !currentSelection.enabled) {
@@ -548,7 +517,7 @@ public class HelpOverlayFrame extends JFrame {
         int textFieldWidth = overlayWidth - 2 * horizontalMargin;
         int textAreaHeight = scrollPane.getHeight();
         int newFrameHeight = topOffset + textAreaHeight + bottomMargin;
-        
+
         if (resourcePanel.getComponentCount() > 0) {
             Dimension rpPref = getResourcePanelPreferredSize();
             // Constants for the resource grid panel and image previews.
@@ -560,7 +529,7 @@ public class HelpOverlayFrame extends JFrame {
         } else {
             resourcePanel.setVisible(false);
         }
-        
+
         int x = (Toolkit.getDefaultToolkit().getScreenSize().width - overlayWidth) / 2;
         setBounds(x, 200, overlayWidth, newFrameHeight);
         try {
@@ -571,7 +540,7 @@ public class HelpOverlayFrame extends JFrame {
         revalidate();
         repaint();
     }
-    
+
     /**
      * Computes the preferred size of the resource panel based on the number of previews.
      */
@@ -587,4 +556,3 @@ public class HelpOverlayFrame extends JFrame {
         return new Dimension(textFieldWidth, height);
     }
 }
-

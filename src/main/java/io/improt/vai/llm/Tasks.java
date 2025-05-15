@@ -2,6 +2,7 @@ package io.improt.vai.llm;
 
 import com.openai.models.ReasoningEffort;
 import io.improt.vai.backend.App;
+import io.improt.vai.llm.providers.GeminiProProvider;
 import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.llm.providers.O4MiniProvider;
 import io.improt.vai.mapping.WorkspaceMapper;
@@ -17,7 +18,7 @@ public class Tasks {
         String mappings = mapper.getAllMappingsConcatenated();
         String systemMessage = getSystemMessage(request);
 
-        O4MiniProvider o3MiniProvider = new O4MiniProvider();
+        GeminiProProvider o3MiniProvider = new GeminiProProvider();
         ReasoningEffort configuredReasoningEffort = App.getInstance().getConfiguredReasoningEffort();
         App.getInstance().setReasoningEffort(ReasoningEffort.HIGH);
         String response = o3MiniProvider.request(systemMessage, mappings, null);
