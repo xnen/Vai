@@ -2,6 +2,7 @@ package io.improt.vai.mapping;
 
 import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import io.improt.vai.llm.providers.GeminiProProvider;
 import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.util.FileUtils;
 
@@ -499,7 +500,7 @@ public class WorkspaceMapper {
                 "Write an overview of the file as well, afterward. This overview should be able to tell the devs i.e. where the URL is to edit the mongodb client, etc. Details like this are important. DO NOT INFER OR GUESS WHAT SOMETHING DOES OR IS. SIMPLY WRITE A BRIEF ABSTRACT OUTLINE OF WHAT YOU BELIEVE THE PURPOSE OF THE CLASS IS.\n\n" +
                 "Developers should have a clear understanding of all fields, methods, and the general purpose aspect by viewing the result you produce.";
             
-            O3MiniProvider miniProvider = new O3MiniProvider();
+            GeminiProProvider miniProvider = new GeminiProProvider();
             try {
                 ChatCompletionCreateParams simpleParams = miniProvider.simpleSystemUserRequest(prompt, fileContents, ReasoningEffort.LOW);
                 String llmResponse = miniProvider.blockingCompletion(simpleParams);
