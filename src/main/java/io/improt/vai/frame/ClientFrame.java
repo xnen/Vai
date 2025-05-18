@@ -8,10 +8,12 @@ import io.improt.vai.frame.component.FileViewerPanel;
 import io.improt.vai.frame.component.ProjectPanel;
 import io.improt.vai.frame.component.ActiveFilesPanel;
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
+import io.improt.vai.frame.dialogs.CreatePlanDialog; 
 import io.improt.vai.frame.dialogs.FeaturesDialog;
 import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
-import io.improt.vai.llm.Tasks;
+import io.improt.vai.mapping.SubWorkspace; 
+import io.improt.vai.llm.Tasks; 
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 import io.improt.vai.util.AudioUtils;
@@ -38,11 +40,9 @@ import javax.swing.BorderFactory;
 import javax.swing.Timer;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
-import java.util.prefs.Preferences;
+
 
 public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectionListener {
-
-    private static final Preferences PREFERENCES = Preferences.userNodeForPackage(ClientFrame.class);
 
     private final RecentActiveFilesPanel recentActiveFilesPanel;
     private ByteArrayOutputStream byteArrayOutputStream;
@@ -65,7 +65,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     private File currentFile;
     private File waveFile;
     private App backend;
-    private JCheckBox autoContextCheckBox; // Added Auto-Context checkbox
+    
 
     public ClientFrame() {
         super("Vai");
@@ -80,16 +80,16 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             System.err.println("Icon 'icon.ico' not found, using default Java icon.");
         }
 
-        // Menu configuration with flat, modern appearance
         JMenuBar menuBar = new JMenuBar();
         menuBar.setBackground(Color.decode("#FFFFFF"));
         menuBar.setForeground(Color.decode("#202124"));
 
         JMenu fileMenu = new JMenu("File");
         recentMenu = new JMenu("Recent");
-        recentActiveFilesMenu = new JMenu("Recent");
+        recentActiveFilesMenu = new JMenu("Recent Active Files"); 
         populateRecentMenu();
-        populateMenu();
+        populateMenu(); 
+
         JMenu configMenu = new JMenu("Config");
         JMenu featuresMenu = new JMenu("Features");
         JMenuItem configureFeaturesItem = new JMenuItem("Configure Features");
@@ -98,6 +98,18 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             featuresDialog.setVisible(true);
         });
         featuresMenu.add(configureFeaturesItem);
+
+        JMenu contextMenu = new JMenu("Context"); 
+
+        JMenuItem createPlanItem = new JMenuItem("Create Plan..."); 
+        createPlanItem.addActionListener(e -> handleCreatePlanAction());
+        contextMenu.add(createPlanItem); 
+
+        JMenuItem manageWorkspacesItem = new JMenuItem("Manage Workspaces...");
+        manageWorkspacesItem.addActionListener(e -> {
+            openWorkspaceMapperPanel();
+        });
+        contextMenu.add(manageWorkspacesItem);
 
         JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
@@ -136,6 +148,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
         menuBar.add(fileMenu);
         menuBar.add(configMenu);
+        menuBar.add(contextMenu); 
         menuBar.add(featuresMenu);
         menuBar.add(recentActiveFilesMenu);
         setJMenuBar(menuBar);
@@ -227,13 +240,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
         bottomPanel.add(modelCombo);
 
-        // Removed the Clear button and added an "Auto-Context" checkbox with persistence
-        this.autoContextCheckBox = new JCheckBox("Auto-Context");
-        this.autoContextCheckBox.setSelected(PREFERENCES.getBoolean("auto_context_enabled", false));
-        this.autoContextCheckBox.addItemListener(e -> {
-            PREFERENCES.putBoolean("auto_context_enabled", autoContextCheckBox.isSelected());
-        });
-        bottomPanel.add(this.autoContextCheckBox);
 
         JButton submitButton = createSubmitButton();
         bottomPanel.add(submitButton);
@@ -268,7 +274,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     }
 
     private void applyTheme() {
-        // Apply global theme settings for a modern, flat design.
         getContentPane().setBackground(Color.decode("#F1F3F4"));
         setFont(new Font("Segoe UI", Font.PLAIN, 14));
     }
@@ -303,27 +308,26 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 System.out.println("Enabling record button for model: " + selectedModel);
                 recordButton.setVisible(true);
                 recordButton.setEnabled(true);
-                recordButton.setToolTipText(null); // Clear tooltip
+                recordButton.setToolTipText(null); 
             }
         } else {
-            recordButton.setEnabled(false); // Disable if no model selected (or handle differently)
+            recordButton.setEnabled(false); 
             recordButton.setToolTipText(null);
         }
     }
 
     private JButton createRecordButton() {
         JButton button = new JButton();
-        button.setPreferredSize(new Dimension(30, 30)); // Square button
-        Border roundedBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); // Some padding
+        button.setPreferredSize(new Dimension(30, 30)); 
+        Border roundedBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5); 
         button.setBorder(roundedBorder);
 
-        // Set a default icon or text - you can replace "●" with an actual image icon
-        button.setText("●"); // Using a simple circle character for now
-        button.setFont(new Font("Arial", Font.BOLD, 16)); // Make the circle more visible
+        button.setText("●"); 
+        button.setFont(new Font("Arial", Font.BOLD, 16)); 
 
-        button.setBackground(Color.gray); // Default gray color
+        button.setBackground(Color.gray); 
         button.setOpaque(true);
-        button.setBorderPainted(false); // No border
+        button.setBorderPainted(false); 
 
         button.addMouseListener(new MouseAdapter() {
             @Override
@@ -331,15 +335,15 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     if (!isRecording) {
                         startRecording();
-                        button.setBackground(Color.red); // Change color when recording
+                        button.setBackground(Color.red); 
                     } else {
-                        stopRecording(true, true); // Save and Submit on left click
-                        button.setBackground(Color.gray); // Reset color
+                        stopRecording(true, true); 
+                        button.setBackground(Color.gray); 
                     }
                 } else if (SwingUtilities.isRightMouseButton(e)) {
                     if (isRecording) {
-                        stopRecording(false, false); // Cancel on right click
-                        button.setBackground(Color.gray); // Reset color
+                        stopRecording(false, false); 
+                        button.setBackground(Color.gray); 
                     }
                 }
             }
@@ -360,14 +364,13 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
             audioLine = (TargetDataLine) AudioSystem.getLine(info);
             audioLine.open(format);
-            byteArrayOutputStream = new ByteArrayOutputStream(); // Initialize output stream
+            byteArrayOutputStream = new ByteArrayOutputStream(); 
 
             audioLine.start();
             isRecording = true;
             recordingStartTime = System.currentTimeMillis();
             startTimer();
 
-            // Start recording thread
             recordingThread = new Thread(() -> {
                 byte[] buffer = new byte[4096];
                 while (isRecording) {
@@ -396,23 +399,23 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             audioLine.stop();
             audioLine.close();
         }
-        audioLine = null; // Set audioLine to null after closing
+        audioLine = null; 
 
         if (recordingThread != null) {
             try {
-                recordingThread.join(); // Wait for recording thread to finish
+                recordingThread.join(); 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 e.printStackTrace();
             }
-            recordingThread = null; // Set recordingThread to null after joining
+            recordingThread = null; 
         }
 
         if (saveFile) {
             try {
                 byte[] audioData = byteArrayOutputStream.toByteArray();
                 ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
-                AudioInputStream audioInputStream = new AudioInputStream(byteArrayInputStream, getAudioFormat(), audioData.length / getAudioFormat().getFrameSize()); // Create AudioInputStream from captured data
+                AudioInputStream audioInputStream = new AudioInputStream(byteArrayInputStream, getAudioFormat(), audioData.length / getAudioFormat().getFrameSize()); 
                 AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, waveFile);
                 System.out.println("Recording saved to " + waveFile.getAbsolutePath());
 
@@ -437,9 +440,9 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            byteArrayOutputStream = null; // Reset byteArrayOutputStream
+            byteArrayOutputStream = null; 
         }
-        statusBarLabel.setText("Ready"); // Reset status bar text
+        statusBarLabel.setText("Ready"); 
     }
 
     private void handleSubmitPromptWav() {
@@ -449,7 +452,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             String promptText = "Review the audio (`Prompt.wav`) and follow instructions within it.";
             String selectedModel = (String) modelCombo.getSelectedItem();
             if (selectedModel != null) {
-                // For audio submissions we do not use the reasoning slider; pass null.
                 Runnable retryAction = () -> backend.getLLM().submitRequest(selectedModel, promptText);
                 try {
                     backend.getLLM().submitRequest(selectedModel, promptText);
@@ -458,10 +460,9 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 }
             } else {
                 System.out.println("No model selected, cannot submit prompt.");
-                backend.getActiveFileManager().removeFile(promptWav); // Clean up if no model selected
-                return; // Exit to prevent further execution
+                backend.getActiveFileManager().removeFile(promptWav); 
+                return; 
             }
-            // Remove Prompt.wav from active files after submission is initiated
             backend.getActiveFileManager().removeFile(promptWav);
         }
     }
@@ -480,7 +481,7 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             long elapsedTimeSeconds = (System.currentTimeMillis() - recordingStartTime) / 1000;
             long minutes = (elapsedTimeSeconds / 60) % 60;
             long seconds = elapsedTimeSeconds % 60;
-            statusBarLabel.setText(String.format("Recording: %02d:%02d", minutes, seconds) + ". Right-click to cancel."); // Update status bar with recording time
+            statusBarLabel.setText(String.format("Recording: %02d:%02d", minutes, seconds) + ". Right-click to cancel."); 
         });
         recordingTimer.start();
     }
@@ -499,12 +500,11 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             try {
                 Image image = (Image) contents.getTransferData(DataFlavor.imageFlavor);
 
-                // Save image as temporary file and add to active files
                 File tempImageFile = backend.saveImageAsTempFile(image);
                 if (tempImageFile != null) {
                     backend.getActiveFileManager().addFile(tempImageFile);
-                    fileViewerPanel.displayFile(tempImageFile); // Immediately display the file
-                    projectPanel.refreshTree(backend.getCurrentWorkspace()); // Refresh file viewer to show new file instantly
+                    fileViewerPanel.displayFile(tempImageFile); 
+                    projectPanel.refreshTree(backend.getCurrentWorkspace()); 
                 } else {
                     JOptionPane.showMessageDialog(this, "Failed to save image from clipboard.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -513,18 +513,14 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 JOptionPane.showMessageDialog(this, "Error pasting image: " + ex.getMessage(), "Paste Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            // Handle text paste as default
             pasting = true;
             try {
                 String text = (String) clipboard.getData(DataFlavor.stringFlavor);
-                // Get selected text
                 String selectedText = textArea.getSelectedText();
                 if (selectedText != null) {
-                    textArea.setText(textArea.getText().replace(selectedText, text)); // replace selected text with pasted text
+                    textArea.setText(textArea.getText().replace(selectedText, text)); 
                 } else {
-                    // get cursor position
                     int caretPosition = textArea.getCaretPosition();
-                    // insert text
                     textArea.replaceRange(text, caretPosition, caretPosition);
                 }
             } catch (UnsupportedFlavorException | IOException ex) {
@@ -555,18 +551,12 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         verticalSplitPane2.setResizeWeight(0);
         verticalSplitPane2.setOneTouchExpandable(true);
 
-        // Create main split pane
         JSplitPane mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, verticalSplitPane2, rightPanel);
-        mainSplitPane.setDividerLocation(400); // Adjust as needed
+        mainSplitPane.setDividerLocation(400); 
 
         return mainSplitPane;
     }
 
-    /**
-     * Callback method when a file is selected in the ActiveFilesPanel.
-     *
-     * @param file The file that was selected.
-     */
     @Override
     public void onFileSelected(File file) {
         fileViewerPanel.displayFile(file);
@@ -581,7 +571,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         return this.projectPanel;
     }
 
-    // New method to populate the Recent menu
     public void populateRecentMenu() {
         recentMenu.removeAll();
 
@@ -617,10 +606,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     }
 
     private void populateMenu() {
-        // Add a separator and "Clear Recent Files" menu item
         JMenuItem clearRecentFilesItem = new JMenuItem("Clear Recent Files");
-        JMenuItem hack = new JMenuItem("Test Berzfad");
-        JMenuItem hack2 = new JMenuItem("Test LLM");
+        JMenuItem hack = new JMenuItem("Test Berzfad"); 
         JMenuItem messages = new JMenuItem("Messages");
 
         clearRecentFilesItem.addActionListener(e -> {
@@ -632,20 +619,10 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             }
         });
 
-        // Giga hack to allow manual testing of a given response.
         hack.addActionListener(e -> {
             RepairDialog repairDialog = new RepairDialog(this, "Hello world", "Exception");
             repairDialog.setVisible(true);
             backend.getLLM().handleCodeResponse(repairDialog.getCorrectedCode());
-        });
-
-        hack2.addActionListener(e -> {
-            JFrame frame = new JFrame("Workspace Mapper Panel Test");
-            WorkspaceMapperPanel panel = new WorkspaceMapperPanel();
-            frame.setContentPane(panel);
-            frame.setSize(800, 600);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
         });
 
         messages.addActionListener(e -> {
@@ -655,14 +632,12 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                 dialog.setVisible(true);
             });
         });
-
+        
         recentActiveFilesMenu.add(clearRecentFilesItem);
         recentActiveFilesMenu.add(hack);
-        recentActiveFilesMenu.add(hack2);
         recentActiveFilesMenu.add(messages);
     }
 
-    // Helper method to format the project name using the last two directories
     private String formatProjectName(String path) {
         File file = new File(path);
         StringBuilder nameBuilder = new StringBuilder("...");
@@ -685,9 +660,8 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
     public void setLLMPrompt(String prompt) {
         textArea.setText(prompt);
-        textArea.setBackground(new Color(144, 238, 144)); // Light green background
+        textArea.setBackground(new Color(144, 238, 144)); 
 
-        // Add a DocumentListener to reset the background when the user modifies the text
         textArea.getDocument().addDocumentListener(new DocumentListener() {
             private boolean isReset = false;
 
@@ -716,10 +690,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         });
     }
 
-    /**
-     * Updates the JFrame title to the current project path.
-     * If no project is open, sets a default title.
-     */
     public void updateTitle() {
         File currentWorkspace = backend.getCurrentWorkspace();
         if (currentWorkspace != null && currentWorkspace.exists()) {
@@ -729,12 +699,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         }
     }
 
-    /**
-     * Displays an error popup for LLM related errors, providing a Retry button.
-     *
-     * @param errorMsg    The error message to display.
-     * @param retryAction The action to perform when the user clicks Retry.
-     */
     public void showLLMErrorPopup(String errorMsg, Runnable retryAction) {
         int option = JOptionPane.showOptionDialog(
                 this,
@@ -751,9 +715,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         }
     }
 
-    /**
-     * Opens the current project directory in the system file explorer.
-     */
     private void openProjectDirectory() {
         File currentWorkspace = backend.getCurrentWorkspace();
         if (currentWorkspace != null && currentWorkspace.exists()) {
@@ -768,16 +729,9 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         }
     }
 
-    /**
-     * Adds a CTRL+ENTER keyboard shortcut to trigger the Submit button.
-     *
-     * @param submitButton The Submit button to be triggered.
-     */
     private void addSubmitShortcut(JButton submitButton) {
-        // Define the key stroke for CTRL+ENTER
         KeyStroke ctrlEnter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK);
 
-        // Get the root pane's input map and action map
         getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlEnter, "submitAction");
         getRootPane().getActionMap().put("submitAction", new AbstractAction() {
             @Override
@@ -791,16 +745,6 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         return modelCombo;
     }
     
-    /**
-     * Returns the current state of the Auto-Context checkbox.
-     *
-     * @return true if Auto-Context is selected, false otherwise.
-     */
-    public boolean isAutoContext() {
-        return autoContextCheckBox.isSelected();
-    }
-
-    // New method to refresh the FileViewerPanel
     public void refreshFileViewer() {
         if (this.currentFile != null) {
             fileViewerPanel.displayFile(this.currentFile);
@@ -825,6 +769,61 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
     public boolean isChatDialogClosed() {
         return helpOverlayFrame == null || !helpOverlayFrame.isVisible();
     }
+
+    private void openWorkspaceMapperPanel() {
+        if (App.getInstance().getCurrentWorkspace() == null) {
+            JOptionPane.showMessageDialog(this, "Please open a workspace first.", "No Workspace", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        JFrame frame = new JFrame("Manage Workspaces - " + App.getInstance().getCurrentWorkspace().getName());
+        WorkspaceMapperPanel panel = new WorkspaceMapperPanel(); 
+        frame.setContentPane(panel);
+        frame.setSize(1000, 700); 
+        frame.setLocationRelativeTo(this); 
+        frame.setVisible(true);
+    }
+
+    private void handleCreatePlanAction() {
+        if (ClientFrame.isModelRunning) {
+            JOptionPane.showMessageDialog(this, "A model operation is already in progress. Please wait.", "Operation in Progress", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String currentTextFromMainArea = textArea.getText();
+        List<SubWorkspace> availableSubWorkspaces;
+        if (App.getInstance().getCurrentWorkspace() != null) {
+            availableSubWorkspaces = App.getInstance().getSubWorkspaces();
+        } else {
+            availableSubWorkspaces = Collections.emptyList();
+        }
+
+        CreatePlanDialog planDialog = new CreatePlanDialog(ClientFrame.this, currentTextFromMainArea, availableSubWorkspaces);
+        planDialog.setVisible(true);
+
+        if (planDialog.isSubmitted()) {
+            String planText = planDialog.getPlanText(); 
+            this.appendLLMPrompt("User Request: " + planText);
+            if (planText != null && !planText.trim().isEmpty()) {
+                String selectedModelName = (String) modelCombo.getSelectedItem();
+                if (selectedModelName == null) {
+                    JOptionPane.showMessageDialog(this, "Please select a model first.", "No Model Selected", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                List<String> selectedSubworkspaceNames = planDialog.getSelectedSubworkspaceNames();
+                Tasks tasks = new Tasks();
+                boolean contextMapped = tasks.queryRepositoryMap(planText, selectedSubworkspaceNames);
+
+                if (contextMapped) {
+                    statusBarLabel.setText("Context files updated based on plan. Review and submit.");
+                }
+            } else {
+                statusBarLabel.setText("Plan creation cancelled or plan was empty.");
+            }
+        }
+    }
+
+
     public static boolean isModelRunning = false;
     public void submit(Runnable onComplete) {
         if (isModelRunning) {
@@ -832,60 +831,55 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             return;
         }
         this.submitButton.setEnabled(false);
-        new Thread(() -> {
-            String model = (String) modelCombo.getSelectedItem();
-            if (model == null) {
-                System.out.println("Must select a model");
-                return;
-            }
-            String prompt = textArea.getText();
+        ClientFrame.isModelRunning = true; 
 
-            if (this.isAutoContext() && !App.getInstance().getActiveFileManager().hasTempContext()) {
-                Tasks tasks = new Tasks();
-                boolean b = tasks.queryRepositoryMap(prompt);
-                if (!b) {
-                    System.out.println("ERROR: Unable to query repository map, for some reason!");
-                    submitButton.setEnabled(true);
+        new Thread(() -> {
+            try {
+                String model = (String) modelCombo.getSelectedItem();
+                if (model == null) {
+                    System.out.println("Must select a model");
                     return;
                 }
+                String prompt = textArea.getText();
 
-                // yeah.
-                this.submitButton.setEnabled(true);
-                this.autoContextCheckBox.setSelected(false);
-                return;
-            }
+                IModelProvider provider = backend.getLLMProvider(model);
+                ReasoningEffort reasoningEffort = null;
 
-            IModelProvider provider = backend.getLLMProvider(model);
-            ReasoningEffort reasoningEffort = null;
-
-            if (provider instanceof OpenAIClientBase) {
-                if (((OpenAIClientBase) provider).supportsReasoningEffort()) {
-                    int sliderValue = reasoningSlider.getValue();
-                    switch(sliderValue) {
-                        case 0:
-                            reasoningEffort = ReasoningEffort.LOW;
-                            break;
-                        case 2:
-                            reasoningEffort = ReasoningEffort.HIGH;
-                            break;
-                        default:
-                            reasoningEffort = ReasoningEffort.MEDIUM;
+                if (provider instanceof OpenAIClientBase) {
+                    if (((OpenAIClientBase) provider).supportsReasoningEffort()) {
+                        int sliderValue = reasoningSlider.getValue();
+                        switch(sliderValue) {
+                            case 0:
+                                reasoningEffort = ReasoningEffort.LOW;
+                                break;
+                            case 2:
+                                reasoningEffort = ReasoningEffort.HIGH;
+                                break;
+                            default:
+                                reasoningEffort = ReasoningEffort.MEDIUM;
+                        }
                     }
+                    App.getInstance().setReasoningEffort(reasoningEffort);
                 }
-                App.getInstance().setReasoningEffort(reasoningEffort);
-            }
 
-            Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(model, prompt);
+                final String finalModel = model;
+                final String finalPrompt = prompt;
+                Runnable retryAction = () -> App.getInstance().getLLM().submitRequest(finalModel, finalPrompt);
 
-            try {
-                App.getInstance().getLLM().submitRequest(model, prompt);
+                App.getInstance().getLLM().submitRequest(model, prompt); 
                 if (onComplete != null) {
-                    onComplete.run();
+                    SwingUtilities.invokeLater(onComplete); 
                 }
-                this.submitButton.setEnabled(true);
             } catch (RuntimeException ex) {
                 ex.printStackTrace();
-                showLLMErrorPopup("2 LLM Error: " + ex.getMessage(), retryAction);
+                String currentModel = (String) modelCombo.getSelectedItem(); 
+                String currentPrompt = textArea.getText(); 
+                Runnable actualRetryAction = () -> App.getInstance().getLLM().submitRequest(currentModel, currentPrompt);
+                SwingUtilities.invokeLater(() -> showLLMErrorPopup("2 LLM Error: " + ex.getMessage(), actualRetryAction));
+
+            } finally {
+                 ClientFrame.isModelRunning = false; 
+                 SwingUtilities.invokeLater(() -> this.submitButton.setEnabled(true)); 
             }
         }).start();
     }

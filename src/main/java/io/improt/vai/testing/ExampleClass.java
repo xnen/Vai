@@ -1,13 +1,2 @@
-package io.improt.vai.testing;
+// This class is no longer needed and can be removed.
 
-public class ExampleClass {
-    public static void main(String[] args) {
-        System.out.println("Hello, world!");
-    }
-
-    public void sayHelloWorld() {
-        // Imprime "Olá, Mundo!" no console.
-        //    System.out.println("Olá, Mundo!");
-
-    }
-}

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import io.improt.vai.mapping.SubWorkspace;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -320,5 +321,64 @@ public class FileUtils {
         }
         File treeConfigFile = new File(getWorkspaceVaiDir(workspace), Constants.TREE_CONFIG_FILE);
         writeStringToFile(treeConfigFile, jsonArray.toString(4)); // Pretty print with indent
+    }
+
+    // New methods for handling subworkspaces
+    public static List<SubWorkspace> loadSubWorkspaces(File workspace) {
+        List<SubWorkspace> subWorkspaces = new ArrayList<>();
+        if (workspace == null) {
+            System.out.println("[FileUtils] No workspace to load subworkspaces from.");
+            return subWorkspaces;
+        }
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File subWorkspacesFile = new File(vaiDir, Constants.SUBWORKSPACE_DEFINITIONS_FILE);
+
+        if (!subWorkspacesFile.exists()) {
+            System.out.println("[FileUtils] No subworkspace definitions file found at " + subWorkspacesFile.getAbsolutePath());
+            return subWorkspaces;
+        }
+
+        String jsonContent = readFileToString(subWorkspacesFile);
+        if (jsonContent == null || jsonContent.isEmpty()) {
+            System.out.println("[FileUtils] Empty subworkspace definitions JSON content.");
+            return subWorkspaces;
+        }
+
+        try {
+            JSONArray jsonArray = new JSONArray(jsonContent);
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject obj = jsonArray.getJSONObject(i);
+                String name = obj.getString("name");
+                JSONArray pathsArray = obj.getJSONArray("filePaths");
+                List<String> filePaths = new ArrayList<>();
+                for (int j = 0; j < pathsArray.length(); j++) {
+                    filePaths.add(pathsArray.getString(j));
+                }
+                subWorkspaces.add(new SubWorkspace(name, filePaths));
+            }
+        } catch (JSONException e) {
+            System.err.println("[FileUtils] Error parsing subworkspace definitions: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("[FileUtils] Loaded " + subWorkspaces.size() + " subworkspaces for " + workspace.getName());
+        return subWorkspaces;
+    }
+
+    public static void saveSubWorkspaces(List<SubWorkspace> subWorkspaces, File workspace) {
+        if (workspace == null) {
+            System.out.println("[FileUtils] No workspace to save subworkspaces to.");
+            return;
+        }
+        JSONArray jsonArray = new JSONArray();
+        for (SubWorkspace sw : subWorkspaces) {
+            JSONObject obj = new JSONObject();
+            obj.put("name", sw.getName());
+            obj.put("filePaths", new JSONArray(sw.getFilePaths()));
+            jsonArray.put(obj);
+        }
+        File vaiDir = getWorkspaceVaiDir(workspace);
+        File subWorkspacesFile = new File(vaiDir, Constants.SUBWORKSPACE_DEFINITIONS_FILE);
+        System.out.println("[FileUtils] Saving " + subWorkspaces.size() + " subworkspaces to " + subWorkspacesFile.getAbsolutePath());
+        writeStringToFile(subWorkspacesFile, jsonArray.toString(4)); // Pretty print with indentation
     }
 }

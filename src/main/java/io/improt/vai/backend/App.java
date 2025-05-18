@@ -5,6 +5,7 @@ import io.improt.vai.frame.ClientFrame;
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.*;
 import io.improt.vai.util.FileUtils;
+import io.improt.vai.mapping.SubWorkspace; 
 import io.improt.vai.util.Constants;
 
 import javax.imageio.ImageIO;
@@ -31,6 +32,7 @@ public class App {
     private LLMRegistry llmRegistry;
     private LLMInteraction llmInteraction;
     private ActiveFileManager activeFileManager;
+    private List<SubWorkspace> subWorkspaces; 
 
     private static final int VAI_INTEGRATION_PORT = 12345; // Port for Vai integration
     private static final String VAI_INTEGRATION_SALT = "YourSuperSecretSalt"; // TODO: Configurable.
@@ -40,6 +42,7 @@ public class App {
     public App(ClientFrame mainWindow) {
         this.mainWindow = mainWindow;
         instance = this;
+        this.subWorkspaces = new ArrayList<>(); 
         startGlobalHotkeyListener();
     }
 
@@ -52,10 +55,13 @@ public class App {
         currentWorkspace = FileUtils.loadLastWorkspace();
 
         if (currentWorkspace != null) {
+            this.subWorkspaces = FileUtils.loadSubWorkspaces(currentWorkspace); 
             mainWindow.getProjectPanel().refreshTree(currentWorkspace);
 
             activeFileManager = new ActiveFileManager(currentWorkspace);
             activeFileManager.addEnabledFilesChangeListener(updatedEnabledFiles -> mainWindow.getProjectPanel().refreshTree(currentWorkspace));
+        } else {
+            this.subWorkspaces = new ArrayList<>(); 
         }
 
         this.llmInteraction = new LLMInteraction(this);
@@ -199,6 +205,7 @@ public class App {
     private void finalizeOpenProject(File directory) {
         this.currentWorkspace = directory;
 
+        this.subWorkspaces = FileUtils.loadSubWorkspaces(this.currentWorkspace); 
         FileUtils.saveLastWorkspace(this.currentWorkspace);
 
         if (this.activeFileManager != null) {
@@ -360,5 +367,54 @@ public class App {
         String s = additionalData;
         additionalData = "None available.";
         return s;
+    }
+
+    // SubWorkspace Management
+    public List<SubWorkspace> getSubWorkspaces() {
+        return Collections.unmodifiableList(subWorkspaces);
+    }
+
+    public void addSubWorkspace(SubWorkspace subWorkspace) {
+        if (subWorkspace != null && !subWorkspaces.contains(subWorkspace)) {
+            subWorkspaces.add(subWorkspace);
+            saveAllSubWorkspaces();
+        }
+    }
+
+    public void removeSubWorkspace(String name) {
+        subWorkspaces.removeIf(sw -> sw.getName().equals(name));
+        saveAllSubWorkspaces();
+    }
+
+    public SubWorkspace getSubWorkspaceByName(String name) {
+        for (SubWorkspace sw : subWorkspaces) {
+            if (sw.getName().equals(name)) {
+                return sw;
+            }
+        }
+        return null;
+    }
+
+    public void updateSubWorkspace(SubWorkspace updatedSw) {
+        for (int i = 0; i < subWorkspaces.size(); i++) {
+            if (subWorkspaces.get(i).getName().equals(updatedSw.getName())) {
+                subWorkspaces.set(i, updatedSw);
+                saveAllSubWorkspaces();
+                return;
+            }
+        }
+        // If not found, it might be a new one, though addSubWorkspace should be used for that
+        // For safety, if it's truly an update to a non-existing one, add it.
+        if (getSubWorkspaceByName(updatedSw.getName()) == null) {
+             addSubWorkspace(updatedSw);
+        }
+    }
+
+    private void saveAllSubWorkspaces() {
+        if (this.currentWorkspace != null) {
+            FileUtils.saveSubWorkspaces(this.subWorkspaces, this.currentWorkspace);
+        } else {
+            System.err.println("[App] Cannot save subworkspaces, no current workspace set.");
+        }
     }
 }

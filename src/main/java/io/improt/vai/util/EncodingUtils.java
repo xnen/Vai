@@ -10,4 +10,8 @@ public class EncodingUtils {
         byte[] fileBytes = Files.readAllBytes(Path.of(filePath));
         return Base64.getEncoder().encodeToString(fileBytes);
     }
+
+    public static void sayHello() {
+        System.out.println("Hello, World!");
+    }
 }

@@ -70,7 +70,7 @@ public class ContextApprovalDialog extends JDialog {
             for (int i = 0; i < listModel.getSize(); i++) {
                 approvedList.add(listModel.get(i));
             }
-            App.getInstance().getClient().appendLLMPrompt("\n====\n" + addlTextArea.getText());
+            App.getInstance().getClient().appendLLMPrompt("\n== The following are additional details provided by a secondary developer. Use it as guidance, not as gospel. ==\n" + addlTextArea.getText());
             dispose();
         });
 
