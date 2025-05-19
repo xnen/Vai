@@ -34,7 +34,7 @@ public class WorkspaceMapperPanel extends JPanel {
     private DefaultListModel<String> filesInSubWorkspaceListModel;
     private JButton createSubWorkspaceButton;
     private JButton deleteSubWorkspaceButton;
-    private JButton addFilesToSubWorkspaceButton;
+    private JButton addTreeSelectionToSubWorkspaceButton; // Renamed
     private JButton removeFilesFromSubWorkspaceButton;
 
 
@@ -173,7 +173,7 @@ public class WorkspaceMapperPanel extends JPanel {
         subWorkspaceList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         subWorkspaceList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                refreshFilesInSelectedSubWorkspace();
+                refreshFilesInSelectedSubWorkspace(); // This will also update button states
             }
         });
         JScrollPane subWorkspaceListScrollPane = new JScrollPane(subWorkspaceList);
@@ -182,6 +182,14 @@ public class WorkspaceMapperPanel extends JPanel {
         filesInSubWorkspaceListModel = new DefaultListModel<>();
         filesInSubWorkspaceList = new JList<>(filesInSubWorkspaceListModel);
         filesInSubWorkspaceList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        filesInSubWorkspaceList.addListSelectionListener(e -> { // Listener to update remove button state
+            if (!e.getValueIsAdjusting()) {
+                 SubWorkspace selectedSw = subWorkspaceList.getSelectedValue();
+                 boolean isSwSelected = selectedSw != null;
+                 boolean isDirBased = isSwSelected && selectedSw.isDirectoryBased();
+                 removeFilesFromSubWorkspaceButton.setEnabled(isSwSelected && !isDirBased && filesInSubWorkspaceList.getSelectedIndex() != -1);
+            }
+        });
         JScrollPane filesInSubWorkspaceScrollPane = new JScrollPane(filesInSubWorkspaceList);
         filesInSubWorkspaceScrollPane.setPreferredSize(new Dimension(400, 150));
 
@@ -191,10 +199,11 @@ public class WorkspaceMapperPanel extends JPanel {
         deleteSubWorkspaceButton = new JButton("Delete Sub-Workspace");
         deleteSubWorkspaceButton.addActionListener(e -> deleteSelectedSubWorkspace());
 
-        addFilesToSubWorkspaceButton = new JButton("<< Add Selected Files/Dirs from Tree");
-        addFilesToSubWorkspaceButton.addActionListener(e -> addSelectedFilesToSubWorkspace());
+        addTreeSelectionToSubWorkspaceButton = new JButton("<< Add Selected from Tree");
+        addTreeSelectionToSubWorkspaceButton.addActionListener(e -> addTreeSelectionsToActiveSubWorkspace());
         
-        removeFilesFromSubWorkspaceButton = new JButton("Remove Selected Files from Sub-Workspace >>");
+        removeFilesFromSubWorkspaceButton = new JButton("Remove Selected Files from List >>");
+        removeFilesFromSubWorkspaceButton.setToolTipText("For File-based: Removes selected files. For Dir-based: Disabled (manage directories by re-creating SW or adding more).");
         removeFilesFromSubWorkspaceButton.addActionListener(e -> removeSelectedFilesFromSubWorkspace());
 
         JPanel subWorkspaceButtonsPanel = new JPanel(new GridLayout(0, 1, 5, 5)); 
@@ -202,7 +211,7 @@ public class WorkspaceMapperPanel extends JPanel {
         subWorkspaceButtonsPanel.add(deleteSubWorkspaceButton);
         
         JPanel subWorkspaceFilesButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        subWorkspaceFilesButtonPanel.add(addFilesToSubWorkspaceButton);
+        subWorkspaceFilesButtonPanel.add(addTreeSelectionToSubWorkspaceButton);
         subWorkspaceFilesButtonPanel.add(removeFilesFromSubWorkspaceButton);
 
 
@@ -235,25 +244,41 @@ public class WorkspaceMapperPanel extends JPanel {
 
     private void refreshSubWorkspaceList() {
         if (subWorkspaceListModel == null || App.getInstance().getCurrentWorkspace() == null) return;
+        
+        int selectedIdx = subWorkspaceList.getSelectedIndex(); // Preserve selection
         subWorkspaceListModel.clear();
         List<SubWorkspace> sws = App.getInstance().getSubWorkspaces();
         for (SubWorkspace sw : sws) {
             subWorkspaceListModel.addElement(sw);
         }
-        if (!subWorkspaceListModel.isEmpty()) {
+
+        if (selectedIdx >= 0 && selectedIdx < subWorkspaceListModel.getSize()) {
+            subWorkspaceList.setSelectedIndex(selectedIdx);
+        } else if (!subWorkspaceListModel.isEmpty()) {
             subWorkspaceList.setSelectedIndex(0);
         }
-        refreshFilesInSelectedSubWorkspace();
+        
+        refreshFilesInSelectedSubWorkspace(); 
     }
 
     private void refreshFilesInSelectedSubWorkspace() {
         if (filesInSubWorkspaceListModel == null || App.getInstance().getCurrentWorkspace() == null) return;
         filesInSubWorkspaceListModel.clear();
+        
         SubWorkspace selectedSw = subWorkspaceList.getSelectedValue();
+        boolean isSwSelected = selectedSw != null;
+        boolean isDirBased = isSwSelected && selectedSw.isDirectoryBased();
+
+        addTreeSelectionToSubWorkspaceButton.setEnabled(isSwSelected);
+        // Enable remove button only if a file-based SW is selected AND items are in its list to be selected for removal.
+        // Actual check for list selection is done in filesInSubWorkspaceList's listener.
+        removeFilesFromSubWorkspaceButton.setEnabled(isSwSelected && !isDirBased && !filesInSubWorkspaceListModel.isEmpty());
+
+
         if (selectedSw != null) {
             File workspaceRoot = App.getInstance().getCurrentWorkspace();
-            List<String> filePaths = new ArrayList<>(selectedSw.getFilePaths()); // Create a mutable copy
-            Collections.sort(filePaths); // Sort for consistent display
+            List<String> filePaths = new ArrayList<>(selectedSw.getFilePaths()); // This now correctly scans if dir-based
+            Collections.sort(filePaths); 
             for (String absolutePath : filePaths) {
                 try {
                     String relativePath = workspaceRoot.toURI().relativize(new File(absolutePath).toURI()).getPath();
@@ -262,20 +287,62 @@ public class WorkspaceMapperPanel extends JPanel {
                     filesInSubWorkspaceListModel.addElement(absolutePath); 
                 }
             }
+            // Re-evaluate remove button state based on list content for file-based SW
+             removeFilesFromSubWorkspaceButton.setEnabled(isSwSelected && !isDirBased && !filesInSubWorkspaceListModel.isEmpty() && filesInSubWorkspaceList.getSelectedIndex() != -1);
+        } else {
+             // If no SW selected, ensure buttons are disabled
+            addTreeSelectionToSubWorkspaceButton.setEnabled(false);
+            removeFilesFromSubWorkspaceButton.setEnabled(false);
         }
     }
     
     private void createNewSubWorkspace() {
         String name = JOptionPane.showInputDialog(this, "Enter name for the new Sub-Workspace:", "New Sub-Workspace", JOptionPane.PLAIN_MESSAGE);
-        if (name != null && !name.trim().isEmpty()) {
-            if (App.getInstance().getSubWorkspaceByName(name.trim()) != null) {
-                JOptionPane.showMessageDialog(this, "A Sub-Workspace with this name already exists.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            SubWorkspace newSw = new SubWorkspace(name.trim());
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+        name = name.trim();
+
+        if (App.getInstance().getSubWorkspaceByName(name) != null) {
+            JOptionPane.showMessageDialog(this, "A Sub-Workspace with this name already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Object[] options = {"File-based (select individual files)", "Directory-based (monitor selected directories from tree)"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose the type of Sub-Workspace:",
+                "Sub-Workspace Type",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null, options, options[0]);
+
+        SubWorkspace newSw = null;
+        if (choice == JOptionPane.YES_OPTION) { // File-based
+            newSw = new SubWorkspace(name);
+            newSw.setDirectoryBased(false);
+        } else if (choice == JOptionPane.NO_OPTION) { // Directory-based
+            newSw = new SubWorkspace(name);
+            newSw.setDirectoryBased(true);
+            // No JFileChooser here. User will add directories using the tree and button.
+             JOptionPane.showMessageDialog(this,
+                    "Directory-based Sub-Workspace '" + name + "' created.\n" +
+                    "Now, select director(y/ies) from the file tree on the left and click '" +
+                    addTreeSelectionToSubWorkspaceButton.getText() + "' to add them for monitoring.",
+                    "Next Steps", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            return; // User closed option dialog
+        }
+
+        if (newSw != null) {
             App.getInstance().addSubWorkspace(newSw);
             refreshSubWorkspaceList();
-            subWorkspaceList.setSelectedValue(newSw, true);
+            // Try to select the newly created subworkspace
+            for (int i = 0; i < subWorkspaceListModel.getSize(); i++) {
+                if (subWorkspaceListModel.getElementAt(i).getName().equals(newSw.getName())) {
+                    subWorkspaceList.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
     }
 
@@ -298,50 +365,80 @@ public class WorkspaceMapperPanel extends JPanel {
         }
     }
 
-    private void addSelectedFilesToSubWorkspace() {
+    private void addTreeSelectionsToActiveSubWorkspace() {
         SubWorkspace selectedSw = subWorkspaceList.getSelectedValue();
         if (selectedSw == null) {
             JOptionPane.showMessageDialog(this, "Please select a Sub-Workspace first.", "No Sub-Workspace Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        TreePath[] selectedPaths = fileTree.getSelectionPaths();
-        if (selectedPaths == null || selectedPaths.length == 0) {
-            JOptionPane.showMessageDialog(this, "Please select file(s) or director(y/ies) from the tree on the left.", "No Files Selected", JOptionPane.WARNING_MESSAGE);
+
+        TreePath[] selectedTreePaths = fileTree.getSelectionPaths();
+        if (selectedTreePaths == null || selectedTreePaths.length == 0) {
+            JOptionPane.showMessageDialog(this, "Please select file(s) or director(y/ies) from the tree on the left.", "No Tree Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        List<File> filesToAdd = new ArrayList<>();
-        for (TreePath treePath : selectedPaths) {
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-            if (node.getUserObject() instanceof File) {
-                File fileOrDir = (File) node.getUserObject();
-                collectFiles(fileOrDir, filesToAdd);
-            }
-        }
         
+        SubWorkspace mutableSelectedSw = App.getInstance().getSubWorkspaceByName(selectedSw.getName()); 
+        if(mutableSelectedSw == null) {
+            JOptionPane.showMessageDialog(this, "Error: Could not find the sub-workspace to modify.", "Error", JOptionPane.ERROR_MESSAGE);
+            return; 
+        }
+
         boolean changed = false;
-        SubWorkspace mutableSelectedSw = App.getInstance().getSubWorkspaceByName(selectedSw.getName()); // Get mutable copy
-        if(mutableSelectedSw == null) return;
+        if (mutableSelectedSw.isDirectoryBased()) {
+            int dirsAdded = 0;
+            for (TreePath treePath : selectedTreePaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                if (node.getUserObject() instanceof File) {
+                    File fileOrDir = (File) node.getUserObject();
+                    if (fileOrDir.isDirectory()) {
+                        // For directory-based SW, add the directory itself for monitoring
+                        mutableSelectedSw.addMonitoredDirectoryPath(fileOrDir.getAbsolutePath());
+                        changed = true;
+                        dirsAdded++;
+                    }
+                }
+            }
+            if (dirsAdded == 0) {
+                JOptionPane.showMessageDialog(this, "No directories were selected from the tree to add for monitoring.", "No Directories Selected", JOptionPane.INFORMATION_MESSAGE);
+            }
 
+        } else { // File-based SubWorkspace
+            List<File> filesToAdd = new ArrayList<>();
+            for (TreePath treePath : selectedTreePaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                if (node.getUserObject() instanceof File) {
+                    File fileOrDir = (File) node.getUserObject();
+                    collectFiles(fileOrDir, filesToAdd); // Collects all valid files, recursively for directories
+                }
+            }
+            
+            if (filesToAdd.isEmpty()) {
+                 JOptionPane.showMessageDialog(this, "No valid files found in the tree selection to add.", "No Valid Files Selected", JOptionPane.INFORMATION_MESSAGE);
+                 return;
+            }
 
-        for (File file : filesToAdd) {
-            if (WorkspaceMapper.hasValidExtension(file.getName().toLowerCase())) { 
+            for (File file : filesToAdd) {
+                // Ensure file is mapped if not already (important for consistency)
                 if (!workspaceMapper.getMappings().stream().anyMatch(m -> m.getPath().equals(file.getAbsolutePath()))) {
                     workspaceMapper.addFile(file); 
                     workspaceMapper.mapFile(file); 
                 }
-                mutableSelectedSw.addFilePath(file.getAbsolutePath());
+                mutableSelectedSw.addFilePath(file.getAbsolutePath()); // addFilePath handles duplicates
                 changed = true;
             }
         }
 
         if (changed) {
-            App.getInstance().updateSubWorkspace(mutableSelectedSw);
+            App.getInstance().updateSubWorkspace(mutableSelectedSw); 
             refreshFilesInSelectedSubWorkspace();
-            refreshMappingTable(); 
+            if (!mutableSelectedSw.isDirectoryBased()) { // Only refresh mapping table if files were potentially added to mappings
+                refreshMappingTable(); 
+            }
         }
     }
 
+    // Helper to collect all valid files, recursively for directories
     private void collectFiles(File fileOrDir, List<File> collectedFiles) {
         if (fileOrDir.isFile()) {
             if (WorkspaceMapper.hasValidExtension(fileOrDir.getName().toLowerCase())) { 
@@ -366,6 +463,11 @@ public class WorkspaceMapperPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Please select a Sub-Workspace first.", "No Sub-Workspace Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        if (selectedSw.isDirectoryBased()) {
+             JOptionPane.showMessageDialog(this, "Cannot remove individual files from a directory-based Sub-Workspace.\nFiles are determined by the monitored directories. To change content, modify the monitored directories (e.g., by re-creating the Sub-Workspace or via a future edit feature).", "Operation Not Allowed", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
         List<String> selectedRelativePaths = filesInSubWorkspaceList.getSelectedValuesList();
         if (selectedRelativePaths.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please select file(s) from the list of files in the Sub-Workspace.", "No Files Selected", JOptionPane.WARNING_MESSAGE);
@@ -374,8 +476,8 @@ public class WorkspaceMapperPanel extends JPanel {
 
         File workspaceRoot = App.getInstance().getCurrentWorkspace();
         boolean changed = false;
-        SubWorkspace mutableSelectedSw = App.getInstance().getSubWorkspaceByName(selectedSw.getName()); // Get mutable copy
-        if(mutableSelectedSw == null) return;
+        SubWorkspace mutableSelectedSw = App.getInstance().getSubWorkspaceByName(selectedSw.getName());
+        if(mutableSelectedSw == null || mutableSelectedSw.isDirectoryBased()) return; // Should be caught by earlier check
 
         for (String relativePath : selectedRelativePaths) {
             File absoluteFile = new File(workspaceRoot, relativePath);
@@ -390,14 +492,20 @@ public class WorkspaceMapperPanel extends JPanel {
     }
 
     private DefaultMutableTreeNode createTreeNodes(File file) {
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(file);
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode(file); // Store File object
         if (file.isDirectory()) {
             File[] children = file.listFiles();
             if (children != null) {
                 List<File> fileList = Arrays.stream(children)
+                    // Show all directories, and files with valid extensions
                     .filter(child -> child.isDirectory() || WorkspaceMapper.hasValidExtension(child.getName().toLowerCase()))
                     .collect(Collectors.toList());
-                fileList.sort((f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
+                // Sort by name, directories first, then files
+                fileList.sort((f1, f2) -> {
+                    if (f1.isDirectory() && !f2.isDirectory()) return -1;
+                    if (!f1.isDirectory() && f2.isDirectory()) return 1;
+                    return f1.getName().compareToIgnoreCase(f2.getName());
+                });
                 for (File child : fileList) {
                     node.add(createTreeNodes(child));
                 }
@@ -405,6 +513,7 @@ public class WorkspaceMapperPanel extends JPanel {
         }
         return node;
     }
+
 
     private void showTreeContextMenu(MouseEvent e, File file) {
         JPopupMenu popup = new JPopupMenu();
@@ -418,11 +527,14 @@ public class WorkspaceMapperPanel extends JPanel {
             JMenuItem unmapFileItem = new JMenuItem("Unmap File (Remove from Mappings)");
             unmapFileItem.addActionListener(ae -> {
                 workspaceMapper.removeFile(file); 
+                // Also remove from any file-based subworkspaces
                 for(SubWorkspace sw : App.getInstance().getSubWorkspaces()){
-                    SubWorkspace mutableSw = App.getInstance().getSubWorkspaceByName(sw.getName());
-                    if(mutableSw != null && mutableSw.getFilePaths().contains(file.getAbsolutePath())){
-                        mutableSw.removeFilePath(file.getAbsolutePath());
-                        App.getInstance().updateSubWorkspace(mutableSw);
+                    if (!sw.isDirectoryBased()) {
+                        SubWorkspace mutableSw = App.getInstance().getSubWorkspaceByName(sw.getName());
+                        if(mutableSw != null && mutableSw.getFilePaths().contains(file.getAbsolutePath())){
+                            mutableSw.removeFilePath(file.getAbsolutePath());
+                            App.getInstance().updateSubWorkspace(mutableSw);
+                        }
                     }
                 }
                 refreshMappingTable();
@@ -443,11 +555,13 @@ public class WorkspaceMapperPanel extends JPanel {
                 collectFiles(file, filesInDir); 
                 for(File f : filesInDir){
                     workspaceMapper.removeFile(f); 
-                     for(SubWorkspace sw : App.getInstance().getSubWorkspaces()){
-                        SubWorkspace mutableSw = App.getInstance().getSubWorkspaceByName(sw.getName());
-                        if(mutableSw != null && mutableSw.getFilePaths().contains(f.getAbsolutePath())){
-                            mutableSw.removeFilePath(f.getAbsolutePath());
-                            App.getInstance().updateSubWorkspace(mutableSw);
+                    for(SubWorkspace sw : App.getInstance().getSubWorkspaces()){
+                         if (!sw.isDirectoryBased()) {
+                            SubWorkspace mutableSw = App.getInstance().getSubWorkspaceByName(sw.getName());
+                            if(mutableSw != null && mutableSw.getFilePaths().contains(f.getAbsolutePath())){
+                                mutableSw.removeFilePath(f.getAbsolutePath());
+                                App.getInstance().updateSubWorkspace(mutableSw);
+                            }
                         }
                     }
                 }
@@ -472,11 +586,14 @@ public class WorkspaceMapperPanel extends JPanel {
         JMenuItem removeFromMappingsItem = new JMenuItem("Remove from Mappings");
         removeFromMappingsItem.addActionListener(ae -> {
             workspaceMapper.removeFile(file);
+             // Also remove from any file-based subworkspaces
             for(SubWorkspace sw : App.getInstance().getSubWorkspaces()){
-                 SubWorkspace mutableSw = App.getInstance().getSubWorkspaceByName(sw.getName());
-                 if(mutableSw != null && mutableSw.getFilePaths().contains(file.getAbsolutePath())){
-                    mutableSw.removeFilePath(file.getAbsolutePath());
-                    App.getInstance().updateSubWorkspace(mutableSw);
+                if (!sw.isDirectoryBased()) {
+                    SubWorkspace mutableSw = App.getInstance().getSubWorkspaceByName(sw.getName());
+                    if(mutableSw != null && mutableSw.getFilePaths().contains(file.getAbsolutePath())){
+                        mutableSw.removeFilePath(file.getAbsolutePath());
+                        App.getInstance().updateSubWorkspace(mutableSw);
+                    }
                 }
             }
             refreshMappingTable();
@@ -573,8 +690,8 @@ public class WorkspaceMapperPanel extends JPanel {
                 c.setForeground(Color.BLACK);
             }
             if (isSelected) {
-                c.setBackground(c.getBackground().darker());
-                c.setForeground(Color.WHITE); 
+                c.setBackground(table.getSelectionBackground()); // Use JTable's selection color
+                c.setForeground(table.getSelectionForeground());
             }
             return c;
         }

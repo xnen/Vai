@@ -361,12 +361,44 @@ public class FileUtils {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
                 String name = obj.getString("name");
-                JSONArray pathsArray = obj.getJSONArray("filePaths");
-                List<String> filePaths = new ArrayList<>();
-                for (int j = 0; j < pathsArray.length(); j++) {
-                    filePaths.add(pathsArray.getString(j));
+                boolean isDirectoryBased = obj.optBoolean("isDirectoryBased", false);
+                SubWorkspace sw;
+
+                if (isDirectoryBased) {
+                    sw = new SubWorkspace(name);
+                    sw.setDirectoryBased(true);
+                    JSONArray monitoredDirsArray = obj.optJSONArray("monitoredDirectoryPaths");
+                    if (monitoredDirsArray != null) {
+                        List<String> monitoredPaths = new ArrayList<>();
+                        for (int k = 0; k < monitoredDirsArray.length(); k++) {
+                            monitoredPaths.add(monitoredDirsArray.getString(k));
+                        }
+                        sw.setMonitoredDirectoryPaths(monitoredPaths);
+                    } else {
+                        // Backwards compatibility: check for old "directoryPath" if "monitoredDirectoryPaths" is missing
+                        String oldSingleDirPath = obj.optString("directoryPath", null);
+                        if (oldSingleDirPath != null && !oldSingleDirPath.equals("null") && !oldSingleDirPath.isEmpty()) {
+                            System.out.println("[FileUtils] Migrating old 'directoryPath' field to 'monitoredDirectoryPaths' for SubWorkspace: " + name);
+                            List<String> monitoredPaths = new ArrayList<>();
+                            monitoredPaths.add(oldSingleDirPath);
+                            sw.setMonitoredDirectoryPaths(monitoredPaths);
+                        } else {
+                            System.err.println("[FileUtils] SubWorkspace '" + name + "' is directory-based but has no 'monitoredDirectoryPaths' or legacy 'directoryPath'. It will be empty.");
+                        }
+                    }
+                } else { // File-based
+                    JSONArray pathsArray = obj.optJSONArray("filePaths"); // Use optJSONArray for robustness
+                    List<String> filePaths = new ArrayList<>();
+                    if (pathsArray != null) {
+                        for (int j = 0; j < pathsArray.length(); j++) {
+                            filePaths.add(pathsArray.getString(j));
+                        }
+                    }
+                    sw = new SubWorkspace(name, filePaths);
+                    // Ensure isDirectoryBased is false if it was explicitly file-based
+                    sw.setDirectoryBased(false);
                 }
-                subWorkspaces.add(new SubWorkspace(name, filePaths));
+                subWorkspaces.add(sw);
             }
         } catch (JSONException e) {
             System.err.println("[FileUtils] Error parsing subworkspace definitions: " + e.getMessage());
@@ -385,7 +417,17 @@ public class FileUtils {
         for (SubWorkspace sw : subWorkspaces) {
             JSONObject obj = new JSONObject();
             obj.put("name", sw.getName());
-            obj.put("filePaths", new JSONArray(sw.getFilePaths()));
+            obj.put("isDirectoryBased", sw.isDirectoryBased());
+
+            if (sw.isDirectoryBased()) {
+                obj.put("monitoredDirectoryPaths", new JSONArray(sw.getMonitoredDirectoryPaths()));
+                obj.put("filePaths", new JSONArray()); // For directory-based, filePaths in JSON is an empty array
+                obj.put("directoryPath", JSONObject.NULL); // Explicitly null out old field if it existed
+            } else {
+                obj.put("monitoredDirectoryPaths", new JSONArray()); // Empty array for file-based
+                obj.put("filePaths", new JSONArray(sw.getFilePaths()));
+                obj.put("directoryPath", JSONObject.NULL); // Explicitly null out old field
+            }
             jsonArray.put(obj);
         }
         File vaiDir = getWorkspaceVaiDir(workspace);
