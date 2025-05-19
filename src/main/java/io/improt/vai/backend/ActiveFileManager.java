@@ -279,8 +279,13 @@ public class ActiveFileManager {
         for (String s : approvedFiles) {
             File file = new File(App.getInstance().getCurrentWorkspace(), s);
             if (!file.exists() || file.isDirectory()) {
-                System.out.println("Skipping '" + s + "' as it didnt exist or was directory.");
-                continue;
+                // try raw...
+                file = new File(s);
+                System.out.println("WARNING: RAW FILE USAGE: " + s);
+                if (!file.exists() || file.isDirectory()) {
+                    System.out.println("Skipping '" + s + "' as it didnt exist or was directory.");
+                    continue;
+                }
             }
 
             this.enabledFiles.add(file);

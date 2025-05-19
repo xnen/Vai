@@ -27,7 +27,7 @@ import org.json.JSONObject;
 
 public class WorkspaceMapper {
 
-    private static final String MAPPINGS_FILENAME = "class_mappings.json";
+    public static final String MAPPINGS_FILENAME = "class_mappings.json";
 
     private final File currentWorkspace;
     private final Map<String, ClassMapping> mappings;
@@ -227,79 +227,130 @@ public class WorkspaceMapper {
         }
         File vaiDir = FileUtils.getWorkspaceVaiDir(this.currentWorkspace);
         File mappingFile = new File(vaiDir, MAPPINGS_FILENAME);
-        if (!mappingFile.exists()) {
-            return;
+        
+        List<ClassMapping> loadedCms = loadClassMappingsFromFile(mappingFile, true);
+        mappings.clear();
+        for(ClassMapping cm : loadedCms) {
+            mappings.put(cm.getPath(), cm);
         }
-        String jsonContent = FileUtils.readFileToString(mappingFile);
+    }
+
+    /**
+     * Loads class mappings from a specified JSON file.
+     * @param classMappingsJsonFile The .json file containing class mappings.
+     * @param recomputeMd5IfFileExists If true and the file path in a mapping entry exists, its MD5 will be recomputed.
+     *                                 Set to false if you want to use the MD5 sum stored in the JSON directly.
+     * @return A list of ClassMapping objects.
+     */
+    public static List<ClassMapping> loadClassMappingsFromFile(File classMappingsJsonFile, boolean recomputeMd5IfFileExists) {
+        List<ClassMapping> loadedMappings = new ArrayList<>();
+        if (classMappingsJsonFile == null || !classMappingsJsonFile.exists()) {
+            System.err.println("[WorkspaceMapper] Class mappings file does not exist or is null: " + (classMappingsJsonFile != null ? classMappingsJsonFile.getAbsolutePath() : "null"));
+            return loadedMappings;
+        }
+        String jsonContent = FileUtils.readFileToString(classMappingsJsonFile);
         if (jsonContent == null || jsonContent.isEmpty()) {
-            return;
+            System.err.println("[WorkspaceMapper] Class mappings file is empty: " + classMappingsJsonFile.getAbsolutePath());
+            return loadedMappings;
         }
         try {
             JSONArray jsonArray = new JSONArray(jsonContent);
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
                 String path = obj.getString("path");
-                File file = new File(path);
-                if (file.exists()) {
-                    String md5 = computeMD5(file); // Recompute current MD5 on load
-                    String mapping = obj.optString("mapping", "");
-                    String lastMappingMd5sum = obj.optString("lastMappingMd5sum", "");
-                    ClassMapping cm = new ClassMapping(path, md5);
-                    cm.setMapping(mapping);
-                    cm.setLastMappingMd5sum(lastMappingMd5sum);
-                    mappings.put(path, cm);
+                String md5sumInJson = obj.getString("md5sum");
+                String mapping = obj.optString("mapping", "");
+                String lastMappingMd5sum = obj.optString("lastMappingMd5sum", "");
+
+                File fileOnDisk = new File(path);
+                String currentMd5 = md5sumInJson; // Default to MD5 from JSON
+
+                if (recomputeMd5IfFileExists && fileOnDisk.exists()) {
+                    currentMd5 = computeMD5(fileOnDisk); // Recompute current MD5 on load if file exists
+                } else if (!fileOnDisk.exists() && recomputeMd5IfFileExists) {
+                     System.out.println("[WorkspaceMapper] File path '" + path + "' from mappings ("+classMappingsJsonFile.getName()+") didn't exist. Using MD5 from JSON.");
+                }
+
+
+                ClassMapping cm = new ClassMapping(path, currentMd5);
+                cm.setMapping(mapping);
+                cm.setLastMappingMd5sum(lastMappingMd5sum); // This is the MD5 of the file *when it was last mapped by LLM*
+                
+                // If we are not recomputing, ensure the cm.md5sum (current file md5) is what's in JSON,
+                // especially if file doesn't exist.
+                if (!recomputeMd5IfFileExists) {
+                    cm.setMd5sum(md5sumInJson);
+                }
+
+
+                // Only add if the file exists OR we are not strictly checking for file existence (e.g. for external mappings)
+                // For external mappings (recomputeMd5IfFileExists = false), we always add what's in the JSON.
+                // For local mappings (recomputeMd5IfFileExists = true), we only add if file still exists.
+                if (!recomputeMd5IfFileExists || fileOnDisk.exists()) {
+                    loadedMappings.add(cm);
                 } else {
-                    System.out.println("File path '" + path + "' from mappings didn't exist. Not adding!");
+                     System.out.println("[WorkspaceMapper] File path '" + path + "' from mappings ("+classMappingsJsonFile.getName()+") didn't exist. Not adding to active map!");
                 }
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            System.err.println("[WorkspaceMapper] Error parsing class mappings from " + classMappingsJsonFile.getAbsolutePath() + ": " + e.getMessage());
+            // e.printStackTrace();
         }
+        return loadedMappings;
     }
 
+
     public String getAllMappingsConcatenated() {
-        StringBuilder sb = new StringBuilder();
-        File workspace = this.currentWorkspace;
-        if (workspace != null) {
-            Path workspacePath = Paths.get(workspace.getAbsolutePath());
-            for (ClassMapping cm : mappings.values()) {
-                if (cm.getMapping() == null || cm.getMapping().isEmpty()) continue; // Skip unmapped files
-                try {
-                    Path filePath = Paths.get(cm.getPath());
-                    Path relativePath = workspacePath.relativize(filePath);
-                    sb.append("PATH: ").append(relativePath).append("\n");
-                } catch (Exception e) {
-                    sb.append("PATH: ").append(cm.getPath()).append("\n");
-                }
-                sb.append(cm.getMapping()).append("\n\n");
-            }
-        } else {
-            for (ClassMapping cm : mappings.values()) {
-                 if (cm.getMapping() == null || cm.getMapping().isEmpty()) continue;
-                sb.append("PATH: ").append(cm.getPath()).append("\n");
-                sb.append(cm.getMapping()).append("\n");
-            }
-        }
-        return sb.toString();
+        return getConcatenatedMappingsForClassMappingList(new ArrayList<>(mappings.values()), this.currentWorkspace);
     }
     
     public String getConcatenatedMappingsForPaths(List<String> filePaths) {
-        StringBuilder sb = new StringBuilder();
-        File workspace = this.currentWorkspace;
-        Path workspacePath = (workspace != null) ? Paths.get(workspace.getAbsolutePath()) : null;
-
+        List<ClassMapping> selectedCms = new ArrayList<>();
         for (String path : filePaths) {
             ClassMapping cm = mappings.get(path);
-            if (cm != null && cm.getMapping() != null && !cm.getMapping().isEmpty()) { // Ensure mapping exists
+            if (cm != null) {
+                selectedCms.add(cm);
+            }
+        }
+        return getConcatenatedMappingsForClassMappingList(selectedCms, this.currentWorkspace);
+    }
+
+    /**
+     * Generates a concatenated string representation of a list of ClassMapping objects.
+     * @param classMappingList The list of ClassMappings.
+     * @param referenceWorkspaceForRelativePaths The workspace to use as a reference for creating relative paths.
+     *                                           If null, absolute paths will be used.
+     * @return A string containing all mappings, formatted with "PATH:" headers.
+     */
+    public static String getConcatenatedMappingsForClassMappingList(List<ClassMapping> classMappingList, File referenceWorkspaceForRelativePaths) {
+        StringBuilder sb = new StringBuilder();
+        Path referenceWorkspacePath = (referenceWorkspaceForRelativePaths != null) ? Paths.get(referenceWorkspaceForRelativePaths.getAbsolutePath()) : null;
+
+        for (ClassMapping cm : classMappingList) {
+            if (cm.getMapping() == null || cm.getMapping().isEmpty()) continue; // Skip unmapped or empty mappings
+
+            String displayPath = cm.getPath();
+            if (referenceWorkspacePath != null) {
                 try {
                     Path filePathObj = Paths.get(cm.getPath());
-                    Path relativePath = (workspacePath != null) ? workspacePath.relativize(filePathObj) : filePathObj;
-                    sb.append("PATH: ").append(relativePath).append("\n");
+                    // Only make relative if the filePathObj is under referenceWorkspacePath
+                    if (filePathObj.startsWith(referenceWorkspacePath)) {
+                        displayPath = referenceWorkspacePath.relativize(filePathObj).toString();
+                    } else {
+                         // If not under reference, keep it absolute or consider other policies
+                         // For now, keep absolute if not directly relatable
+                        displayPath = filePathObj.toAbsolutePath().toString();
+                    }
                 } catch (Exception e) {
-                    sb.append("PATH: ").append(cm.getPath()).append("\n");
+                    // Fallback to absolute path if relativization fails
+                    displayPath = Paths.get(cm.getPath()).toAbsolutePath().toString();
                 }
-                sb.append(cm.getMapping()).append("\n\n");
+            } else {
+                 displayPath = Paths.get(cm.getPath()).toAbsolutePath().toString();
             }
+
+            sb.append("PATH: ").append(displayPath).append("\n");
+            sb.append(cm.getMapping()).append("\n\n");
         }
         return sb.toString();
     }

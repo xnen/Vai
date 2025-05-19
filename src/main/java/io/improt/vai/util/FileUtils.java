@@ -78,13 +78,16 @@ public class FileUtils {
             if (jsonContent != null && !jsonContent.isEmpty()) {
                 try {
                     JSONObject jsonObject = new JSONObject(jsonContent);
+                    workspaceUuidMap.clear(); // Clear before loading
+                    workspacePathToUuidMap.clear(); // Clear before loading
                     for (String uuid : jsonObject.keySet()) {
                         String path = jsonObject.getString(uuid);
                         workspaceUuidMap.put(uuid, path);
                         workspacePathToUuidMap.put(path, uuid);
                     }
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    System.err.println("[FileUtils] Error parsing workspace mappings: " + e.getMessage());
+                    // e.printStackTrace(); // Potentially noisy
                 }
             }
         }
@@ -110,6 +113,15 @@ public class FileUtils {
             return uuid;
         }
     }
+
+    public static Map<String, String> getWorkspacePathToUuidMap() {
+        // Ensure mappings are loaded if map is empty, could happen if no other method triggered load yet
+        if (workspacePathToUuidMap.isEmpty() && new File(Constants.WORKSPACES_FILE).exists()) {
+            loadWorkspaceMappings();
+        }
+        return new HashMap<>(workspacePathToUuidMap); // Return a copy
+    }
+
 
     public static File getWorkspaceVaiDir(File workspace) {
         String uuid = getWorkspaceUUID(workspace);

@@ -790,19 +790,19 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
         }
 
         String currentTextFromMainArea = textArea.getText();
-        List<SubWorkspace> availableSubWorkspaces;
+        List<SubWorkspace> availableLocalSubWorkspaces; // Renamed for clarity
         if (App.getInstance().getCurrentWorkspace() != null) {
-            availableSubWorkspaces = App.getInstance().getSubWorkspaces();
+            availableLocalSubWorkspaces = App.getInstance().getSubWorkspaces();
         } else {
-            availableSubWorkspaces = Collections.emptyList();
+            availableLocalSubWorkspaces = Collections.emptyList();
         }
 
-        CreatePlanDialog planDialog = new CreatePlanDialog(ClientFrame.this, currentTextFromMainArea, availableSubWorkspaces);
+        CreatePlanDialog planDialog = new CreatePlanDialog(ClientFrame.this, currentTextFromMainArea, availableLocalSubWorkspaces);
         planDialog.setVisible(true);
 
         if (planDialog.isSubmitted()) {
             String planText = planDialog.getPlanText(); 
-            this.appendLLMPrompt("User Request: " + planText);
+            this.appendLLMPrompt("User Request: " + planText + "\n"); // Added newline
             if (planText != null && !planText.trim().isEmpty()) {
                 String selectedModelName = (String) modelCombo.getSelectedItem();
                 if (selectedModelName == null) {
@@ -810,12 +810,16 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
                     return;
                 }
 
-                List<String> selectedSubworkspaceNames = planDialog.getSelectedSubworkspaceNames();
+                List<String> selectedLocalSubworkspaceNames = planDialog.getSelectedLocalSubworkspaceNames();
+                List<CreatePlanDialog.ExternalSubWorkspaceSelection> selectedExternalSubWorkspaces = planDialog.getSelectedExternalSubWorkspaces();
+                
                 Tasks tasks = new Tasks();
-                boolean contextMapped = tasks.queryRepositoryMap(planText, selectedSubworkspaceNames);
+                boolean contextMapped = tasks.queryRepositoryMap(planText, selectedLocalSubworkspaceNames, selectedExternalSubWorkspaces);
 
                 if (contextMapped) {
                     statusBarLabel.setText("Context files updated based on plan. Review and submit.");
+                } else {
+                    statusBarLabel.setText("Plan processed. Context may not have changed.");
                 }
             } else {
                 statusBarLabel.setText("Plan creation cancelled or plan was empty.");

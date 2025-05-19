@@ -2,62 +2,114 @@ package io.improt.vai.llm;
 
 import com.openai.models.ReasoningEffort;
 import io.improt.vai.backend.App;
+import io.improt.vai.frame.dialogs.CreatePlanDialog;
 import io.improt.vai.llm.providers.GeminiProProvider;
 import io.improt.vai.mapping.WorkspaceMapper;
 import io.improt.vai.mapping.SubWorkspace;
+import io.improt.vai.util.FileUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Tasks {
 
-    public boolean queryRepositoryMap(String request, List<String> activeSubworkspaceNames) {
+    public boolean queryRepositoryMap(String request,
+                                      List<String> activeLocalSubworkspaceNames,
+                                      List<CreatePlanDialog.ExternalSubWorkspaceSelection> externalSelections) {
         App app = App.getInstance();
         if (app.getCurrentWorkspace() == null) {
             System.out.println("[Tasks::queryRepositoryMap] No current workspace. Cannot query repository map.");
             return false;
         }
 
-        List<SubWorkspace> allSubWorkspaces = app.getSubWorkspaces();
-        Set<String> uniqueFilePathsToMap = new HashSet<>();
+        WorkspaceMapper currentProjectMapper = new WorkspaceMapper(app.getCurrentWorkspace());
+        List<WorkspaceMapper.ClassMapping> combinedMappings = new ArrayList<>();
+        String mappingsString;
 
-        boolean specificSubWorkspacesSelected = activeSubworkspaceNames != null && !activeSubworkspaceNames.isEmpty();
+        boolean specificLocalSubWorkspacesSelected = activeLocalSubworkspaceNames != null && !activeLocalSubworkspaceNames.isEmpty();
+        boolean externalSubWorkspacesSelected = externalSelections != null && !externalSelections.isEmpty();
 
-        if (specificSubWorkspacesSelected) {
-            for (SubWorkspace sw : allSubWorkspaces) {
-                if (activeSubworkspaceNames.contains(sw.getName())) {
-                    uniqueFilePathsToMap.addAll(sw.getFilePaths());
+        if (!specificLocalSubWorkspacesSelected && !externalSubWorkspacesSelected) {
+            // No specific subworkspaces (local or external) selected, use all mappings from current project
+            mappingsString = currentProjectMapper.getAllMappingsConcatenated();
+            System.out.println("[Tasks::queryRepositoryMap] No active subworkspaces (local or external) selected. Using all available mappings from the current project.");
+        } else {
+            // Collect mappings from selected local subworkspaces
+            if (specificLocalSubWorkspacesSelected) {
+                List<SubWorkspace> allLocalSubWorkspaces = app.getSubWorkspaces(); // These are from current project
+                Set<String> localFilePathsToMap = new HashSet<>();
+                for (SubWorkspace sw : allLocalSubWorkspaces) {
+                    if (activeLocalSubworkspaceNames.contains(sw.getName())) {
+                        localFilePathsToMap.addAll(sw.getFilePaths());
+                    }
+                }
+                if (!localFilePathsToMap.isEmpty()) {
+                    List<WorkspaceMapper.ClassMapping> currentProjectAllCms = currentProjectMapper.getMappings();
+                    for (WorkspaceMapper.ClassMapping cm : currentProjectAllCms) {
+                        if (localFilePathsToMap.contains(cm.getPath())) {
+                            combinedMappings.add(cm);
+                        }
+                    }
+                    System.out.println("[Tasks::queryRepositoryMap] Added " + combinedMappings.size() + " mappings from selected local subworkspaces.");
                 }
             }
-        }
 
-        WorkspaceMapper mapper = new WorkspaceMapper(app.getCurrentWorkspace());
-        String mappings;
+            // Collect mappings from selected external subworkspaces
+            if (externalSubWorkspacesSelected) {
+                for (CreatePlanDialog.ExternalSubWorkspaceSelection esel : externalSelections) {
+                    File externalProjectFile = esel.getProjectFile();
+                    SubWorkspace externalSubWorkspace = esel.getSubWorkspace();
 
-        if (specificSubWorkspacesSelected) {
-            if (!uniqueFilePathsToMap.isEmpty()) {
-                mappings = mapper.getConcatenatedMappingsForPaths(new ArrayList<>(uniqueFilePathsToMap));
-                System.out.println("[Tasks::queryRepositoryMap] Using mappings from " + uniqueFilePathsToMap.size() + " files in selected subworkspaces.");
-            } else {
-                mappings = ""; // Selected subworkspaces were empty or contained no valid files
-                System.out.println("[Tasks::queryRepositoryMap] Active subworkspaces selected but they are empty or contain no files. Using empty context.");
+                    File externalVaiDir = FileUtils.getWorkspaceVaiDir(externalProjectFile);
+                    File externalClassMappingsJsonFile = new File(externalVaiDir, WorkspaceMapper.MAPPINGS_FILENAME);
+
+                    if (externalClassMappingsJsonFile.exists()) {
+                        // Load external mappings without recomputing MD5s, use what's in the JSON
+                        List<WorkspaceMapper.ClassMapping> allCmsFromExternalProject = WorkspaceMapper.loadClassMappingsFromFile(externalClassMappingsJsonFile, false);
+                        
+                        int countBeforeFilter = combinedMappings.size();
+                        for (WorkspaceMapper.ClassMapping cm : allCmsFromExternalProject) {
+                            if (externalSubWorkspace.getFilePaths().contains(cm.getPath())) {
+                                // Avoid duplicates if same file path selected from multiple external or local sources
+                                // (though less likely for external due to absolute paths unless projects overlap)
+                                if (combinedMappings.stream().noneMatch(existingCm -> existingCm.getPath().equals(cm.getPath()))) {
+                                    combinedMappings.add(cm);
+                                }
+                            }
+                        }
+                        System.out.println("[Tasks::queryRepositoryMap] Added " + (combinedMappings.size() - countBeforeFilter) + " mappings from external subworkspace '" + externalSubWorkspace.getName() + "' in project '" + externalProjectFile.getName() + "'.");
+                    } else {
+                        System.err.println("[Tasks::queryRepositoryMap] Could not find class_mappings.json for external project: " + externalProjectFile.getAbsolutePath());
+                    }
+                }
             }
-        } else {
-            // No subworkspaces were selected by the user in CreatePlanDialog, fall back to all mappings
-            mappings = mapper.getAllMappingsConcatenated();
-            System.out.println("[Tasks::queryRepositoryMap] No active subworkspaces selected. Using all available mappings.");
+            
+            if (combinedMappings.isEmpty()){
+                 mappingsString = ""; // Selected subworkspaces were empty or contained no valid files
+                 System.out.println("[Tasks::queryRepositoryMap] Selected subworkspaces (local or external) resulted in no mappings. Using empty context.");
+            } else {
+                 mappingsString = WorkspaceMapper.getConcatenatedMappingsForClassMappingList(combinedMappings, app.getCurrentWorkspace());
+                 System.out.println("[Tasks::queryRepositoryMap] Using mappings from " + combinedMappings.size() + " files in selected local/external subworkspaces.");
+            }
         }
+
 
         String systemMessage = getSystemMessage(request);
 
         GeminiProProvider llmProvider = new GeminiProProvider(); // Assuming GeminiProProvider is appropriate
         ReasoningEffort originalReasoningEffort = app.getConfiguredReasoningEffort();
         app.setReasoningEffort(ReasoningEffort.HIGH); // Temporarily set high for this task
-        
-        String response = llmProvider.request(systemMessage, mappings, null);
+        System.out.println(" === DEBUG ===");
+        System.out.println(systemMessage + "\n\n\n\n");
+        System.out.println(mappingsString);
+
+        String response = llmProvider.request(systemMessage, mappingsString, null);
+
 
         app.setReasoningEffort(originalReasoningEffort); // Restore original reasoning effort
 
@@ -172,7 +224,7 @@ public class Tasks {
                 "Your name is TOM. Output a list of file paths necessary to complete a specific request.\n" +
                 "\n" +
                 "### **Instructions:**\n" +
-                "1. The user will send a comprehensive document that overviews every file in the user's repository, including file paths, classes, methods, and fields. This is the 'MAPPINGS' content.\n" +
+                "1. The user will send a comprehensive document that overviews every file in the user's repository (and possibly, separate relevant repositories), including file paths, classes, methods, and fields. This is the 'MAPPINGS' content.\n" +
                 "2. Analyze this MAPPINGS content to determine which files are relevant to the given 'REQUEST'. THINK: Interfaces, Classes, etc. Anything the developer may need to reference in order to write good code around it.  \n" +
                 "3. Provide the list of these relevant file paths as newline-separated entries. Wrap this list in a Markdown code block (```). Only include file paths in this block.\n" +
                 "4. After the Markdown code block containing file paths, write a suggestion to the developer about how to achieve the given 'REQUEST', using the MAPPINGS content as your knowledge base. This suggestion is for the developer's eyes. Do NOT use more Markdown code blocks for this suggestion part.\n" +
