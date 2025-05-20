@@ -12,6 +12,7 @@ import io.improt.vai.frame.dialogs.CreatePlanDialog;
 import io.improt.vai.frame.dialogs.FeaturesDialog;
 import io.improt.vai.frame.dialogs.RepairDialog;
 import io.improt.vai.frame.dialogs.ResizableMessageHistoryDialog;
+import io.improt.vai.llm.SmartSubworkspaceCreator;
 import io.improt.vai.mapping.SubWorkspace; 
 import io.improt.vai.llm.Tasks; 
 import io.improt.vai.llm.providers.impl.IModelProvider;
@@ -110,6 +111,18 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             openWorkspaceMapperPanel();
         });
         contextMenu.add(manageWorkspacesItem);
+
+        JMenuItem smartSubworkspaceItem = new JMenuItem("Smart Sub-Workspace...");
+        smartSubworkspaceItem.addActionListener(e -> {
+            if (App.getInstance().getCurrentWorkspace() == null) {
+                JOptionPane.showMessageDialog(this, "Please open a workspace first to use Smart Sub-Workspace Creation.", "No Workspace", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            SmartSubworkspaceCreator creator = new SmartSubworkspaceCreator(this);
+            creator.startSmartCreationProcess();
+        });
+        contextMenu.add(smartSubworkspaceItem);
+
 
         JMenuItem newProjectItem = new JMenuItem("New Project...");
         JMenuItem openDirItem = new JMenuItem("Open Directory...");
@@ -890,5 +903,10 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
 
     public void appendLLMPrompt(String s) {
         textArea.setText(textArea.getText() + s);
+    }
+
+    // Getter for statusBarLabel
+    public JLabel getStatusBar() {
+        return statusBarLabel;
     }
 }

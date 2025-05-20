@@ -287,4 +287,63 @@ public class LLMInteraction {
         FileUtils.saveIncrementalBackupNumber(this.currentIncrementalBackupNumber, app.getCurrentWorkspace());
         return nextNumber;
     }
+
+    /**
+     * New method for Smart Subworkspace Creation.
+     * Queries an LLM to suggest relevant file/directory paths and a name for a new sub-workspace
+     * based on a user query and the current repository map.
+     *
+     * @param modelName                The name of the LLM model to use.
+     * @param userQueryForSubworkspace The user's textual request for the sub-workspace (e.g., "files for chat feature").
+     * @param repositoryMapContext     A string containing the concatenated mappings of the current workspace.
+     * @return The raw string response from the LLM.
+     * @throws RuntimeException if the LLM provider is not found or an error occurs during the request.
+     */
+    public String suggestSubworkspaceCreationDetails(String modelName, String userQueryForSubworkspace, String repositoryMapContext) {
+        IModelProvider llmProvider = app.getLLMProvider(modelName);
+        if (llmProvider == null) {
+            throw new RuntimeException("LLM provider not found for model: " + modelName);
+        }
+
+        String systemInstructionPrompt =
+                "Your goal is to analyze a user's request and a provided repository map (a summary of files and their contents/structure) to identify relevant files or directories for creating a new \"sub-workspace\". You also need to suggest a concise and descriptive name for this new sub-workspace.\n\n" +
+                        "Based on the USER REQUEST and the REPOSITORY MAP, provide your response in the following format STRICTLY:\n\n" +
+                        "RELEVANT_PATHS_START\n" +
+                        "path/to/relevant/file1.filetype\n" +
+                        "path/to/relevant_directory/\n" +
+                        "another/path/to/file.ts\n" +
+                        "RELEVANT_PATHS_END\n\n" +
+                        "SUGGESTED_NAME_START\n" +
+                        "MyNewChatFeatureSubWorkspace\n" +
+                        "SUGGESTED_NAME_END\n\n" +
+                        "Instructions for RELEVANT_PATHS:\n" +
+                        "- List each relevant file or directory path on a new line, relative to the project root if possible.\n" +
+                        "- If a path is a directory, ensure it ends with a forward slash (e.g., `path/to/directory/`).\n" +
+                        "- If a path is a file, it should not end with a slash.\n" +
+                        "- Be comprehensive but also focused. Only include paths highly relevant to the user's request.\n\n" +
+                        "Instructions for SUGGESTED_NAME:\n" +
+                        "- Provide a single, concise, camelCase or PascalCase name suitable for a sub-workspace.\n" +
+                        "- The name should reflect the user's request or the content of the identified paths.\n" +
+                        "- Do not include any other text or explanation around the name within its START/END tags.";
+
+        String combinedUserContent =
+                "USER_REQUEST:\n" + userQueryForSubworkspace + "\n\n" +
+                        "REPOSITORY_MAP:\n" + repositoryMapContext;
+
+        System.out.println("=== LLM PROMPT (Smart Subworkspace) ===");
+        System.out.println("System Prompt:\n" + systemInstructionPrompt);
+        System.out.println("User Content (excerpt):\n" + combinedUserContent.substring(0, Math.min(combinedUserContent.length(), 500)) + "..."); // Log excerpt
+        System.out.println("=======================================");
+
+        // This specific task might benefit from higher reasoning, but we use the app's configured one for now.
+        // Or, we could override it: app.setReasoningEffort(ReasoningEffort.HIGH);
+        String response = llmProvider.request(systemInstructionPrompt, combinedUserContent, null); // No specific files for this type of request
+        // app.setReasoningEffort(originalReasoningEffort); // Restore if changed
+
+        System.out.println("=== LLM RESPONSE (Smart Subworkspace) ===");
+        System.out.println(response);
+        System.out.println("=======================================");
+
+        return response != null ? response.trim() : "";
+    }
 }
