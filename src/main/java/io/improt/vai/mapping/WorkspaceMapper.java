@@ -2,10 +2,13 @@ package io.improt.vai.mapping;
 
 import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import io.improt.vai.frame.dialogs.MappingProgressDialog;
 import io.improt.vai.llm.providers.O3MiniProvider;
 import io.improt.vai.llm.providers.O4MiniProvider;
 import io.improt.vai.util.FileUtils;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,6 +23,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -191,7 +196,6 @@ public class WorkspaceMapper {
         if (files == null) return fileList;
         for (File file : files) {
             if (file.isDirectory()) {
-                // TODO: Add configuration to ignore certain directories like .git, .idea, node_modules, target etc.
                 String dirName = file.getName();
                 if (dirName.equals(".git") || dirName.equals(".idea") || dirName.equals("node_modules") || dirName.equals("target") || dirName.equals("build") || dirName.equals(".vscode")) {
                     continue;
@@ -238,13 +242,6 @@ public class WorkspaceMapper {
         }
     }
 
-    /**
-     * Loads class mappings from a specified JSON file.
-     * @param classMappingsJsonFile The .json file containing class mappings.
-     * @param recomputeMd5IfFileExists If true and the file path in a mapping entry exists, its MD5 will be recomputed.
-     *                                 Set to false if you want to use the MD5 sum stored in the JSON directly.
-     * @return A list of ClassMapping objects.
-     */
     public static List<ClassMapping> loadClassMappingsFromFile(File classMappingsJsonFile, boolean recomputeMd5IfFileExists) {
         List<ClassMapping> loadedMappings = new ArrayList<>();
         if (classMappingsJsonFile == null || !classMappingsJsonFile.exists()) {
@@ -266,29 +263,22 @@ public class WorkspaceMapper {
                 String lastMappingMd5sum = obj.optString("lastMappingMd5sum", "");
 
                 File fileOnDisk = new File(path);
-                String currentMd5 = md5sumInJson; // Default to MD5 from JSON
+                String currentMd5 = md5sumInJson; 
 
                 if (recomputeMd5IfFileExists && fileOnDisk.exists()) {
-                    currentMd5 = computeMD5(fileOnDisk); // Recompute current MD5 on load if file exists
+                    currentMd5 = computeMD5(fileOnDisk); 
                 } else if (!fileOnDisk.exists() && recomputeMd5IfFileExists) {
                      System.out.println("[WorkspaceMapper] File path '" + path + "' from mappings ("+classMappingsJsonFile.getName()+") didn't exist. Using MD5 from JSON.");
                 }
 
-
                 ClassMapping cm = new ClassMapping(path, currentMd5);
                 cm.setMapping(mapping);
-                cm.setLastMappingMd5sum(lastMappingMd5sum); // This is the MD5 of the file *when it was last mapped by LLM*
+                cm.setLastMappingMd5sum(lastMappingMd5sum); 
                 
-                // If we are not recomputing, ensure the cm.md5sum (current file md5) is what's in JSON,
-                // especially if file doesn't exist.
                 if (!recomputeMd5IfFileExists) {
                     cm.setMd5sum(md5sumInJson);
                 }
 
-
-                // Only add if the file exists OR we are not strictly checking for file existence (e.g. for external mappings)
-                // For external mappings (recomputeMd5IfFileExists = false), we always add what's in the JSON.
-                // For local mappings (recomputeMd5IfFileExists = true), we only add if file still exists.
                 if (!recomputeMd5IfFileExists || fileOnDisk.exists()) {
                     loadedMappings.add(cm);
                 } else {
@@ -297,7 +287,6 @@ public class WorkspaceMapper {
             }
         } catch (JSONException e) {
             System.err.println("[WorkspaceMapper] Error parsing class mappings from " + classMappingsJsonFile.getAbsolutePath() + ": " + e.getMessage());
-            // e.printStackTrace();
         }
         return loadedMappings;
     }
@@ -318,34 +307,23 @@ public class WorkspaceMapper {
         return getConcatenatedMappingsForClassMappingList(selectedCms, this.currentWorkspace);
     }
 
-    /**
-     * Generates a concatenated string representation of a list of ClassMapping objects.
-     * @param classMappingList The list of ClassMappings.
-     * @param referenceWorkspaceForRelativePaths The workspace to use as a reference for creating relative paths.
-     *                                           If null, absolute paths will be used.
-     * @return A string containing all mappings, formatted with "PATH:" headers.
-     */
     public static String getConcatenatedMappingsForClassMappingList(List<ClassMapping> classMappingList, File referenceWorkspaceForRelativePaths) {
         StringBuilder sb = new StringBuilder();
         Path referenceWorkspacePath = (referenceWorkspaceForRelativePaths != null) ? Paths.get(referenceWorkspaceForRelativePaths.getAbsolutePath()) : null;
 
         for (ClassMapping cm : classMappingList) {
-            if (cm.getMapping() == null || cm.getMapping().isEmpty()) continue; // Skip unmapped or empty mappings
+            if (cm.getMapping() == null || cm.getMapping().isEmpty()) continue;
 
             String displayPath = cm.getPath();
             if (referenceWorkspacePath != null) {
                 try {
                     Path filePathObj = Paths.get(cm.getPath());
-                    // Only make relative if the filePathObj is under referenceWorkspacePath
                     if (filePathObj.startsWith(referenceWorkspacePath)) {
                         displayPath = referenceWorkspacePath.relativize(filePathObj).toString();
                     } else {
-                         // If not under reference, keep it absolute or consider other policies
-                         // For now, keep absolute if not directly relatable
                         displayPath = filePathObj.toAbsolutePath().toString();
                     }
                 } catch (Exception e) {
-                    // Fallback to absolute path if relativization fails
                     displayPath = Paths.get(cm.getPath()).toAbsolutePath().toString();
                 }
             } else {
@@ -359,6 +337,10 @@ public class WorkspaceMapper {
     }
     
     public void mapFile(File file) {
+        mapFile(file, null); // Overload for calls without a listener
+    }
+
+    public void mapFile(File file, MappingProgressListener progressListener) {
         if (file == null || !file.exists() || !file.isFile()) {
             return;
         }
@@ -367,21 +349,19 @@ public class WorkspaceMapper {
         
         ClassMapping cm = mappings.get(filePath);
         if (cm != null) {
-            // File is already tracked
             if (currentMd5.equals(cm.getLastMappingMd5sum()) && cm.getMapping() != null && !cm.getMapping().isEmpty()) {
-                // Mapping is up-to-date and exists, so skip re-mapping.
+                 if (progressListener != null) { // If called with listener, still notify completion for this file
+                    progressListener.fileMappingCompleted(filePath, true, "Already up-to-date");
+                }
                 return;
             }
-            cm.setMd5sum(currentMd5); // Update current file checksum.
+            cm.setMd5sum(currentMd5);
         } else {
-            // File is not tracked yet. Create new mapping entry.
             cm = new ClassMapping(filePath, currentMd5);
             mappings.put(filePath, cm);
-            // Persist now that it's tracked, even before LLM mapping
             persistMappings();
         }
-        // Enqueue asynchronous mapping update.
-        generateMapping(file, cm, currentMd5);
+        generateMapping(file, cm, currentMd5, progressListener);
     }
 
     private void cullMappings() {
@@ -403,50 +383,110 @@ public class WorkspaceMapper {
         }
     }
 
-    private String generateMapping(File file, ClassMapping classMapping, String currentMd5ForWorker) {
-        // The cm parameter might be stale if mapFile was called multiple times quickly for the same file
-        // before the first worker started. Always get the latest from the map.
+    private void generateMapping(File file, ClassMapping classMapping, String currentMd5ForWorker, MappingProgressListener progressListener) {
         ClassMapping currentCmState = mappings.get(file.getAbsolutePath());
         if (currentCmState == null) {
              System.err.println("[WorkspaceMapper] Tried to generate mapping for untracked file: " + file.getAbsolutePath());
-            return ""; // Should not happen if mapFile logic is correct
+             if (progressListener != null) {
+                progressListener.fileMappingCompleted(file.getAbsolutePath(), false, "File untracked");
+            }
+            return;
         }
         
         System.out.println("[WorkspaceMapper] Queuing mapping generation for: " + file.getName());
-        MappingWorker worker = new MappingWorker(file, currentCmState, currentMd5ForWorker);
+        MappingWorker worker = new MappingWorker(file, currentCmState, currentMd5ForWorker, progressListener);
         mappingExecutor.submit(worker);
-        return ""; // Returns immediately
     }
     
-    public void mapDirectory(File directory) {
+    public void mapDirectory(File directory, Window owner) {
         if (directory == null || !directory.exists() || !directory.isDirectory()) {
             return;
         }
-        List<File> files = listFilesRecursively(directory);
-        for (File file : files) {
+        List<File> filesInDir = listFilesRecursively(directory);
+        List<ClassMapping> mappingsToProcess = new ArrayList<>();
+
+        for (File file : filesInDir) {
             if (hasValidExtension(file.getName())) {
-                mapFile(file); // mapFile handles all logic including adding if new, and queuing for mapping
-            }
-        }
-    }
-    
-    public void mapAllOutdated() {
-        // Create a snapshot of mappings to iterate over to avoid ConcurrentModificationException
-        // if mappings are modified by workers.
-        List<ClassMapping> snapshot = new ArrayList<>(mappings.values());
-        for (ClassMapping cm : snapshot) {
-            if (!cm.isUpToDate()) {
-                File file = new File(cm.getPath());
-                if (file.exists()) { // Ensure file still exists before trying to map
-                    mapFile(file);
+                String filePath = file.getAbsolutePath();
+                String currentMd5 = computeMD5(file);
+                ClassMapping cm = mappings.get(filePath);
+                if (cm == null) { // New file or untracked
+                    cm = new ClassMapping(filePath, currentMd5);
+                    mappings.put(filePath, cm); // Track it
+                    mappingsToProcess.add(cm);
                 } else {
-                     // File doesn't exist, remove it from mappings
-                    mappings.remove(cm.getPath());
-                    System.out.println("Removed mapping for non-existent file during mapAllOutdated: " + cm.getPath());
+                    cm.setMd5sum(currentMd5); // Update MD5
+                    if (!cm.isUpToDate()) {
+                        mappingsToProcess.add(cm);
+                    }
                 }
             }
         }
-        persistMappings(); // Persist any removals
+        persistMappings(); // Persist any newly tracked files
+
+        if (!mappingsToProcess.isEmpty()) {
+            MappingProgressDialog dialog = new MappingProgressDialog(owner, new ArrayList<>(mappingsToProcess), currentWorkspace); // Pass copy
+            SwingUtilities.invokeLater(() -> dialog.setVisible(true));
+            
+            AtomicInteger tasksSubmitted = new AtomicInteger(0);
+            for (ClassMapping cmToProcess : mappingsToProcess) {
+                File fileToProcess = new File(cmToProcess.getPath());
+                 // mapFile will call generateMapping which submits the worker with the listener
+                mapFile(fileToProcess, dialog);
+                tasksSubmitted.incrementAndGet();
+            }
+             // Check if all tasks submitted are actually going to run (some might be up-to-date)
+             // The dialog's allFilesProcessed should be called after all workers complete.
+             // We need a way to call dialog.allFilesProcessed() when this specific batch is done.
+             // This can be handled by having the dialog itself count completions against its initial list.
+             // For now, the dialog handles its own lifecycle based on file completions.
+             // Let's add a final notification from here IF no tasks were actually run by mapFile due to being up-to-date
+            if(tasksSubmitted.get() == 0 && dialog != null){ // If all were surprisingly up-to-date
+                 dialog.allFilesProcessed();
+            }
+            // The dialog should get a final allFilesProcessed() call when the batch of mapFile calls here is known to be done.
+            // This is complex with async workers. The dialog needs to manage its own "all done" state.
+
+        } else {
+            JOptionPane.showMessageDialog(owner, "All files in the directory are already up-to-date.", "Directory Mapping", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+    
+    public void mapAllOutdated(Window owner) {
+        List<ClassMapping> snapshot = new ArrayList<>(mappings.values());
+        List<ClassMapping> outdatedMappings = snapshot.stream()
+                .filter(cm -> {
+                    File f = new File(cm.getPath());
+                    if (!f.exists()) { // Cull non-existent files during this check
+                        mappings.remove(cm.getPath());
+                        System.out.println("Removed mapping for non-existent file during mapAllOutdated scan: " + cm.getPath());
+                        return false;
+                    }
+                    // Recompute MD5 just in case it changed since last load/add
+                    String currentMd5 = computeMD5(f);
+                    cm.setMd5sum(currentMd5);
+                    return !cm.isUpToDate();
+                })
+                .collect(Collectors.toList());
+
+        if (!outdatedMappings.isEmpty()) {
+            MappingProgressDialog dialog = new MappingProgressDialog(owner, outdatedMappings, currentWorkspace);
+            SwingUtilities.invokeLater(() -> dialog.setVisible(true));
+
+            AtomicInteger tasksSubmitted = new AtomicInteger(0);
+            for (ClassMapping cm : outdatedMappings) {
+                File file = new File(cm.getPath());
+                 // mapFile will call generateMapping which submits the worker with the listener
+                mapFile(file, dialog);
+                tasksSubmitted.incrementAndGet();
+            }
+             if(tasksSubmitted.get() == 0 && dialog != null){
+                 dialog.allFilesProcessed();
+            }
+        } else {
+            JOptionPane.showMessageDialog(owner, "All tracked files are already up-to-date.", "Update All Mappings", JOptionPane.INFORMATION_MESSAGE);
+        }
+        persistMappings(); // Persist any removals or MD5 updates
     }
     
     public List<ClassMapping> getMappings() {
@@ -455,47 +495,51 @@ public class WorkspaceMapper {
     
     private class MappingWorker implements Runnable {
         private final File file;
-        private final ClassMapping classMappingStateAtQueueTime; // The state when worker was created
+        private final ClassMapping classMappingStateAtQueueTime;
         private final String md5AtQueueTime;
+        private final MappingProgressListener progressListener;
         
-        public MappingWorker(File file, ClassMapping classMapping, String md5AtQueueTime) {
+        public MappingWorker(File file, ClassMapping classMapping, String md5AtQueueTime, MappingProgressListener listener) {
             this.file = file;
-            this.classMappingStateAtQueueTime = classMapping; // Capture the specific CM instance
+            this.classMappingStateAtQueueTime = classMapping;
             this.md5AtQueueTime = md5AtQueueTime;
+            this.progressListener = listener;
         }
         
         @Override
         public void run() {
-            // Critical: Re-fetch the ClassMapping from the main map to ensure we're working with the latest instance.
-            // This helps if multiple mapFile calls happened for the same file before this worker started.
             ClassMapping currentMainMapCm = mappings.get(file.getAbsolutePath());
             if (currentMainMapCm == null) {
-                System.err.println("[MappingWorker] File " + file.getName() + " no longer tracked in main mappings. Aborting worker.");
+                System.err.println("[MappingWorker] File " + file.getName() + " no longer tracked. Aborting.");
+                if (progressListener != null) {
+                    progressListener.fileMappingCompleted(file.getAbsolutePath(), false, "File no longer tracked");
+                }
                 return;
             }
 
-            // Double check if another worker has already updated this mapping for the same content version
-            // or if the file has changed again since this worker was queued.
-            String latestMd5InMap = currentMainMapCm.getMd5sum(); // Current MD5 of the file as per map
-            String actualCurrentFileMd5 = computeMD5(file); // MD5 of file on disk right now
+            if (progressListener != null) {
+                progressListener.fileMappingStarted(file.getAbsolutePath());
+            }
 
-            if (!md5AtQueueTime.equals(actualCurrentFileMd5) || !md5AtQueueTime.equals(latestMd5InMap)) {
-                 System.out.println("[MappingWorker] File " + file.getName() + " changed since worker was queued or MD5 mismatch. Aborting stale worker.");
-                 // Another mapFile call would have updated md5sum and queued a newer worker.
+            String actualCurrentFileMd5 = computeMD5(file);
+            if (!md5AtQueueTime.equals(actualCurrentFileMd5) || !md5AtQueueTime.equals(currentMainMapCm.getMd5sum())) {
+                 System.out.println("[MappingWorker] File " + file.getName() + " changed. Aborting stale worker.");
+                 if (progressListener != null) {
+                    progressListener.fileMappingCompleted(file.getAbsolutePath(), false, "File changed, stale worker");
+                }
                  return;
             }
-            // Also check if lastMappingMd5sum is already set to this md5AtQueueTime (meaning already processed by another worker)
             if(md5AtQueueTime.equals(currentMainMapCm.getLastMappingMd5sum()) && currentMainMapCm.getMapping() != null && !currentMainMapCm.getMapping().isEmpty()){
-                System.out.println("[MappingWorker] File " + file.getName() + " with MD5 " + md5AtQueueTime + " already mapped. Aborting redundant worker.");
+                System.out.println("[MappingWorker] File " + file.getName() + " MD5 " + md5AtQueueTime + " already mapped. Aborting redundant worker.");
+                 if (progressListener != null) {
+                    progressListener.fileMappingCompleted(file.getAbsolutePath(), true, "Already mapped by another worker");
+                }
                 return;
             }
-
 
             System.out.println("[MappingWorker] Starting LLM mapping for: " + file.getName() + " (MD5: " + md5AtQueueTime + ")");
             String fileContents = FileUtils.readFileToString(file);
-            if (fileContents == null) {
-                fileContents = "";
-            }
+            if (fileContents == null) fileContents = "";
             
             String prompt =
                 "Goal: Reduce file contents for overview.\n" +
@@ -522,22 +566,28 @@ public class WorkspaceMapper {
                 String llmResponse = miniProvider.blockingCompletion(simpleParams);
 
                 synchronized (WorkspaceMapper.this) {
-                    // Re-fetch CM again inside synchronized block to ensure atomicity of check-then-set
                     ClassMapping finalCheckCm = mappings.get(file.getAbsolutePath());
                     if (finalCheckCm != null && finalCheckCm.getMd5sum().equals(md5AtQueueTime)) {
-                        // Only update if the md5sum in the map still matches the one this worker processed
-                        // This prevents a stale worker from overwriting a newer mapping if the file changed rapidly.
                         finalCheckCm.setMapping(llmResponse);
-                        finalCheckCm.setLastMappingMd5sum(md5AtQueueTime); // Set last mapped MD5 to the one processed
+                        finalCheckCm.setLastMappingMd5sum(md5AtQueueTime);
                         System.out.println("[MappingWorker] Successfully mapped: " + file.getName());
                         persistMappings();
+                        if (progressListener != null) {
+                            progressListener.fileMappingCompleted(file.getAbsolutePath(), true, "Successfully mapped");
+                        }
                     } else {
                          System.out.println("[MappingWorker] MD5 changed or file untracked before update for: " + file.getName() + ". LLM result discarded.");
+                         if (progressListener != null) {
+                            progressListener.fileMappingCompleted(file.getAbsolutePath(), false, "MD5 changed or untracked before update");
+                        }
                     }
                 }
             } catch (Exception e) {
                 System.err.println("[MappingWorker] Error during LLM mapping for " + file.getName() + ": " + e.getMessage());
-                e.printStackTrace();
+                // e.printStackTrace(); // Keep console less cluttered for dialog testing
+                 if (progressListener != null) {
+                    progressListener.fileMappingCompleted(file.getAbsolutePath(), false, "LLM Error: " + e.getMessage().substring(0, Math.min(e.getMessage().length(), 50)));
+                }
             }
         }
     }

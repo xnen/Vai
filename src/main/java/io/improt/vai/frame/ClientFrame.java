@@ -17,6 +17,7 @@ import io.improt.vai.mapping.SubWorkspace;
 import io.improt.vai.llm.Tasks; 
 import io.improt.vai.llm.providers.impl.IModelProvider;
 import io.improt.vai.llm.providers.openai.OpenAIClientBase;
+import io.improt.vai.mapping.WorkspaceMapper; // Added import
 import io.improt.vai.util.AudioUtils;
 import io.improt.vai.util.FileUtils;
 import io.improt.vai.util.MessageHistoryManager;
@@ -122,6 +123,18 @@ public class ClientFrame extends JFrame implements ActiveFilesPanel.FileSelectio
             creator.startSmartCreationProcess();
         });
         contextMenu.add(smartSubworkspaceItem);
+
+        JMenuItem updateAllMappingsItem = new JMenuItem("Update All Mappings");
+        updateAllMappingsItem.addActionListener(e -> {
+            File currentWorkspace = backend.getCurrentWorkspace();
+            if (currentWorkspace == null) {
+                JOptionPane.showMessageDialog(ClientFrame.this, "Please open a workspace first.", "No Workspace", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            WorkspaceMapper workspaceMapper = new WorkspaceMapper(currentWorkspace);
+            workspaceMapper.mapAllOutdated(ClientFrame.this);
+        });
+        contextMenu.add(updateAllMappingsItem);
 
 
         JMenuItem newProjectItem = new JMenuItem("New Project...");
