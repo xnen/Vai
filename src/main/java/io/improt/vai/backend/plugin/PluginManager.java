@@ -14,7 +14,8 @@ public class PluginManager {
                 new RunCommandPlugin(),
                 new LLMPromptPlugin(),
                 new RequestPlanPlugin(),
-                new AutoLLMScanPlugin()
+                new AutoLLMScanPlugin(),
+                new GetMeOutPlugin()
         );
         
         // Load previously saved plugin states and update each plugin

@@ -1,7 +1,6 @@
 package io.improt.vai.frame;
 
 import io.improt.vai.backend.App;
-import io.improt.vai.llm.LLMRegistry;
 import io.improt.vai.llm.chat.ChatLLMHandler;
 import io.improt.vai.llm.chat.ChatMessage;
 import io.improt.vai.llm.chat.ChatWindow;
@@ -33,8 +32,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * HelpOverlayFrame is a separate window dedicated to help content.
@@ -57,7 +54,10 @@ public class HelpOverlayFrame extends JFrame {
     private final int previewGap = 10;             // gap between previews
 
     // UI Components.
-    private final JComboBox<ModelOption> modelCombo;
+    private JToggleButton webToggleButton;
+    private JToggleButton repoToggleButton;
+    private ButtonGroup modelToggleGroup;
+
     private final JPanel resourcePanel;                // Panel for image previews (resource grid)
     private JButton audioRecordButton;
     private final JScrollPane scrollPane;              // Scroll pane for text area
@@ -69,8 +69,28 @@ public class HelpOverlayFrame extends JFrame {
     private AudioRecorder audioRecorder;
     private File audioTempFile;
 
+    // Model Names
+    private static final String WEB_MODEL_NAME = "gpt-4o-mini-search-preview"; // From GPT4oSearchProvider
+    private static final String REPO_PRIMARY_MODEL_NAME = "gpt-4.1";         // From GPT41Provider
+    private static final String REPO_FALLBACK_MODEL_NAME = "Gemini Pro";     // From GeminiProProvider
+    private static final String AUDIO_MODEL_NAME = "gpt-4o-mini-audio";      // From FourOAudioMiniProvider
+
+    private String currentRepoModelName;
+    private String currentMode = "WEB"; // "WEB" or "REPO"
+
+
     public HelpOverlayFrame() {
         super("Help Overlay");
+
+        // Determine the REPO model to use
+        IModelProvider primaryRepoProvider = App.getInstance().getLLMProvider(REPO_PRIMARY_MODEL_NAME);
+        if (primaryRepoProvider != null) {
+            currentRepoModelName = REPO_PRIMARY_MODEL_NAME;
+        } else {
+            currentRepoModelName = REPO_FALLBACK_MODEL_NAME;
+            System.out.println("[HelpOverlayFrame] Primary REPO model '" + REPO_PRIMARY_MODEL_NAME + "' not available. Falling back to '" + REPO_FALLBACK_MODEL_NAME + "'.");
+        }
+
 
         // Remove window decorations and set the background to be completely transparent.
         setUndecorated(true);
@@ -100,8 +120,7 @@ public class HelpOverlayFrame extends JFrame {
         setContentPane(overlayPanel);
 
         // The main prompt label.
-        JLabel promptLabel = new JLabel("What's up?");
-        this.promptLabel = promptLabel;
+        this.promptLabel = new JLabel("What's up?");
         JLabel vaiLabel = new JLabel("vai");
         vaiLabel.setFont(new Font("Clash Grotesk Variable Normal", Font.PLAIN, 20));
         vaiLabel.setForeground(new Color(20, 20, 20));
@@ -110,41 +129,58 @@ public class HelpOverlayFrame extends JFrame {
         // Use a modern sans-serif font to improve readability.
         promptLabel.setFont(new Font("Supply Medium", Font.PLAIN, 24));
         promptLabel.setForeground(Color.WHITE);
-        promptLabel.setBounds(68, 20, 500, 30);
+        promptLabel.setBounds(68, 20, 400, 30); // Adjusted width for buttons
         overlayPanel.add(vaiLabel);
         overlayPanel.add(promptLabel);
 
-        // Auto-populate model selection dropdown from the LLM registry.
-        LLMRegistry llmRegistry = App.getInstance().getLLMRegistry();
-        List<String> registeredModels = llmRegistry.getRegisteredModelNames();
-        List<ModelOption> modelOptionsList = new ArrayList<>();
-        ModelOption o3mini = null;
-        for (String modelName : registeredModels) {
-            IModelProvider provider = llmRegistry.getModel(modelName);
-            ModelOption o = new ModelOption(modelName, provider.supportsAudio(), provider.supportsVision());
-            modelOptionsList.add(o);
-            String currentModel = "gpt-4o-mini-search-preview"; // chatgpt-4o-latest
-            if (Objects.equals(modelName, currentModel)) {
-                o3mini = o;
-            }
-        }
-        ModelOption[] modelOptions = modelOptionsList.toArray(new ModelOption[0]);
-        modelCombo = new JComboBox<>(modelOptions);
-        modelCombo.setRenderer(new ModelOptionRenderer());
-        modelCombo.setSelectedItem(o3mini);
+        // Create toggle buttons
+        webToggleButton = new JToggleButton("🌐 WEB");
+        repoToggleButton = new JToggleButton("🗂️ REPO");
+        modelToggleGroup = new ButtonGroup();
+        modelToggleGroup.add(webToggleButton);
+        modelToggleGroup.add(repoToggleButton);
 
-        // Set a modern dark style for the combo box.
-        modelCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        modelCombo.setBackground(new Color(60, 60, 60));
-        modelCombo.setForeground(Color.black);
-        modelCombo.putClientProperty("JComboBox.buttonType", "roundRect");
-        int dropdownWidth = 150;
-        int dropdownHeight = 25;
-        int dropdownX = overlayWidth - dropdownWidth - 30;
-        int dropdownY = 20;
-        modelCombo.setBounds(dropdownX, dropdownY, dropdownWidth, dropdownHeight);
+        // Style and position toggle buttons
+        Font toggleButtonFont = new Font("Segoe UI", Font.PLAIN, 12);
+        Color toggleButtonBg = new Color(60, 60, 60);
+        Color toggleButtonFg = Color.WHITE; // Text color
 
-        overlayPanel.add(modelCombo);
+        webToggleButton.setFont(toggleButtonFont);
+        webToggleButton.setBackground(toggleButtonBg);
+        webToggleButton.setForeground(toggleButtonFg);
+        webToggleButton.setFocusPainted(false);
+        webToggleButton.putClientProperty("JButton.buttonType", "roundRect");
+
+
+        repoToggleButton.setFont(toggleButtonFont);
+        repoToggleButton.setBackground(toggleButtonBg);
+        repoToggleButton.setForeground(toggleButtonFg);
+        repoToggleButton.setFocusPainted(false);
+        repoToggleButton.putClientProperty("JButton.buttonType", "roundRect");
+
+        int toggleAreaWidth = 150; // Total width for the toggle area
+        int toggleButtonHeight = 25;
+        int toggleButtonWidth = (toggleAreaWidth - 5) / 2; // 5px gap
+        int toggleAreaX = overlayWidth - toggleAreaWidth - 30;
+        int toggleAreaY = 20;
+
+        webToggleButton.setBounds(toggleAreaX, toggleAreaY, toggleButtonWidth, toggleButtonHeight);
+        repoToggleButton.setBounds(toggleAreaX + toggleButtonWidth + 5, toggleAreaY, toggleButtonWidth, toggleButtonHeight);
+
+        webToggleButton.setSelected(true); // Default to WEB
+
+        webToggleButton.addActionListener(e -> {
+            currentMode = "WEB";
+            updateMediaSpecificUI();
+        });
+        repoToggleButton.addActionListener(e -> {
+            currentMode = "REPO";
+            updateMediaSpecificUI();
+        });
+
+        overlayPanel.add(webToggleButton);
+        overlayPanel.add(repoToggleButton);
+
 
         // Multi-line text area + scroll pane.
         JTextArea inputArea = getTextArea();
@@ -236,7 +272,7 @@ public class HelpOverlayFrame extends JFrame {
                         resourcePanel.revalidate();
                         resourcePanel.repaint();
                         updateFrameLayout();
-                        updateModelComboState();
+                        updateMediaSpecificUI();
                     } else if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                         String pasteText = (String) contents.getTransferData(DataFlavor.stringFlavor);
                         int pos = inputArea.getCaretPosition();
@@ -286,7 +322,6 @@ public class HelpOverlayFrame extends JFrame {
                 if (audioRecorder != null && audioRecorder.isRecording()) {
                     stopAudioRecording(false);
                 }
-                // Removed keyboardThread and killStream references
                 dispose();
             }
         });
@@ -298,28 +333,42 @@ public class HelpOverlayFrame extends JFrame {
         inputArea.setLineWrap(true);
         inputArea.setWrapStyleWord(true);
         inputArea.setOpaque(true);
-        // Use a slightly lighter dark gray for better contrast.
         inputArea.setBackground(new Color(45, 45, 45));
         inputArea.setForeground(Color.WHITE);
         inputArea.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        // Add a small margin for padding.
         inputArea.setMargin(new Insets(5, 5, 5, 5));
         inputArea.setBorder(BorderFactory.createEmptyBorder());
         return inputArea;
+    }
+
+    private String getEffectiveModelName() {
+        boolean isAudioActive = (audioTempFile != null || (audioRecorder != null && audioRecorder.isRecording()));
+        // boolean hasImages = !imageFiles.isEmpty(); // Not directly used for model choice, but for content filtering later
+
+        if (isAudioActive) {
+            return AUDIO_MODEL_NAME;
+        } else {
+            if ("WEB".equals(currentMode)) {
+                return WEB_MODEL_NAME;
+            } else { // REPO mode
+                return currentRepoModelName;
+            }
+        }
     }
 
     /**
      * Handles CTRL+ENTER key press to transition from HelpOverlayFrame to ChatWindow.
      */
     private void transitionToChat() {
-        // If audio recording is in progress, stop and save the recording as MP3.
-        if (audioRecorder != null && audioRecorder.isRecording()) {
-            stopAudioRecording(true);
+        boolean isAudioRecordingNow = (audioRecorder != null && audioRecorder.isRecording());
+        if (isAudioRecordingNow) {
+            stopAudioRecording(true); // This will set audioTempFile if successful
         }
-        JTextArea inputArea = (JTextArea) scrollPane.getViewport().getView();
-        String userText = inputArea.getText().trim(); // Capture user text from overlay
 
-        // Check for !vai command
+        JTextArea inputArea = (JTextArea) scrollPane.getViewport().getView();
+        String userText = inputArea.getText().trim();
+
+        // Check for !vai command (should take precedence)
         if (userText.contains("!vai")) {
             userText = userText.replace("!vai", "");
             ClientFrame client = App.getInstance().getClient();
@@ -351,60 +400,61 @@ public class HelpOverlayFrame extends JFrame {
             return;
         }
 
-        // Get selected model from modelCombo.
-        ModelOption selectedModel = (ModelOption) modelCombo.getSelectedItem();
-        String modelLabel = selectedModel != null ? selectedModel.label : "o3-mini"; // Ensure a default
+        String effectiveModelName = getEffectiveModelName();
+        IModelProvider provider = App.getInstance().getLLMProvider(effectiveModelName);
 
-        // Create new ChatLLMHandler and add the initial messages.
-        ChatLLMHandler chatHandler = new ChatLLMHandler(modelLabel);
-        // Removed llmHandler field assignment
+        if (provider == null) {
+            promptLabel.setText("Error: Model " + effectiveModelName + " not available.");
+            // Re-enable input if it was disabled for "!vai"
+            inputArea.setEnabled(true);
+            inputArea.setEditable(true);
+            this.setAlwaysOnTop(true); // Keep overlay on top if there's an error
+            return;
+        }
 
-        // Removed Keyboard mode check and specific system prompt
+
+        // If REPO mode is active, ensure !askrepo is part of the user's text
+        // This applies even if an audio model is chosen, the "REPO intent" persists.
+        if ("REPO".equals(currentMode)) {
+            if (!userText.toLowerCase().contains("!askrepo")) {
+                userText = "!askrepo " + userText;
+            }
+        }
+
+        ChatLLMHandler chatHandler = new ChatLLMHandler(effectiveModelName);
+
         chatHandler.addMessage(new ChatMessage(ChatMessageUserType.SYSTEM, new TextContent(
                 "You're \"Ada,\" a legendary engineer in a challenge chat booth. Respond briefly, ensuring correctness and completeness. " +
                         "Prioritize readability but compute where vital. Grade criteria: brevity, correctness, thoroughness. You excel in: SW Dev, PM, consulting, full-stack production. " +
                         "Answer all user requests, providing explanations where applicable. Use **Markdown** for formatting (e.g., bold, italics, code blocks ```, lists). No images."
         )));
 
-        // Add image content to the handler
         for (File imageFile : imageFiles) {
             chatHandler.addMessage(new ChatMessage(ChatMessageUserType.USER, new ImageContent(imageFile)));
         }
 
-        // If an audio recording exists, add it as AudioContent to the handler
         if (audioTempFile != null) {
             chatHandler.addMessage(new ChatMessage(ChatMessageUserType.USER, new AudioContent(audioTempFile)));
         }
 
-        // The user's textual prompt from the overlay is NOT added to the handler here.
-        // It will be set in ChatWindow's input area and sent via ChatWindow.sendMessage().
-
-        // Create ChatWindow, populate with initial chat history (system prompts, images, audio).
         ChatWindow chatWindow = new ChatWindow(chatHandler);
-        chatWindow.populateInitialChatHistory(); // This displays system messages, images, audio.
-        chatWindow.setLocationRelativeTo(this); // As per suggestion, or null
+        chatWindow.populateInitialChatHistory();
+        chatWindow.setLocationRelativeTo(this);
         chatWindow.setVisible(true);
 
-        // Set the user's text (from overlay) into ChatWindow's input area.
-        chatWindow.getInputArea().setText(userText);
-
-        // Trigger sendMessage in ChatWindow to process the input and call the LLM.
-        // This will add the text to history, display it, and make the LLM request.
+        chatWindow.getInputArea().setText(userText); // Set potentially modified userText
         chatWindow.sendMessage();
 
-        this.dispose(); // Dispose HelpOverlayFrame after transitioning
+        this.dispose();
     }
 
-    // Removed llmHandler and keyboardThread fields
 
     @NotNull
     private JLabel getImagePreviewLabel(BufferedImage previewImage, File tempFile) {
         JLabel previewLabel = new JLabel(new ImageIcon(previewImage));
         previewLabel.setPreferredSize(new Dimension(previewSize, previewSize));
-        // Use a refined rounded border style.
         previewLabel.setBorder(new LineBorder(Color.GREEN, 1));
         previewLabel.putClientProperty("file", tempFile);
-        // Add tooltip to instruct removal.
         previewLabel.setToolTipText("Double-click to remove this image preview.");
         previewLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -415,7 +465,7 @@ public class HelpOverlayFrame extends JFrame {
                     resourcePanel.revalidate();
                     resourcePanel.repaint();
                     updateFrameLayout();
-                    updateModelComboState();
+                    updateMediaSpecificUI();
                 }
             }
         });
@@ -431,14 +481,14 @@ public class HelpOverlayFrame extends JFrame {
             audioRecorder.startRecording();
         } catch (LineUnavailableException ex) {
             ex.printStackTrace();
+            // Show error to user?
+            promptLabel.setText("Audio recording failed: " + ex.getMessage());
             return;
         }
-        updateModelComboState();
+        updateMediaSpecificUI(); // Important to call this
         if (audioRecordButton == null) {
             audioRecordButton = new JButton("Stop Recording");
-            // Position the audio record button at the top-right corner.
             audioRecordButton.setBounds(overlayWidth - 110, 55, 100, 25);
-            // Style the button with a modern rounded look.
             audioRecordButton.putClientProperty("JButton.buttonType", "roundRect");
             audioRecordButton.setBackground(new Color(220, 53, 69));
             audioRecordButton.setForeground(Color.WHITE);
@@ -451,6 +501,7 @@ public class HelpOverlayFrame extends JFrame {
             getContentPane().repaint();
         }
         audioRecordButton.setVisible(true);
+        promptLabel.setText("Recording audio..."); // Give feedback
     }
 
     /**
@@ -466,48 +517,43 @@ public class HelpOverlayFrame extends JFrame {
         if (saveFile) {
             audioTempFile = recorded;
             System.out.println("Audio recording saved to " + (audioTempFile != null ? audioTempFile.getAbsolutePath() : "null"));
+            promptLabel.setText("Audio saved. What's up?");
+        } else {
+            promptLabel.setText("Recording stopped. What's up?");
         }
         audioRecorder = null;
         if (audioRecordButton != null) {
             audioRecordButton.setVisible(false);
         }
-        updateModelComboState();
+        updateMediaSpecificUI(); // Important to call this
     }
 
     /**
-     * Dynamically updates the model selection dropdown items based on pasted content and recording status.
+     * This method is called when media (images, audio) changes.
+     * Its original purpose was to update a JComboBox. Now, it can be used
+     * to provide feedback if the current media combination is problematic
+     * with the chosen model, but for now, it's minimal as content filtering
+     * happens later.
      */
-    private void updateModelComboState() {
-        boolean hasImage = resourcePanel.getComponentCount() > 0;
-        if (audioRecorder != null && audioRecorder.isRecording()) {
-            for (int i = 0; i < modelCombo.getItemCount(); i++) {
-                ModelOption option = modelCombo.getItemAt(i);
-                option.enabled = option.supportsAudio;
-            }
-        } else if (hasImage) {
-            for (int i = 0; i < modelCombo.getItemCount(); i++) {
-                ModelOption option = modelCombo.getItemAt(i);
-                option.enabled = option.supportsImage;
-            }
-        } else {
-            for (int i = 0; i < modelCombo.getItemCount(); i++) {
-                ModelOption option = modelCombo.getItemAt(i);
-                option.enabled = true;
-            }
-        }
+    private void updateMediaSpecificUI() {
+        // String effectiveModel = getEffectiveModelName();
+        // IModelProvider provider = App.getInstance().getLLMProvider(effectiveModel);
+        // boolean isAudioActive = (audioTempFile != null || (audioRecorder != null && audioRecorder.isRecording()));
+        // boolean hasImages = !imageFiles.isEmpty();
 
-        // Ensure the currently selected model is valid.
-        ModelOption currentSelection = (ModelOption) modelCombo.getSelectedItem();
-        if (currentSelection == null || !currentSelection.enabled) {
-            for (int i = 0; i < modelCombo.getItemCount(); i++) {
-                ModelOption option = modelCombo.getItemAt(i);
-                if (option.enabled) {
-                    modelCombo.setSelectedIndex(i);
-                    break;
-                }
-            }
-        }
-        modelCombo.repaint();
+        // if (provider != null) {
+        //     if (isAudioActive && hasImages && !provider.supportsVision()) {
+        //          promptLabel.setText("FYI: Audio model may not process images.");
+        //     } else if (hasImages && !isAudioActive && !provider.supportsVision()){
+        //          promptLabel.setText("FYI: Current model may not process images.");
+        //     }
+        //     // else {
+        //     //    promptLabel.setText("What's up?"); // Reset if no issues
+        //     // }
+        // }
+        // For now, no specific UI changes are made here as Messages.buildChat handles filtering.
+        // This method is kept as a placeholder for potential future UI feedback logic.
+        // System.out.println("[HelpOverlayFrame] updateMediaSpecificUI called. Effective model: " + effectiveModel);
     }
 
     /**
@@ -520,12 +566,11 @@ public class HelpOverlayFrame extends JFrame {
 
         if (resourcePanel.getComponentCount() > 0) {
             Dimension rpPref = getResourcePanelPreferredSize();
-            // Constants for the resource grid panel and image previews.
-            // gap between text area and resource grid
             int resourcePanelMargin = 10;
             int resourceY = topOffset + textAreaHeight + resourcePanelMargin;
             resourcePanel.setBounds(horizontalMargin, resourceY, textFieldWidth, rpPref.height);
             newFrameHeight = resourceY + rpPref.height + bottomMargin;
+            resourcePanel.setVisible(true); // Ensure visible if components are added
         } else {
             resourcePanel.setVisible(false);
         }
@@ -556,3 +601,26 @@ public class HelpOverlayFrame extends JFrame {
         return new Dimension(textFieldWidth, height);
     }
 }
+
+// Custom panel class for drawing the rounded background.
+//class OverlayPanel extends JPanel {
+//    @Override
+//    protected void paintComponent(Graphics g) {
+//        super.paintComponent(g);
+//        Graphics2D g2d = (Graphics2D) g.create();
+//        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+//        // Semi-transparent dark gray background.
+//        g2d.setColor(new Color(30, 30, 30, 230));
+//        // Draw with rounded corners.
+//        g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
+//        g2d.dispose();
+//    }
+//}
+
+// Custom panel for image previews.
+//class ResourceGridPanel extends JPanel {
+//    public ResourceGridPanel() {
+//        setOpaque(false);
+//        setBackground(new Color(0,0,0,0)); // Transparent background
+//    }
+//}

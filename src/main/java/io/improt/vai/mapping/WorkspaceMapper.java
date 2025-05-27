@@ -128,7 +128,10 @@ public class WorkspaceMapper {
                 || lowerFileName.endsWith(".css")
                 || lowerFileName.endsWith(".html")
                 || lowerFileName.endsWith(".py")
-                || lowerFileName.endsWith(".schema");
+                || lowerFileName.endsWith(".schema")
+                || lowerFileName.endsWith(".json")
+                || lowerFileName.endsWith(".yaml")
+                || lowerFileName.endsWith(".yml");
     }
 
     public void addDirectory(File directory) {
