@@ -1,6 +1,7 @@
 package io.improt.vai.backend;
 
 import io.improt.vai.frame.component.RecentActiveFilesPanel;
+import io.improt.vai.frame.dialogs.MissingFilesDialog; // Added import
 import io.improt.vai.util.FileUtils;
 
 import java.io.File;
@@ -8,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import javax.swing.SwingUtilities; // Added for SwingUtilities.invokeLater
 
 /**
  * Manages the active enabled files within the application.
@@ -276,21 +278,48 @@ public class ActiveFileManager {
      *
      */
     public void setupDynamicFiles(List<String> approvedFiles) {
+        List<String> missingFileDisplayStrings = new ArrayList<>();
+        List<File> filesToAdd = new ArrayList<>();
+
         for (String s : approvedFiles) {
             File file = new File(App.getInstance().getCurrentWorkspace(), s);
+            String originalPathForMissingDisplay = file.getAbsolutePath(); // Store before trying raw
+
             if (!file.exists() || file.isDirectory()) {
                 // try raw...
                 file = new File(s);
+                originalPathForMissingDisplay = file.getAbsolutePath(); // Update for raw path
                 System.out.println("WARNING: RAW FILE USAGE: " + s);
                 if (!file.exists() || file.isDirectory()) {
-                    System.out.println("Skipping '" + s + "' as it didnt exist or was directory.");
+                    String fileName = new File(s).getName(); // Get name from the original string 's'
+                    String displayString = fileName + " | " + originalPathForMissingDisplay;
+                    missingFileDisplayStrings.add(displayString);
+                    System.out.println("Skipping '" + s + "' as it didnt exist or was directory. Added to missing list.");
                     continue;
                 }
             }
-
-            this.enabledFiles.add(file);
+            filesToAdd.add(file);
         }
-        this.enabledFiles = this.concatenateWithoutDuplicates();
+
+        // Add all found files to enabledFiles
+        for (File file : filesToAdd) {
+            // Check for duplicates before adding to avoid issues with concatenateWithoutDuplicates
+            // if it's already in enabledFiles from a previous operation or user action.
+            boolean alreadyExists = this.enabledFiles.stream()
+                    .anyMatch(enabledFile -> enabledFile.getAbsolutePath().equals(file.getAbsolutePath()));
+            if (!alreadyExists) {
+                this.enabledFiles.add(file);
+            }
+        }
+        
+        // Consolidate enabled files (if any were added or if there were pre-existing dynamic files)
+        // This also handles potential duplicates if setupDynamicFiles is called multiple times with overlapping sets.
+        this.enabledFiles = this.concatenateWithoutDuplicates(); // Ensure this properly merges and removes duplicates
+
+        // Show dialog for missing files if any
+        if (!missingFileDisplayStrings.isEmpty()) {
+            SwingUtilities.invokeLater(() -> MissingFilesDialog.showDialog(App.getInstance().getClient(), missingFileDisplayStrings));
+        }
     }
 
     public boolean hasTempContext() {
