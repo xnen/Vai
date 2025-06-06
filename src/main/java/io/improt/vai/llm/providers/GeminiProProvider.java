@@ -7,7 +7,7 @@ import io.improt.vai.llm.providers.openai.OpenAIClientBase;
 public class GeminiProProvider extends OpenAIClientBase {
 
     public GeminiProProvider() {
-        super("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-pro-preview-05-06", App.getGeminiKey());
+        super("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-pro-preview-06-05", App.getGeminiKey());
     }
 
     @Override
